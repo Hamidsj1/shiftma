@@ -29,6 +29,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -252,6 +254,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         onPick = { r -> searchOpen = false; if (r.id.startsWith("http")) onLink(r.id) else onOpen(r.id) },
         onDismiss = { searchOpen = false }
     )
+    RatePromptHost(hasData = vm.patterns.collectAsState().value.isNotEmpty())
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val drawerScope = rememberCoroutineScope()
     val importShiftma = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(vm::openPatternFile) }
@@ -305,6 +308,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             }
         }
     ) {
+    Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
     Column(
         Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(horizontal = 16.dp, vertical = 14.dp),
@@ -395,6 +399,18 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         Spacer(Modifier.height(4.dp))
     }
     AdPanel(prefs.adFeed, prefs.adPublic)      // پنل تبلیغاتی ثابت پایین صفحه (ui/AdPanel.kt)؛ بدون تبلیغ چیزی نشان نمی‌دهد
+    }
+    // دکمهٔ دم‌دستِ دفترچه تلفن: پایین-چپ صفحه، فقط وقتی بخش در دسترس است (رمز ویژه یا فایل کاشی‌ها)
+    if (!editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
+        val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+        androidx.compose.material3.SmallFloatingActionButton(
+            onClick = { onOpen("phonebook") },
+            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(16.dp)
+                .semantics { contentDescription = "دفترچه تلفن" },
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ) { Icon(painterResource(R.drawable.ic_home_phone), contentDescription = null, modifier = Modifier.size(24.dp)) }
+    }
     }
     }
 }

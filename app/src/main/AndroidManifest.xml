@@ -32,6 +32,7 @@
         <package android:name="ir.eitaa.messenger" />
         <package android:name="ir.nasim" />
         <package android:name="net.telewebion" />
+        <package android:name="com.farsitel.bazaar" />
     </queries>
     <application
         android:usesCleartextTraffic="true"
