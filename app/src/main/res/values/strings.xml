@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">شیفت ما</string>
+    <string name="widget_desc">شیفت در جریان، تقویم یک‌هفته‌ای و آلارم‌ها؛ کم‌ارتفاع</string>
+    <string name="english_widget_desc">یک لغت انگلیسی جدید در هر روز، با معنی و جمله</string>
+    <string name="prayer_widget_desc">اوقات شرعی امروز با نمایش اذان بعدی (نیاز به روشن بودن امکانات مذهبی)</string>
+    <string name="next_widget_desc">نزدیک‌ترین هشدار بعدی: یادآور شیفت، آلارم، یادداشت یا اذان</string>
+    <string name="alarm_key_service_desc">فقط وقتی آلارم یا اذان در حال پخش است، دکمه‌های صدا را می‌گیرد و آن را قطع می‌کند. در بقیهٔ اوقات هیچ دکمه‌ای را نمی‌گیرد و چیزی از صفحه نمی‌خواند یا ذخیره نمی‌کند.</string>
+</resources>

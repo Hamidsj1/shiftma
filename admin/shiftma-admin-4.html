@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>پنل ادمین شیفت ما</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f5fb;--card:#fff;--ink:#1c1e2b;--mut:#666b82;--line:#e2e4f0;--pri:#3f51b5;--pri-ink:#fff;--soft:#eceefb;--teal:#009688;--err:#c62828;--warn:#a85d00;--ok:#2e7d32;--code:#f0f1f8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11121b;--card:#1b1d2b;--ink:#eceef9;--mut:#9ea3bd;--line:#2b2e42;--pri:#8c9eff;--pri-ink:#11121b;--soft:#262a45;--teal:#4db6ac;--err:#ff8a80;--warn:#ffb74d;--ok:#81c784;--code:#151726}}
+:root[data-theme="dark"]{--bg:#11121b;--card:#1b1d2b;--ink:#eceef9;--mut:#9ea3bd;--line:#2b2e42;--pri:#8c9eff;--pri-ink:#11121b;--soft:#262a45;--teal:#4db6ac;--err:#ff8a80;--warn:#ffb74d;--ok:#81c784;--code:#151726}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.8 Vazirmatn,Tahoma,"Segoe UI",system-ui,sans-serif}
+header{background:linear-gradient(100deg,#3f51b5,#009688);color:#fff;padding:18px 16px 14px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+header .wrap{padding:0}
+h1{margin:0;font-size:22px;font-weight:800}
+header p{margin:2px 0 0;opacity:.9;font-size:13px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.chip{border:1px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);color:#fff;border-radius:99px;padding:4px 14px;cursor:pointer;font:inherit;font-size:13px}
+.chip[aria-pressed="true"]{background:#fff;color:#3f51b5;font-weight:600}
+nav.tabs{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+nav.tabs .wrap{display:flex;gap:2px}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mut);padding:11px 14px;font:inherit;cursor:pointer}
+nav.tabs button[aria-selected="true"]{color:var(--pri);border-bottom-color:var(--pri);font-weight:600}
+main{padding:16px 0 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:17px}
+.card h3{margin:0 0 8px;font-size:15px}
+.sub{color:var(--mut);font-size:13px;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+.f{display:block;margin:0 0 10px}
+.f .lb{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-bottom:3px}
+.f small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+input[type=checkbox],input[type=radio]{width:auto}
+textarea{resize:vertical}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--pri);outline-offset:0}
+.cnt.over{color:var(--err);font-weight:600}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.sp{justify-content:space-between}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}
+.btn:hover{background:var(--soft)}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:var(--pri-ink);font-weight:600}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.sm{padding:2px 10px;font-size:13px}
+.btn.del{color:var(--err)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.item{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:10px;background:var(--bg)}
+.item>.row.sp{margin-bottom:8px;font-weight:600}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+.issues{list-style:none;margin:8px 0;padding:0;font-size:13px}
+.issues li{padding:4px 10px;border-radius:8px;margin-bottom:4px}
+.issues .err{background:rgba(198,40,40,.12);color:var(--err)}
+.issues .warn{background:rgba(255,160,0,.15);color:var(--warn)}
+.issues .ok{background:rgba(46,125,50,.13);color:var(--ok)}
+textarea.json{font:12.5px/1.6 ui-monospace,Consolas,monospace;background:var(--code);min-height:240px;direction:ltr;text-align:left}
+code.path{direction:ltr;unicode-bidi:embed;display:inline-block;background:var(--code);border-radius:8px;padding:1px 8px;font-size:12.5px;word-break:break-all}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg label{padding:4px 12px;cursor:pointer;font-size:13px;border-inline-start:1px solid var(--line);color:var(--mut)}
+.seg label:first-child{border-inline-start:0}
+.seg input{display:none}
+.seg label:has(input:checked){background:var(--pri);color:var(--pri-ink);font-weight:600}
+.seg label:has(input:disabled){opacity:.5;cursor:not-allowed}
+table{width:100%;border-collapse:collapse}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line);text-align:start;font-size:14px}
+.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.notif{border-radius:16px;background:var(--soft);padding:10px 12px;display:flex;gap:10px;max-width:380px}
+.notif i{flex:none;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#3f51b5,#009688);color:#fff;display:grid;place-items:center;font-style:normal;font-weight:800}
+.notif b{display:block;font-size:14px}
+.notif span{font-size:13px;color:var(--mut);display:block;word-break:break-word}
+.banner{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:6.4/1;background:var(--code);display:grid;place-items:center;color:var(--mut);font-size:12px}
+.banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.banner em{position:absolute;top:4px;inset-inline-end:6px;background:rgba(0,0,0,.55);color:#fff;border-radius:6px;font-size:10px;padding:0 6px;font-style:normal}
+.code{font:800 40px/1.2 ui-monospace,Consolas,monospace;letter-spacing:5px;direction:ltr;text-align:center;background:var(--code);border-radius:14px;padding:12px;margin:8px 0;user-select:all}
+.mut{color:var(--mut)}
+.toast{position:fixed;inset-inline:0;bottom:18px;margin:auto;width:max-content;max-width:92vw;background:#222;color:#fff;border-radius:12px;padding:9px 18px;z-index:99;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.toast.err{background:#b71c1c}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);width:min(560px,92vw);padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+details.gh{background:rgba(255,255,255,.14);border-radius:12px;padding:6px 12px;margin-top:10px}
+details.gh summary{cursor:pointer;font-size:13px}
+details.gh .f .lb,details.gh .f small{color:rgba(255,255,255,.85)}
+details.gh input{background:rgba(255,255,255,.95);color:#222}
+details.gh .gridg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0 10px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>پنل ادمین شیفت ما</h1>
+    <p>اعلان‌ها، تبلیغ‌ها، قفل بخش‌ها، برنامهٔ غذایی، فایل کاشی و کدهای باز شدن؛ همه در یک‌جا</p>
+    <div class="bar" id="siteBar" role="group" aria-label="محل"></div>
+    <details class="gh" id="gh"></details>
+  </div>
+</header>
+<nav class="tabs"><div class="wrap" id="tabs" role="tablist"></div></nav>
+<main><div class="wrap" id="view"></div></main>
+<dialog id="dlg"></dialog>
+<noscript>برای کار با پنل، جاوااسکریپت مرورگر باید روشن باشد.</noscript>
+
+<script>
+'use strict';
+/* ───────────── ثابت‌ها (هم‌خوان با قوانین کد برنامه) ───────────── */
+const LS = 'shiftma_admin_v1', LSS = 'shiftma_admin_secrets_v1';
+const SITES0 = [['_public', 'عمومی (همهٔ کاربران)'], ['sungun', 'سونگون'], ['sarcheshmeh', 'سرچشمه'], ['shahrbabak', 'شهربابک'], ['daralu', 'درآلو']];
+const SECTIONS = [['payslips', 'فیش‌های من'], ['notes', 'یادداشت‌ها'], ['files', 'فایل‌های من'], ['income', 'دریافتی‌های ماهانه'], ['prayer', 'اوقات شرعی و قبله'], ['english', 'یادگیری انگلیسی'], ['pay', 'حقوق و اضافه‌کار'], ['sport', 'ورزش و تغذیه'], ['reading', 'مطالعه و کتابخوانی'], ['dhikr', 'ذکر، قضا و رمضان'], ['convert', 'تبدیل واحد'], ['age', 'محاسبهٔ سن'], ['datecv', 'مبدل تاریخ'], ['span', 'محاسبهٔ مدت'], ['imgcompress', 'کاهش حجم عکس'], ['phonebook', 'دفترچه تلفن'], ['meals', 'برنامه غذایی']];
+const PROTECTED = [['shift', 'جدول شیفت'], ['settings', 'تنظیمات'], ['about', 'درباره و اشتراک‌گذاری']];
+const STORE_LINK = 'https://cafebazaar.ir/app/ir.shiftapp.shiftma';
+const FILES = { notice: ['notice.json', 'adsRepo'], ad: ['ad.json', 'adsRepo'], config: ['config.json', 'adsRepo'], meals: ['meals.json', 'mealsRepo'] };
+const TABS = [['notice', 'اعلان‌ها'], ['ad', 'تبلیغ‌ها'], ['config', 'قفل و پنهان‌سازی بخش‌ها'], ['meals', 'برنامه غذایی'], ['tiles', 'فایل کاشی‌ها'], ['codes', 'کدها']];
+
+/* ───────────── حالت برنامه ───────────── */
+const def = () => ({ gh: { user: 'Hamidsj1', adsRepo: 'shiftma-ads', mealsRepo: 'shiftma-meals', branch: 'main' },
+  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {} });
+let S; try { S = Object.assign(def(), JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { S = def(); }
+S.gh = Object.assign(def().gh, S.gh || {});
+let SEC = { special: '', paid: '', token: '' }, remember = false;
+try { const t = JSON.parse(localStorage.getItem(LSS) || 'null'); if (t) { SEC = Object.assign(SEC, t); remember = true; } } catch (e) {}
+function save() {
+  try {
+    localStorage.setItem(LS, JSON.stringify(S));
+    if (remember) localStorage.setItem(LSS, JSON.stringify(SEC)); else localStorage.removeItem(LSS);
+  } catch (e) {}
+}
+let refreshOut = () => {};
+
+const BLANK = {
+  notice: () => ({ enabled: true, items: [] }),
+  ad: () => ({ enabled: true, items: [] }),
+  config: () => ({ enabled: true, payLink: '', sections: {} }),
+  meals: () => ({ enabled: true, complexes: [] }),
+  tiles: () => ({ sites: [], sections: { phonebook: false, meals: false }, publicAds: false, publicNotices: true, mealsFeed: '', adsFeed: '', noticeFeed: '', configFeed: '' }),
+};
+function D(kind) {
+  const k = S.site; S.data[k] = S.data[k] || {};
+  if (!S.data[k][kind]) { S.data[k][kind] = BLANK[kind](); if (kind === 'tiles') autofillTiles(S.data[k][kind], false); }
+  return S.data[k][kind];
+}
+const pathOf = (file, site = S.site) => (site === '_public' ? '' : site + '/') + file;
+const rawUrl = (repo, path) => `https://raw.githubusercontent.com/${S.gh.user}/${repo}/${S.gh.branch}/${path}`;
+const siteName = () => (S.sites.find(s => s.key === S.site) || {}).name || S.site;
+function autofillTiles(t, withMeals) {
+  if (S.site === '_public') return;
+  t.adsFeed = rawUrl(S.gh.adsRepo, pathOf('ad.json'));
+  t.noticeFeed = rawUrl(S.gh.adsRepo, pathOf('notice.json'));
+  t.configFeed = rawUrl(S.gh.adsRepo, pathOf('config.json'));
+  if (withMeals || t.sections.meals) t.mealsFeed = rawUrl(S.gh.mealsRepo, pathOf('meals.json'));
+}
+
+/* ───────────── ابزارهای DOM ───────────── */
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.style.cssText = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, '');
+    else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c));
+  return e;
+}
+function field(label, obj, key, o = {}) {
+  const { type = 'text', ltr = false, ta = false, max, ph, hint, onchange } = o;
+  const inp = h(ta ? 'textarea' : 'input', { type: ta ? null : type, placeholder: ph || '', dir: ltr ? 'ltr' : 'auto', rows: ta ? 3 : null });
+  inp.value = obj[key] == null ? '' : obj[key];
+  const cnt = max ? h('span', { class: 'cnt' }) : null;
+  const upd = () => { if (cnt) { cnt.textContent = `${inp.value.length}/${max}`; cnt.classList.toggle('over', inp.value.length > max); } };
+  inp.addEventListener('input', () => { obj[key] = inp.value; upd(); save(); refreshOut(); if (onchange) onchange(inp.value); });
+  upd();
+  const wrap = h('label', { class: 'f' }, h('span', { class: 'lb' }, h('span', {}, label), cnt), inp, hint ? h('small', {}, hint) : null);
+  wrap.input = inp;
+  return wrap;
+}
+function toggle(label, obj, key, onchange) {
+  const cb = h('input', { type: 'checkbox' }); cb.checked = !!obj[key];
+  cb.addEventListener('change', () => { obj[key] = cb.checked; save(); refreshOut(); if (onchange) onchange(cb.checked); });
+  return h('label', { class: 'sw' }, cb, label);
+}
+let toastT;
+function toast(msg, err) {
+  document.querySelectorAll('.toast').forEach(x => x.remove());
+  const t = h('div', { class: 'toast' + (err ? ' err' : ''), role: 'status' }, msg);
+  document.body.append(t); clearTimeout(toastT); toastT = setTimeout(() => t.remove(), err ? 6000 : 3000);
+}
+async function copyText(text, what) {
+  try { await navigator.clipboard.writeText(text); toast((what || 'متن') + ' کپی شد'); }
+  catch (e) {
+    const ta = h('textarea', { style: 'position:fixed;opacity:0' }); ta.value = text; document.body.append(ta); ta.select();
+    try { document.execCommand('copy'); toast((what || 'متن') + ' کپی شد'); } catch (e2) { toast('کپی نشد؛ دستی انتخاب کنید', true); }
+    ta.remove();
+  }
+}
+function download(name, text, mime) {
+  const a = h('a', { href: URL.createObjectURL(new Blob([text], { type: (mime || 'application/json') + ';charset=utf-8' })), download: name });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+const E = m => ({ l: 'err', m }), W = m => ({ l: 'warn', m });
+const move = (arr, i, d) => { const j = i + d; if (j < 0 || j >= arr.length) return; [arr[i], arr[j]] = [arr[j], arr[i]]; };
+
+/* ───────────── اعتبارسنجی (هم‌خوان با کد برنامه) ───────────── */
+const httpsOk = u => u.length < 2000 && /^https:\/\//i.test(u);
+const hostOf = u => { try { return new URL(u).hostname.toLowerCase(); } catch (e) { return ''; } };
+const ghOk = u => { if (u.length > 600 || !u.startsWith('https://')) return false; const x = hostOf(u); return x === 'raw.githubusercontent.com' || x === 'github.com' || x.endsWith('.github.io') || x.endsWith('.githubusercontent.com'); };
+const dateOk = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); if (!m) return false; const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); return d.getUTCFullYear() === +m[1] && d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3]; };
+const KEY_RE = /^[a-z0-9_]{1,30}$/;
+const FILE_EXT = /\.(pdf|jpe?g|png|webp|gif|bmp)$/i;
+
+function buildNotice() {
+  const d = D('notice'), iss = [], items = [], ids = new Set();
+  if (d.items.length > 5) iss.push(E('حداکثر ۵ اعلان در فایل پذیرفته می‌شود؛ بقیه نادیده گرفته می‌شوند.'));
+  d.items.forEach((it, i) => {
+    const n = `اعلان ${i + 1}`, id = it.id.trim(), t = it.title.trim(), b = it.body.trim(), l = it.link.trim(), x = it.expires.trim();
+    if (!id) iss.push(E(`${n}: شناسه خالی است`)); else if (id.length > 60) iss.push(E(`${n}: شناسه بیش از ۶۰ نویسه است`));
+    if (id && ids.has(id)) iss.push(E(`${n}: شناسهٔ تکراری`)); ids.add(id);
+    if (!t) iss.push(E(`${n}: عنوان خالی است`)); else if (t.length > 100) iss.push(E(`${n}: عنوان بیش از ۱۰۰ نویسه است`));
+    if (b.length > 500) iss.push(E(`${n}: متن بیش از ۵۰۰ نویسه است`));
+    if (l && !httpsOk(l)) iss.push(E(`${n}: پیوند باید با https شروع شود`));
+    if (x && !dateOk(x)) iss.push(E(`${n}: تاریخ انقضا نامعتبر است`));
+    else if (x && Date.parse(x + 'T23:59:59Z') < Date.now()) iss.push(W(`${n}: تاریخ انقضا گذشته؛ نمایش داده نمی‌شود`));
+    const o = { id, title: t, body: b }; if (l) o.link = l; if (x) o.expires = x; items.push(o);
+  });
+  if (d.enabled && !items.length) iss.push(W('فهرست خالی است؛ کاربر اعلانی نمی‌گیرد.'));
+  return { obj: { enabled: d.enabled, items }, iss };
+}
+function buildAd() {
+  const d = D('ad'), iss = [], items = [];
+  if (d.items.length > 10) iss.push(E('حداکثر ۱۰ تبلیغ پذیرفته می‌شود؛ بقیه نادیده گرفته می‌شوند.'));
+  d.items.forEach((it, i) => {
+    const n = `تبلیغ ${i + 1}`, img = it.image.trim(), l = it.link.trim(), t = it.title.trim(), id = it.id.trim(), tile = it.tile.trim().toLowerCase();
+    if (!httpsOk(img)) iss.push(E(`${n}: نشانی تصویر باید https باشد (وگرنه نادیده گرفته می‌شود)`));
+    else if (!/\.(png|jpe?g|webp|gif)(\?.*)?$/i.test(img)) iss.push(W(`${n}: نشانی تصویر پسوند عکس ندارد`));
+    if (!httpsOk(l)) iss.push(E(`${n}: پیوند باید https باشد (وگرنه نادیده گرفته می‌شود)`));
+    if (tile && !KEY_RE.test(tile)) iss.push(E(`${n}: شناسهٔ کاشی فقط حرف کوچک انگلیسی، رقم و _ (حداکثر ۳۰)`));
+    const o = { id: id || img, image: img, link: l, title: t }; if (tile) o.tile = tile; items.push(o);
+  });
+  if (d.enabled && !items.length) iss.push(W('فهرست خالی است؛ پنل تبلیغ نمایش داده نمی‌شود.'));
+  return { obj: { enabled: d.enabled, items }, iss };
+}
+function buildConfig() {
+  const d = D('config'), iss = [], sections = {}, pl = d.payLink.trim();
+  const known = SECTIONS.map(s => s[0]);
+  [...known, ...Object.keys(d.sections).filter(k => !known.includes(k))].forEach(k => { const v = d.sections[k]; if (v === 'hide' || v === 'paid') sections[k] = v; });
+  if (pl && !httpsOk(pl)) iss.push(E('لینک پرداخت باید با https شروع شود (وگرنه نادیده گرفته می‌شود)'));
+  const paid = Object.keys(sections).filter(k => sections[k] === 'paid');
+  if (paid.length && !pl) iss.push(W('بخش پولی بدون لینک پرداخت: کاربر فقط شناسهٔ گوشی و جای کد را می‌بیند.'));
+  if (sections.imgcompress === 'paid') iss.push(W('«کاهش حجم عکس» خودش خرید درون‌برنامه‌ای بازار دارد؛ قفل دوم از این پنل لازم نیست.'));
+  if (paid.length) iss.push(W('قبل از انتشار قانون بازار دربارهٔ فروش با لینک پرداخت بیرونی را بررسی کنید.'));
+  if (S.site === '_public') iss.push(W('config.json فقط از «فایل کاشی‌های» هر محل خوانده می‌شود؛ برای محل مشخص بسازید.'));
+  const obj = { enabled: d.enabled }; if (pl) obj.payLink = pl; obj.sections = sections;
+  return { obj, iss };
+}
+function buildMeals() {
+  const d = D('meals'), iss = [], items = [], seen = new Set();
+  if (d.complexes.length > 20) iss.push(E('حداکثر ۲۰ مجتمع پذیرفته می‌شود؛ بقیه نادیده گرفته می‌شوند.'));
+  d.complexes.forEach((c, i) => {
+    const n = `مجتمع ${i + 1}`, name = c.name.trim(), label = c.label.trim(), file = c.file.trim();
+    if (!name) iss.push(E(`${n}: نام خالی است`)); else if (name.length > 80) iss.push(E(`${n}: نام بیش از ۸۰ نویسه است`));
+    if (name && seen.has(name.toLowerCase())) iss.push(E(`${n}: نام تکراری`)); seen.add(name.toLowerCase());
+    if (label.length > 40) iss.push(E(`${n}: برچسب بیش از ۴۰ نویسه است`));
+    if (!ghOk(file)) iss.push(E(`${n}: نشانی فایل باید https و روی گیت‌هاب (raw.githubusercontent.com یا github.io) باشد`));
+    else if (!FILE_EXT.test(file.split('#')[0].split('?')[0])) iss.push(W(`${n}: پسوند فایل PDF یا عکس نیست`));
+    items.push({ name, label, file });
+  });
+  if (S.site === '_public') iss.push(W('برنامهٔ غذایی مخصوص هر شرکت است؛ برای محل مشخص بسازید.'));
+  return { obj: { enabled: d.enabled, complexes: items }, iss };
+}
+const BUILD = { notice: buildNotice, ad: buildAd, config: buildConfig, meals: buildMeals };
+
+/* وارد کردن JSON موجود در پنل */
+function importInto(kind, text) {
+  const j = JSON.parse(text), d = D(kind), s = v => (v == null ? '' : String(v));
+  if (kind === 'notice') { d.enabled = j.enabled !== false; d.items = (j.items || []).map(o => ({ id: s(o.id), title: s(o.title), body: s(o.body), link: s(o.link), expires: s(o.expires) })); }
+  if (kind === 'ad') { d.enabled = j.enabled !== false; d.items = (j.items || []).map(o => ({ id: s(o.id), image: s(o.image), link: s(o.link), title: s(o.title), tile: s(o.tile) })); }
+  if (kind === 'config') { d.enabled = j.enabled !== false; d.payLink = s(j.payLink); d.sections = {}; Object.entries(j.sections || {}).forEach(([k, v]) => { v = s(v).toLowerCase(); if (v === 'hide' || v === 'paid') d.sections[k.trim().toLowerCase()] = v; }); }
+  if (kind === 'meals') { d.enabled = j.enabled !== false; d.complexes = (j.complexes || []).map(o => ({ name: s(o.name), label: s(o.label), file: s(o.file) })); }
+  if (kind === 'tiles') {
+    if (j.type !== 'tiles') throw new Error('این فایل کاشی‌ها نیست');
+    d.sites = (j.sites || []).map(o => ({ key: s(o.key), title: s(o.title), subtitle: s(o.subtitle), url: s(o.url), pdf: !!o.pdf, logo: s(o.logo) }));
+    d.sections = { phonebook: (j.sections || []).includes('phonebook'), meals: (j.sections || []).includes('meals') };
+    ['mealsFeed', 'adsFeed', 'noticeFeed', 'configFeed'].forEach(k => d[k] = s(j[k]));
+    d.publicAds = !!j.publicAds; d.publicNotices = j.publicNotices !== false;
+  }
+  save();
+}
+
+/* ───────────── گیت‌هاب ───────────── */
+function b64bytes(b) { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+function b64utf8(text) { return b64bytes(new TextEncoder().encode(text)); }
+const imgSize = f => new Promise(res => { const i = new Image(); i.onload = () => { res([i.naturalWidth, i.naturalHeight]); URL.revokeObjectURL(i.src); }; i.onerror = () => res(null); i.src = URL.createObjectURL(f); });
+/* آپلود فایل (تصویر بنر یا PDF/عکس غذا) کنار JSON همان محل؛ نام تصادفی می‌گیرد تا کش برنامه قاطی نشود */
+async function ghUpload(repoKey, file, { exts, maxBytes, prefix }) {
+  if (!SEC.token) throw new Error('توکن گیت‌هاب را در بخش «اتصال به گیت‌هاب» (بالای صفحه) وارد کنید');
+  const m = /\.([A-Za-z0-9]+)$/.exec(file.name), ext = (m ? m[1] : '').toLowerCase();
+  if (!exts.includes(ext)) throw new Error('فقط این فرمت‌ها پذیرفته می‌شود: ' + exts.join('، '));
+  if (file.size > maxBytes) throw new Error(`حجم فایل ${(file.size / 1048576).toFixed(1)} مگابایت است؛ حداکثر ${+(maxBytes / 1048576).toFixed(1)} مگابایت مجاز است`);
+  const base = file.name.replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 30) || prefix;
+  const name = `${base}-${Math.random().toString(36).slice(2, 6)}.${ext}`, path = pathOf(name), repo = S.gh[repoKey];
+  const content = b64bytes(new Uint8Array(await file.arrayBuffer()));
+  const r = await fetch(`https://api.github.com/repos/${S.gh.user}/${repo}/contents/${path}`, { method: 'PUT',
+    headers: { Authorization: 'Bearer ' + SEC.token, Accept: 'application/vnd.github+json' },
+    body: JSON.stringify({ message: `پنل ادمین: آپلود ${name}`, content, branch: S.gh.branch }) });
+  if (!r.ok) { let t = ''; try { t = (await r.json()).message; } catch (e) {} throw new Error('آپلود نشد (' + r.status + ') ' + (t || '')); }
+  return rawUrl(repo, path);
+}
+/* دکمهٔ «آپلود از دستگاه» کنار یک فیلد نشانی */
+function uploadBtn(label, accept, repoKey, opts, onUrl, precheck) {
+  const fi = h('input', { type: 'file', accept, hidden: true });
+  const b = h('button', { class: 'btn sm', type: 'button', onclick: () => fi.click() }, label);
+  fi.addEventListener('change', async () => {
+    const f = fi.files[0]; fi.value = ''; if (!f) return;
+    b.disabled = true; const t0 = b.textContent; b.textContent = 'در حال آپلود…';
+    try {
+      if (precheck && !(await precheck(f))) return;
+      const url = await ghUpload(repoKey, f, opts); onUrl(url); save(); toast('آپلود شد؛ آدرس در فیلد گذاشته شد. دیده شدن تصویر ممکن است چند ثانیه طول بکشد.');
+    } catch (e) { toast(e.message, true); } finally { b.disabled = false; b.textContent = t0; }
+  });
+  return h('span', {}, b, fi);
+}
+async function ghRead(kind) {
+  const [file, repoKey] = FILES[kind], repo = S.gh[repoKey], path = pathOf(file);
+  const r = SEC.token
+    ? await fetch(`https://api.github.com/repos/${S.gh.user}/${repo}/contents/${path}?ref=${encodeURIComponent(S.gh.branch)}`, { headers: { Authorization: 'Bearer ' + SEC.token, Accept: 'application/vnd.github.raw+json' }, cache: 'no-store' })
+    : await fetch(rawUrl(repo, path) + '?t=' + Date.now(), { cache: 'no-store' });
+  if (r.status === 404) throw new Error('این فایل هنوز روی گیت‌هاب نیست');
+  if (!r.ok) throw new Error('خطا در دریافت (' + r.status + ')');
+  return r.text();
+}
+async function ghWrite(kind, text) {
+  if (!SEC.token) throw new Error('توکن گیت‌هاب را در بخش «اتصال به گیت‌هاب» (بالای صفحه) وارد کنید');
+  const [file, repoKey] = FILES[kind], repo = S.gh[repoKey], path = pathOf(file);
+  const api = `https://api.github.com/repos/${S.gh.user}/${repo}/contents/${path}`;
+  const hd = { Authorization: 'Bearer ' + SEC.token, Accept: 'application/vnd.github+json' };
+  let sha; const g = await fetch(api + '?ref=' + encodeURIComponent(S.gh.branch), { headers: hd, cache: 'no-store' });
+  if (g.ok) sha = (await g.json()).sha; else if (g.status !== 404) throw new Error('خواندن فایل ناموفق بود (' + g.status + ')؛ توکن یا نام ریپو را بررسی کنید');
+  const r = await fetch(api, { method: 'PUT', headers: hd, body: JSON.stringify({ message: `پنل ادمین: ${file} ${siteName()}`, content: b64utf8(text), branch: S.gh.branch, sha }) });
+  if (!r.ok) { let m = ''; try { m = (await r.json()).message; } catch (e) {} throw new Error('ذخیره نشد (' + r.status + ') ' + (m || '')); }
+}
+
+/* ───────────── پوستهٔ ویرایشگر و پنل خروجی ───────────── */
+function outputPanel(kind) {
+  const [file, repoKey] = FILES[kind];
+  const path = h('code', { class: 'path' }), issues = h('ul', { class: 'issues' });
+  const ta = h('textarea', { class: 'json', readonly: true, dir: 'ltr', rows: 14, 'aria-label': 'خروجی JSON' });
+  const link = h('a', { target: '_blank', rel: 'noopener', style: 'font-size:12px;direction:ltr;display:inline-block;word-break:break-all' });
+  const pub = h('button', { class: 'btn pri', onclick: async () => {
+    if (!confirm(`«${file}» ${siteName()} روی گیت‌هاب ذخیره شود؟\n${S.gh.user}/${S.gh[repoKey]}/${pathOf(file)}`)) return;
+    pub.disabled = true;
+    try { await ghWrite(kind, ta.value + '\n'); toast('در گیت‌هاب ذخیره شد. تا ۳ ساعت دیگر به گوشی‌ها می‌رسد.'); }
+    catch (e) { toast(e.message, true); } finally { update(); }
+  } }, 'انتشار در گیت‌هاب');
+  const update = () => {
+    const { obj, iss } = BUILD[kind]();
+    ta.value = JSON.stringify(obj, null, 2);
+    const p = pathOf(file); path.textContent = `${S.gh[repoKey]}/${p}`;
+    link.href = link.textContent = rawUrl(S.gh[repoKey], p);
+    const errs = iss.filter(x => x.l === 'err').length;
+    issues.replaceChildren(...(iss.length ? iss : [{ l: 'ok', m: 'همه‌چیز درست است.' }]).map(x => h('li', { class: x.l }, x.m)));
+    pub.disabled = errs > 0; pub.title = errs ? 'اول خطاها را برطرف کنید' : '';
+  };
+  const el = h('div', { class: 'card' },
+    h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'مسیر فایل در ریپو: ', path, h('br'), link), issues, ta,
+    h('div', { class: 'row', style: 'margin-top:10px' },
+      h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'),
+      h('button', { class: 'btn', onclick: () => download(file, ta.value + '\n') }, 'دانلود'),
+      h('button', { class: 'btn', onclick: () => openImport(kind) }, 'وارد کردن JSON'),
+      h('button', { class: 'btn', onclick: async () => { try { importInto(kind, await ghRead(kind)); toast('از گیت‌هاب دریافت شد'); render(); } catch (e) { toast(e.message, true); } } }, 'دریافت از گیت‌هاب'),
+      pub));
+  refreshOut = update; update();
+  return el;
+}
+function openImport(kind) {
+  const dlg = $('#dlg'), ta = h('textarea', { dir: 'ltr', rows: 10, placeholder: 'محتوای JSON را اینجا بچسبانید' });
+  const fi = h('input', { type: 'file', accept: '.json,.shiftma,application/json', onchange: async () => { if (fi.files[0]) ta.value = await fi.files[0].text(); } });
+  dlg.replaceChildren(h('h3', {}, 'وارد کردن JSON'), h('p', { class: 'sub' }, 'محتوای فعلی این برگه با آن جایگزین می‌شود.'), ta, h('div', { class: 'row', style: 'margin-top:8px' }, fi),
+    h('div', { class: 'row sp', style: 'margin-top:12px' }, h('button', { class: 'btn', onclick: () => dlg.close() }, 'انصراف'),
+      h('button', { class: 'btn pri', onclick: () => { try { importInto(kind, ta.value); dlg.close(); toast('وارد شد'); render(); } catch (e) { toast('JSON درست نیست: ' + e.message, true); } } }, 'وارد کن')));
+  dlg.showModal();
+}
+const $ = (s, r = document) => r.querySelector(s);
+function shell(kind, title, sub, editor, extra) {
+  const g = h('div', { class: 'grid' }, h('div', {}, h('div', { class: 'card' }, h('h2', {}, title), h('p', { class: 'sub' }, sub), editor), extra), outputPanel(kind));
+  return g;
+}
+
+/* ───────────── برگهٔ اعلان‌ها ───────────── */
+const todayTehran = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tehran', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const autoId = () => 'n' + todayTehran().replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 5);
+function tabNotice() {
+  const d = D('notice'), list = h('div'), prev = h('div');
+  const drawPrev = () => { const it = d.items[0]; prev.replaceChildren(h('h3', {}, 'پیش‌نمایش اعلان'), h('div', { class: 'notif' }, h('i', {}, 'ش'), h('div', {}, h('b', {}, (it && it.title.trim()) || 'عنوان اعلان'), h('span', {}, (it && it.body.trim()) || 'متن اعلان اینجا دیده می‌شود')))); };
+  const draw = () => {
+    list.replaceChildren(...d.items.map((it, i) => {
+      const idf = field('شناسهٔ یکتا (هر شناسه فقط یک‌بار به هر کاربر نشان داده می‌شود)', it, 'id', { ltr: true, max: 60 });
+      return h('div', { class: 'item' },
+        h('div', { class: 'row sp' }, h('span', {}, `اعلان ${i + 1}`), h('span', { class: 'row' },
+          h('button', { class: 'btn sm', title: 'بالا', onclick: () => { move(d.items, i, -1); save(); draw(); refreshOut(); } }, '↑'),
+          h('button', { class: 'btn sm', title: 'پایین', onclick: () => { move(d.items, i, 1); save(); draw(); refreshOut(); } }, '↓'),
+          h('button', { class: 'btn sm del', onclick: () => { d.items.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف'))),
+        idf, h('button', { class: 'btn sm', style: 'margin:-4px 0 10px', onclick: () => { it.id = autoId(); save(); draw(); refreshOut(); } }, 'ساخت شناسهٔ تازه'),
+        field('عنوان', it, 'title', { max: 100, onchange: drawPrev }), field('متن', it, 'body', { ta: true, max: 500, onchange: drawPrev }),
+        h('div', { class: 'two' }, field('پیوند (اختیاری، https)', it, 'link', { ltr: true, ph: 'https://' }), field('تاریخ انقضا (اختیاری، میلادی)', it, 'expires', { type: 'date', ltr: true })));
+    }));
+    drawPrev();
+  };
+  const add = (o) => { d.items.push(Object.assign({ id: autoId(), title: '', body: '', link: '', expires: '' }, o || {})); save(); draw(); refreshOut(); };
+  draw();
+  const editor = h('div', {}, toggle('اعلان‌ها فعال باشند (خاموش = هیچ اعلانی نمی‌رسد)', d, 'enabled'), h('div', { style: 'height:10px' }), list,
+    h('div', { class: 'row' }, h('button', { class: 'btn pri', onclick: () => add() }, '+ اعلان تازه'),
+      h('button', { class: 'btn', onclick: () => add({ title: 'نسخهٔ جدید شیفت ما آمد', body: 'برای دریافت امکانات تازه، برنامه را از کافه‌بازار به‌روز کنید.', link: STORE_LINK }) }, '+ پیام «نسخهٔ جدید»')),
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'حداکثر ۵ اعلان. اعلان‌های قدیمی را می‌توانید پاک کنید؛ کاربر دوباره نمی‌بیند. برای پیام تازه همیشه شناسهٔ تازه بگذارید.'));
+  return shell('notice', 'اعلان‌ها (پنل نوتیفیکیشن)', `فایل ${siteName()}؛ برنامه هر ۳ ساعت و هنگام باز شدن آن را می‌گیرد.`, editor, h('div', { class: 'card' }, prev));
+}
+
+/* ───────────── برگهٔ تبلیغ‌ها ───────────── */
+function tabAd() {
+  const d = D('ad'), list = h('div');
+  const draw = () => {
+    list.replaceChildren(...d.items.map((it, i) => {
+      const img = h('img', { alt: '' }), note = h('span', {}, 'پیش‌نمایش تصویر'), box = h('div', { class: 'banner' }, note, img, h('em', {}, 'تبلیغ'));
+      const loadImg = () => { const u = it.image.trim(); img.hidden = true; note.textContent = 'پیش‌نمایش تصویر'; if (httpsOk(u)) { img.onload = () => { img.hidden = false; note.textContent = ''; }; img.onerror = () => { img.hidden = true; note.textContent = 'تصویر باز نشد'; }; img.src = u; } };
+      loadImg();
+      return h('div', { class: 'item' },
+        h('div', { class: 'row sp' }, h('span', {}, `تبلیغ ${i + 1}`), h('span', { class: 'row' },
+          h('button', { class: 'btn sm', onclick: () => { move(d.items, i, -1); save(); draw(); refreshOut(); } }, '↑'),
+          h('button', { class: 'btn sm', onclick: () => { move(d.items, i, 1); save(); draw(); refreshOut(); } }, '↓'),
+          h('button', { class: 'btn sm del', onclick: () => { d.items.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف'))),
+        box,
+        field('نشانی تصویر بنر (https، ۱۲۸۰×۲۰۰، حداکثر ۱٫۵ مگابایت)', it, 'image', { ltr: true, ph: 'https://raw.githubusercontent.com/…/ad1.png', onchange: loadImg, hint: 'برای عوض کردن تصویر، نام فایل را هم عوض کنید؛ برنامه تصویرها را با نشانی کش می‌کند.' }),
+        h('div', { class: 'row', style: 'margin:-4px 0 10px' }, uploadBtn('آپلود تصویر از دستگاه', 'image/png,image/jpeg,image/webp,image/gif', 'adsRepo',
+          { exts: ['png', 'jpg', 'jpeg', 'webp', 'gif'], maxBytes: 1500000, prefix: 'banner' },
+          url => { it.image = url; draw(); refreshOut(); },
+          async f => { const z = await imgSize(f); if (z && (z[0] > 4000 || z[1] > 1500)) { toast(`ابعاد تصویر ${z[0]}×${z[1]} است؛ برنامه تصویر بزرگ‌تر از ۴۰۰۰×۱۵۰۰ را رد می‌کند`, true); return false; } if (z && Math.abs(z[0] / z[1] - 6.4) / 6.4 > 0.05) return confirm(`اندازهٔ تصویر ${z[0]}×${z[1]} است؛ اندازهٔ پیشنهادی ۱۲۸۰×۲۰۰ است و ممکن است بریده یا کشیده دیده شود. با این حال آپلود شود؟`); return true; }),
+          h('span', { class: 'mut', style: 'font-size:12px' }, `در ریپوی ${S.gh.adsRepo}، کنار ad.json همین محل ذخیره می‌شود`)),
+        field('پیوند با لمس بنر (https)', it, 'link', { ltr: true, ph: 'https://' }),
+        h('div', { class: 'two' }, field('عنوان (اختیاری)', it, 'title'), field('شناسه (اختیاری)', it, 'id', { ltr: true })),
+        field('کاشی اختصاصی (اختیاری)', it, 'tile', { ltr: true, ph: 'مثلاً phonebook یا meals', hint: 'خالی = پنل پایین صفحهٔ اول. اگر کلید کاشی بدهید، فقط پایین همان بخش نشان داده می‌شود.' }));
+    }));
+  };
+  draw();
+  const editor = h('div', {}, toggle('تبلیغ‌ها فعال باشند', d, 'enabled'), h('div', { style: 'height:10px' }), list,
+    h('button', { class: 'btn pri', onclick: () => { d.items.push({ id: '', image: '', link: '', title: '', tile: '' }); save(); draw(); refreshOut(); } }, '+ تبلیغ تازه'),
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'حداکثر ۱۰ تبلیغ؛ در پنل صفحهٔ اول هر ۱۰ ثانیه جابه‌جا می‌شوند و برچسب «تبلیغ» دارند.'));
+  return shell('ad', 'تبلیغ‌ها (پنل پایین صفحهٔ اول)', `فایل ${siteName()}${S.site === '_public' ? '؛ برای کاربر عمومی بازار' : '؛ فقط برای کاربرانی که فایل کاشی همین محل را وارد کرده‌اند'}.`, editor);
+}
+
+/* ───────────── برگهٔ قفل و پنهان‌سازی بخش‌ها ───────────── */
+function tabConfig() {
+  const d = D('config'), rows = h('tbody');
+  const mk = (id, name) => {
+    const cur = () => d.sections[id] || 'show', g = 'sec_' + id;
+    const seg = h('div', { class: 'seg' }, [['show', 'نمایان'], ['hide', 'پنهان'], ['paid', 'پولی']].map(([v, l]) => {
+      const r = h('input', { type: 'radio', name: g, value: v }); r.checked = cur() === v;
+      r.addEventListener('change', () => { if (v === 'show') delete d.sections[id]; else d.sections[id] = v; save(); refreshOut(); });
+      return h('label', {}, r, l);
+    }));
+    return h('tr', {}, h('td', {}, name, h('div', { class: 'mut', style: 'font-size:12px;direction:ltr;text-align:start' }, id)), h('td', {}, seg));
+  };
+  rows.append(...SECTIONS.map(([id, n]) => mk(id, n)));
+  rows.append(...PROTECTED.map(([id, n]) => h('tr', {}, h('td', {}, n, h('div', { class: 'mut', style: 'font-size:12px' }, 'همیشه نمایان؛ قابل پنهان یا قفل کردن نیست')), h('td', {}, h('span', { class: 'seg' }, h('label', { style: 'opacity:.6' }, 'نمایان'))))));
+  const editor = h('div', {}, toggle('قاعده‌ها اعمال شوند (خاموش = همه‌چیز نمایان و رایگان)', d, 'enabled'), h('div', { style: 'height:10px' }),
+    field('لینک پرداخت برای بخش‌های پولی (https)', d, 'payLink', { ltr: true, ph: 'https://' }),
+    h('table', {}, h('tbody', {}, rows)),
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'تغییر تا حدود ۳ ساعت دیرتر به گوشی‌ها می‌رسد. برای باز کردن یک بخش پولی برای کاربر، از برگهٔ «کدها» کد بسازید.'));
+  return shell('config', 'قفل و پنهان‌سازی بخش‌ها', `فایل config.json ${siteName()}`, editor);
+}
+
+/* ───────────── برگهٔ برنامه غذایی ───────────── */
+function tabMeals() {
+  const d = D('meals'), list = h('div');
+  const draw = () => {
+    list.replaceChildren(...d.complexes.map((c, i) => h('div', { class: 'item' },
+      h('div', { class: 'row sp' }, h('span', {}, `مجتمع ${i + 1}`), h('span', { class: 'row' },
+        h('button', { class: 'btn sm', onclick: () => { move(d.complexes, i, -1); save(); draw(); refreshOut(); } }, '↑'),
+        h('button', { class: 'btn sm', onclick: () => { move(d.complexes, i, 1); save(); draw(); refreshOut(); } }, '↓'),
+        h('button', { class: 'btn sm del', onclick: () => { d.complexes.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف'))),
+      h('div', { class: 'two' }, field('نام مجتمع', c, 'name', { max: 80 }), field('برچسب ماه', c, 'label', { max: 40, ph: 'مهر ۱۴۰۵' })),
+      field('نشانی فایل (PDF یا عکس، روی گیت‌هاب)', c, 'file', { ltr: true, ph: 'https://raw.githubusercontent.com/…/complex1-mehr.pdf', hint: 'برای ماه بعد فایل را با نام تازه بگذارید؛ برنامه فقط وقتی نشانی عوض شده باشد دوباره دانلود می‌کند.' }),
+      h('div', { class: 'row' }, uploadBtn('آپلود PDF یا عکس از دستگاه', 'application/pdf,image/*', 'mealsRepo',
+        { exts: ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'], maxBytes: 10 * 1048576, prefix: 'meal' },
+        url => { c.file = url; draw(); refreshOut(); }),
+        h('span', { class: 'mut', style: 'font-size:12px' }, `در ریپوی ${S.gh.mealsRepo}، کنار meals.json همین محل (هر بار با نام تازه)`)))));
+  };
+  draw();
+  const editor = h('div', {}, toggle('برنامهٔ غذایی فعال باشد', d, 'enabled'), h('div', { style: 'height:10px' }), list,
+    h('button', { class: 'btn pri', onclick: () => { d.complexes.push({ name: '', label: '', file: '' }); save(); draw(); refreshOut(); } }, '+ مجتمع تازه'),
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'حداکثر ۲۰ مجتمع، فایل تا ۱۰ مگابایت. نام مجتمع اگر با نام موجود در گوشی یکی باشد، فایلش جایگزین می‌شود.'));
+  return shell('meals', 'برنامهٔ غذایی شرکت', `فایل meals.json ${siteName()} (ریپوی ${S.gh.mealsRepo})`, editor);
+}
+
+/* ───────────── برگهٔ فایل کاشی‌ها (.shiftma) ───────────── */
+function buildTiles() {
+  const d = D('tiles'), iss = [], sites = [], keys = new Set();
+  if (d.sites.length > 30) iss.push(E('حداکثر ۳۰ سامانه در فایل مجاز است'));
+  d.sites.forEach((s, i) => {
+    const n = `سامانه ${i + 1}`, title = s.title.trim(), sub = s.subtitle.trim(), url = s.url.trim(), key = s.key.trim().toLowerCase();
+    if (!title) iss.push(E(`${n}: عنوان خالی است`)); else if (title.length > 40) iss.push(E(`${n}: عنوان بیش از ۴۰ نویسه است`));
+    if (sub.length > 60) iss.push(E(`${n}: توضیح بیش از ۶۰ نویسه است`));
+    if (!(url.length <= 600 && url.startsWith('https://') && hostOf(url))) iss.push(E(`${n}: آدرس باید با https شروع شود`));
+    if (key && !KEY_RE.test(key)) iss.push(E(`${n}: شناسه فقط حرف کوچک انگلیسی، رقم و _`));
+    if (key && keys.has(key)) iss.push(E(`${n}: شناسهٔ تکراری`)); if (key) keys.add(key);
+    if (s.logo && Math.floor(s.logo.length * 3 / 4) > 90000) iss.push(E(`${n}: آرم بزرگ‌تر از ۹۰ کیلوبایت است`));
+    const o = {}; if (key) o.key = key; o.title = title; o.subtitle = sub; o.url = url; o.pdf = !!s.pdf; if (s.logo) o.logo = s.logo; sites.push(o);
+  });
+  const sections = ['meals', 'phonebook'].filter(k => d.sections[k]).sort();
+  const feeds = {}; let any = sites.length || sections.length;
+  [['mealsFeed', 'آدرس برنامه غذایی'], ['adsFeed', 'آدرس تبلیغ'], ['noticeFeed', 'آدرس اعلان‌ها'], ['configFeed', 'آدرس تنظیمات']].forEach(([k, label]) => {
+    const v = d[k].trim(); if (!v) return; any = true;
+    if (!ghOk(v)) iss.push(E(`${label} باید https و روی گیت‌هاب باشد`)); feeds[k] = v;
+  });
+  if (!any) iss.push(E('فایل کاشی‌ها خالی است؛ حداقل یک سامانه، بخش یا آدرس بگذارید'));
+  if (d.sections.meals && !feeds.mealsFeed) iss.push(W('بخش «برنامه غذایی» روشن است ولی آدرس برنامه غذایی خالی است.'));
+  const obj = { app: 'shiftma', type: 'tiles', version: 1, sites, sections };
+  if (feeds.mealsFeed) obj.mealsFeed = feeds.mealsFeed;
+  if (feeds.adsFeed) { obj.adsFeed = feeds.adsFeed; if (d.publicAds) obj.publicAds = true; }
+  if (feeds.noticeFeed) { obj.noticeFeed = feeds.noticeFeed; if (!d.publicNotices) obj.publicNotices = false; }
+  if (feeds.configFeed) obj.configFeed = feeds.configFeed;
+  return { obj, iss };
+}
+function resizeLogo(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(); img.onload = () => {
+      const c = document.createElement('canvas'), z = 96, r = Math.min(z / img.width, z / img.height, 1);
+      c.width = Math.max(1, Math.round(img.width * r)); c.height = Math.max(1, Math.round(img.height * r));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/png').split(',')[1]); URL.revokeObjectURL(img.src);
+    }; img.onerror = () => rej(new Error('تصویر خوانده نشد')); img.src = URL.createObjectURL(file);
+  });
+}
+function tabTiles() {
+  const d = D('tiles'), list = h('div'), fname = () => `${S.site === '_public' ? 'tiles' : S.site}.shiftma`;
+  const path = h('code', { class: 'path' }), issues = h('ul', { class: 'issues' }), ta = h('textarea', { class: 'json', readonly: true, dir: 'ltr', rows: 14 });
+  const dl = h('button', { class: 'btn pri', onclick: () => download(fname(), ta.value, 'application/x-shiftma') }, 'دانلود فایل .shiftma');
+  const update = () => {
+    const { obj, iss } = buildTiles(); ta.value = JSON.stringify(obj, null, 2); path.textContent = fname();
+    issues.replaceChildren(...(iss.length ? iss : [{ l: 'ok', m: 'همه‌چیز درست است.' }]).map(x => h('li', { class: x.l }, x.m)));
+    dl.disabled = iss.some(x => x.l === 'err');
+  };
+  refreshOut = update;
+  const draw = () => {
+    list.replaceChildren(...d.sites.map((s, i) => {
+      const lg = h('img', { alt: '', style: 'width:34px;height:34px;border-radius:8px;object-fit:cover;background:var(--code)', src: s.logo ? 'data:image/png;base64,' + s.logo : null, hidden: !s.logo });
+      const fi = h('input', { type: 'file', accept: 'image/*', onchange: async () => { try { s.logo = await resizeLogo(fi.files[0]); save(); draw(); update(); } catch (e) { toast(e.message, true); } } });
+      return h('div', { class: 'item' },
+        h('div', { class: 'row sp' }, h('span', {}, `سامانه ${i + 1}`), h('button', { class: 'btn sm del', onclick: () => { d.sites.splice(i, 1); save(); draw(); update(); } }, 'حذف')),
+        h('div', { class: 'two' }, field('عنوان', s, 'title', { max: 40 }), field('توضیح کوتاه', s, 'subtitle', { max: 60 })),
+        field('آدرس سامانه (https)', s, 'url', { ltr: true, ph: 'https://' }),
+        h('div', { class: 'two' }, field('شناسه (اختیاری)', s, 'key', { ltr: true, hint: 'خالی = از روی آدرس ساخته می‌شود' }), h('div', { class: 'f' }, h('span', { class: 'lb' }, 'آرم (اختیاری)'), h('div', { class: 'row' }, lg, fi, s.logo ? h('button', { class: 'btn sm del', onclick: () => { s.logo = ''; save(); draw(); update(); } }, 'حذف آرم') : null))),
+        toggle('دکمهٔ «دانلود PDF» داشته باشد', s, 'pdf'));
+    }));
+  };
+  draw();
+  const feedFields = ['mealsFeed', 'adsFeed', 'noticeFeed', 'configFeed'].map(k => field({ mealsFeed: 'آدرس برنامه غذایی (meals.json)', adsFeed: 'آدرس تبلیغ (ad.json)', noticeFeed: 'آدرس اعلان‌ها (notice.json)', configFeed: 'آدرس تنظیمات (config.json)' }[k], d, k, { ltr: true, ph: 'https://raw.githubusercontent.com/…' }));
+  const editor = h('div', {},
+    h('h3', {}, 'سامانه‌ها'), list,
+    h('button', { class: 'btn pri', onclick: () => { d.sites.push({ key: '', title: '', subtitle: '', url: '', pdf: false, logo: '' }); save(); draw(); update(); } }, '+ سامانهٔ تازه'),
+    h('h3', { style: 'margin-top:16px' }, 'بخش‌های مخفی که با این فایل نمایان می‌شوند'),
+    h('div', { class: 'row' }, toggle('دفترچه تلفن', d.sections, 'phonebook'), toggle('برنامه غذایی', d.sections, 'meals', on => { if (on && !d.mealsFeed && S.site !== '_public') { d.mealsFeed = rawUrl(S.gh.mealsRepo, pathOf('meals.json')); render(); } })),
+    h('h3', { style: 'margin-top:16px' }, 'آدرس خوراک‌های همین محل'),
+    h('p', { class: 'sub' }, S.site === '_public' ? 'برای فایل عمومی معمولاً لازم نیست.' : `از تنظیمات اتصال (${S.gh.user}/${S.gh.adsRepo}) و محل «${siteName()}» پر می‌شود.`),
+    feedFields,
+    h('div', { class: 'row' }, toggle('کاربر این محل، تبلیغ عمومی را هم ببیند', d, 'publicAds'), toggle('اعلان‌های عمومی هم برسد', d, 'publicNotices')),
+    h('button', { class: 'btn', style: 'margin-top:10px', disabled: S.site === '_public', onclick: () => { autofillTiles(d, true); save(); render(); } }, 'پر کردن خودکار آدرس‌ها'));
+  update();
+  const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'نام فایل: ', path, h('br'), 'این فایل را برای کاربران همان محل در تلگرام/ایتا بفرستید؛ با لمس آن در «شیفت ما» باز می‌شود.'), issues, ta,
+    h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'), dl, h('button', { class: 'btn', onclick: () => openImport('tiles') }, 'وارد کردن فایل')));
+  return h('div', { class: 'grid' }, h('div', { class: 'card' }, h('h2', {}, 'فایل کاشی‌ها'), h('p', { class: 'sub' }, `ساخت فایل .shiftma برای محل ${siteName()}: سامانه‌ها، بخش‌های مخفی و آدرس خوراک‌ها. نام کاربری و رمز هرگز داخل فایل نمی‌آید.`), editor), out);
+}
+
+/* ───────────── کدها (HMAC-SHA256) ───────────── */
+function sha256(msg) {
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n)), max = 4294967296, hash = [], k = [], isc = {}; let pc = 0;
+  for (let c = 2; pc < 64; c++) if (!isc[c]) { for (let i = 0; i < 313; i += c) isc[i] = c; hash[pc] = (Math.pow(c, .5) * max) | 0; k[pc++] = (Math.pow(c, 1 / 3) * max) | 0; }
+  const Hh = hash.slice(0, 8), bits = msg.length * 8, p = new Uint8Array(((msg.length + 9 + 63) >> 6) << 6); p.set(msg); p[msg.length] = 0x80;
+  const dv = new DataView(p.buffer); dv.setUint32(p.length - 4, bits >>> 0); dv.setUint32(p.length - 8, Math.floor(bits / max));
+  for (let j = 0; j < p.length; j += 64) {
+    const w = new Array(64); for (let i = 0; i < 16; i++) w[i] = dv.getUint32(j + i * 4);
+    for (let i = 16; i < 64; i++) { const a = w[i - 15], b = w[i - 2]; w[i] = (w[i - 16] + (rotr(a, 7) ^ rotr(a, 18) ^ (a >>> 3)) + w[i - 7] + (rotr(b, 17) ^ rotr(b, 19) ^ (b >>> 10))) | 0; }
+    let [a, b, c, d, e, f, g, hh] = Hh;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (hh + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + k[i] + w[i]) | 0, t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      hh = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    [a, b, c, d, e, f, g, hh].forEach((v, i) => Hh[i] = (Hh[i] + v) | 0);
+  }
+  const out = new Uint8Array(32), o = new DataView(out.buffer); Hh.forEach((v, i) => o.setUint32(i * 4, v)); return out;
+}
+function hmacSlow(key, msg) {
+  if (key.length > 64) key = sha256(key); const k = new Uint8Array(64); k.set(key);
+  const ip = k.map(x => x ^ 0x36), op = k.map(x => x ^ 0x5c), cat = (a, b) => { const r = new Uint8Array(a.length + b.length); r.set(a); r.set(b, a.length); return r; };
+  return sha256(cat(op, sha256(cat(ip, msg))));
+}
+async function hmac(secret, text, forceSlow) {
+  const enc = new TextEncoder(), key = enc.encode(secret), msg = enc.encode(text);
+  if (!forceSlow && window.crypto && crypto.subtle) {
+    try { const ck = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); return new Uint8Array(await crypto.subtle.sign('HMAC', ck, msg)); } catch (e) {}
+  }
+  return hmacSlow(key, msg);
+}
+function truncate(hh, digits) {
+  const o = hh[hh.length - 1] & 15, bin = ((hh[o] & 0x7f) << 24) | (hh[o + 1] << 16) | (hh[o + 2] << 8) | hh[o + 3];
+  return String(bin % Math.pow(10, digits)).padStart(digits, '0');
+}
+const dailyCode = async (secret, ymd, slow) => truncate(await hmac(secret, 'ShiftMa|' + ymd, slow), 6);
+const paidCode = async (secret, id, sec, slow) => truncate(await hmac(secret, `ShiftMa|paid|${id.trim().toUpperCase()}|${sec}`, slow), 8);
+
+function secretField(label, key, hint) {
+  const f = field(label, SEC, key, { type: 'password', ltr: true, hint }); f.input.autocomplete = 'off'; return f;
+}
+function tabCodes() {
+  const day = h('input', { type: 'date', dir: 'ltr', value: todayTehran() });
+  const big = h('div', { class: 'code', 'aria-live': 'polite' }, '——'), tbl = h('tbody'), info = h('p', { class: 'sub' });
+  const sp = secretField('کلید رمز روزانه (SpecialAccess.SECRET)', 'special', 'این کلید فقط در حافظهٔ همین صفحه می‌ماند، مگر «به خاطر بسپار» را بزنید.');
+  const ymdPlus = (ymd, n) => { const [y, m, d] = ymd.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d + n)); return t.toISOString().slice(0, 10); };
+  const fa = ymd => new Intl.DateTimeFormat('fa-IR', { calendar: 'persian', weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(ymd + 'T00:00:00Z'));
+  async function calc1() {
+    if (!SEC.special) { big.textContent = '——'; tbl.replaceChildren(); info.textContent = 'کلید را وارد کنید.'; return; }
+    const ymd = day.value || todayTehran(); big.textContent = await dailyCode(SEC.special, ymd); info.textContent = `رمز ${fa(ymd)} (${ymd}) به وقت تهران`;
+    const rows = []; for (let i = 0; i < 7; i++) { const y = ymdPlus(todayTehran(), i), c = await dailyCode(SEC.special, y); rows.push(h('tr', {}, h('td', {}, fa(y)), h('td', { style: 'direction:ltr;font-family:monospace;font-weight:700;letter-spacing:2px' }, c), h('td', {}, h('button', { class: 'btn sm', onclick: () => copyText(c, 'رمز') }, 'کپی')))); }
+    tbl.replaceChildren(...rows);
+  }
+  sp.input.addEventListener('input', calc1); day.addEventListener('input', calc1);
+  const sel = h('select', {}, SECTIONS.filter(s => !['imgcompress'].includes(s[0])).map(([id, n]) => h('option', { value: id }, `${n} (${id})`)));
+  const idIn = h('input', { dir: 'ltr', placeholder: 'AB12CD34', maxlength: 8, style: 'text-transform:uppercase;font-family:monospace' });
+  const pk = secretField('کلید کد بخش پولی (PaidAccess.SECRET)', 'paid', 'با کلید رمز روزانه فرق دارد.');
+  const big2 = h('div', { class: 'code' }, '——'), warn2 = h('ul', { class: 'issues' });
+  async function calc2() {
+    const id = idIn.value.trim().toUpperCase(); warn2.replaceChildren();
+    if (!SEC.paid || !id) { big2.textContent = '——'; return; }
+    if (!/^[A-HJ-NP-Z2-9]{8}$/.test(id)) warn2.append(h('li', { class: 'warn' }, 'شناسهٔ گوشی ۸ حرف از «A-Z و ۲-۹» (بدون O، I، 0، 1) است؛ دوباره از کاربر بگیرید.'));
+    big2.textContent = await paidCode(SEC.paid, id, sel.value);
+  }
+  [idIn, sel].forEach(x => x.addEventListener('input', calc2)); pk.input.addEventListener('input', calc2);
+  const rem = h('label', { class: 'sw' }, h('input', { type: 'checkbox', checked: remember, onchange: e => { remember = e.target.checked; save(); } }), 'کلیدها را روی همین دستگاه به خاطر بسپار (فقط روی کامپیوتر یا گوشی شخصی)');
+  calc1(); calc2();
+  return h('div', { class: 'grid' },
+    h('div', { class: 'card' }, h('h2', {}, 'رمز روزانهٔ دسترسی ویژه'), h('p', { class: 'sub' }, 'برای باز کردن دفترچه تلفن و بخش‌های مخفی؛ ۶ رقم، فقط همان روز معتبر است (به وقت تهران).'), sp, h('label', { class: 'f' }, h('span', { class: 'lb' }, 'تاریخ'), day), big, info, h('table', {}, tbl)),
+    h('div', {}, h('div', { class: 'card' }, h('h2', {}, 'کد باز شدن بخش پولی برای یک گوشی'), h('p', { class: 'sub' }, 'کاربر پرداخت می‌کند و «شناسهٔ گوشی» صفحهٔ قفل را می‌فرستد؛ کد ۸ رقمی همان گوشی و همان بخش را اینجا بسازید.'), pk,
+      h('label', { class: 'f' }, h('span', { class: 'lb' }, 'شناسهٔ گوشی (۸ حرف)'), idIn), h('label', { class: 'f' }, h('span', { class: 'lb' }, 'بخش'), sel), big2, warn2,
+      h('button', { class: 'btn pri', onclick: () => { const t = `کد باز شدن بخش «${sel.selectedOptions[0].textContent.replace(/ \(.*/, '')}»: ${big2.textContent}`; copyText(t, 'پیام'); } }, 'کپی پیام برای کاربر')),
+    h('div', { class: 'card' }, rem, h('p', { class: 'sub', style: 'margin:8px 0 0' }, 'کلیدها داخل فایل این پنل نیستند و به هیچ‌جا ارسال نمی‌شوند؛ محاسبه کاملاً روی همین دستگاه انجام می‌شود. «کاهش حجم عکس» از طریق خرید کافه‌بازار باز می‌شود و به این کدها نیاز ندارد.'))));
+}
+
+/* ───────────── اتصال به گیت‌هاب (بالای صفحه) ───────────── */
+function drawGh() {
+  const g = $('#gh'), tok = field('توکن گیت‌هاب (فقط برای «انتشار»)', SEC, 'token', { type: 'password', ltr: true, hint: 'توکن Fine-grained با دسترسی Contents: Read and write فقط روی ریپوهای زیر' });
+  tok.input.autocomplete = 'off';
+  const rem = h('label', { class: 'sw', style: 'font-size:13px' }, h('input', { type: 'checkbox', checked: remember, onchange: e => { remember = e.target.checked; save(); } }), 'توکن و کلیدها را روی همین دستگاه به خاطر بسپار');
+  g.replaceChildren(h('summary', {}, `اتصال به گیت‌هاب: ${S.gh.user}/${S.gh.adsRepo}، ${S.gh.mealsRepo} (شاخهٔ ${S.gh.branch})`),
+    h('div', { class: 'gridg' }, field('نام کاربری', S.gh, 'user', { ltr: true }), field('ریپوی اعلان/تبلیغ/تنظیمات', S.gh, 'adsRepo', { ltr: true }), field('ریپوی برنامه غذایی', S.gh, 'mealsRepo', { ltr: true }), field('شاخه', S.gh, 'branch', { ltr: true }), tok), rem);
+}
+function drawSites() {
+  const bar = $('#siteBar');
+  bar.replaceChildren(h('span', { style: 'font-size:13px;opacity:.9' }, 'محل:'), ...S.sites.map(s => h('button', { class: 'chip', 'aria-pressed': String(S.site === s.key), onclick: () => { S.site = s.key; save(); render(); } }, s.name)),
+    h('button', { class: 'chip', title: 'افزودن محل (نام پوشه در ریپو)', onclick: () => {
+      const key = (prompt('نام پوشهٔ محل در ریپو (حرف کوچک انگلیسی، مثل newsite):') || '').trim().toLowerCase();
+      if (!key) return; if (!KEY_RE.test(key) || S.sites.some(s => s.key === key)) return toast('نام نامعتبر یا تکراری است', true);
+      const name = (prompt('نام فارسی محل:') || key).trim(); S.sites.push({ key, name }); S.site = key; save(); render();
+    } }, '+ محل'));
+}
+
+/* ───────────── رندر اصلی ───────────── */
+const VIEWS = { notice: tabNotice, ad: tabAd, config: tabConfig, meals: tabMeals, tiles: tabTiles, codes: tabCodes };
+function render() {
+  drawSites();
+  $('#tabs').replaceChildren(...TABS.map(([k, n]) => h('button', { role: 'tab', 'aria-selected': String(S.tab === k), onclick: () => { S.tab = k; save(); render(); } }, n)));
+  refreshOut = () => {};
+  $('#view').replaceChildren(VIEWS[S.tab]());
+  save();
+}
+drawGh(); render();
+window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
+</script>
+</body>
+</html>

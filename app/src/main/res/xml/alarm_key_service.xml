@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- بدون accessibilityEventTypes: هیچ رویدادی از صفحه به این سرویس نمی‌رسد؛ فقط فیلتر دکمه‌های سخت‌افزاری. -->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/alarm_key_service_desc"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagRequestFilterKeyEvents"
+    android:canRequestFilterKeyEvents="true"
+    android:notificationTimeout="100" />
