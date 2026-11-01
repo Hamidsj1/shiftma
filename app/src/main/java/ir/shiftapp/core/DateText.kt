@@ -12,9 +12,41 @@ object DateText {
         )
     }
 
-    /** null یعنی قالب یا تاریخ نامعتبر. */
+    /** جداکننده‌هایی که کاربر می‌تواند بین سال و ماه و روز بزند: / - . فاصله، ویرگول (لاتین و فارسی)، ؛ و ٫ */
+    private val SEPARATORS = "/-. ,\u060C;\u061B\u066B\u2044\u2212\u2013"
+
+    /**
+     * ورودی تاریخ در حین تایپ: ارقام فارسی/عربی/لاتین پذیرفته می‌شوند و بدون زدن «/» خودکار قالب می‌گیرند
+     * (۱۴۰۵۰۷۱۳ ← ۱۴۰۵/۰۷/۱۳). اگر کاربر خودش دو جداکننده بزند (مثل ۱۴۰۵/۷/۳) همان‌طور که نوشته نگه داشته می‌شود.
+     */
+    fun typing(raw: String): String {
+        val s = normalizeDigits(raw)
+        val manual = s.count { it in SEPARATORS } >= 2
+        val out = if (manual) {
+            val sb = StringBuilder()
+            for (ch in s) when {
+                ch in '0'..'9' -> sb.append(ch)
+                ch in SEPARATORS && sb.isNotEmpty() && sb.last() != '/' -> sb.append('/')
+            }
+            sb.toString().take(10)
+        } else {
+            val d = s.filter { it in '0'..'9' }.take(8)
+            buildString {
+                append(d.take(4))
+                if (d.length > 4) append('/').append(d.substring(4, minOf(6, d.length)))
+                if (d.length > 6) append('/').append(d.substring(6))
+            }
+        }
+        return Fa.digits(out)
+    }
+
+    /** null یعنی قالب یا تاریخ نامعتبر. فقط ارقام (۱۴۰۵۰۷۱۳) هم پذیرفته می‌شود. */
     fun parse(text: String): JalaliDate? {
-        val parts = normalizeDigits(text.trim()).split('/', '-', '.').map { it.trim() }
+        val norm = normalizeDigits(text.trim())
+        if (norm.length == 8 && norm.all { it in '0'..'9' }) {
+            return JalaliDate(norm.substring(0, 4).toInt(), norm.substring(4, 6).toInt(), norm.substring(6).toInt()).takeIf { it.isValid }
+        }
+        val parts = norm.split(*SEPARATORS.toCharArray()).filter { it.isNotEmpty() }
         if (parts.size != 3) return null
         val y = parts[0].toIntOrNull() ?: return null
         val m = parts[1].toIntOrNull() ?: return null

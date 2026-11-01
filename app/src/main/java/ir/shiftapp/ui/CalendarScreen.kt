@@ -107,11 +107,11 @@ private fun DayCell(day: Int, r: EffectiveDay, holiday: Boolean, isToday: Boolea
     val shape = RoundedCornerShape(12.dp)
     Box(
         Modifier.height(60.dp).clip(shape).background(shiftColor(r.effectiveCode))
-            .then(if (isToday) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
+            .then(if (isToday) Modifier.border(3.dp, INK, shape) else Modifier)
             .clickable(role = Role.Button, onClick = onClick)
     ) {
         Column(Modifier.fillMaxSize().padding(top = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(day.fa(), style = MaterialTheme.typography.titleSmall, color = if (holiday) Color(0xFFB71C1C) else INK)
+            Text(day.fa(), style = MaterialTheme.typography.titleSmall.let { if (isToday) it.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold) else it }, color = if (holiday) Color(0xFFB71C1C) else INK)
             Text(
                 shiftName(r.effectiveCode), style = MaterialTheme.typography.labelSmall, color = INK.copy(alpha = 0.78f),
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Clip

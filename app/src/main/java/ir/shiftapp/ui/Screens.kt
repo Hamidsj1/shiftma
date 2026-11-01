@@ -39,6 +39,21 @@ internal fun shiftColor(code: Int) = Color(ShiftType.byCode(code)?.color ?: 0xFF
 /** «شیفت A»؛ اگر نام از قبل با «شیفت» شروع شود تکرار نمی‌شود. */
 internal fun groupTitle(name: String) = if (name.startsWith("شیفت")) name else "شیفت $name"
 
+/** حرف گروه (A..D) از نام الگو، مثل «A» یا «شیفت D»؛ برای نشان رنگی. null اگر نام این شکل نباشد. */
+internal fun groupLetter(name: String): Char? {
+    val t = name.trim().removePrefix("شیفت").trim()
+    return if (t.length == 1 && t[0] in 'A'..'H') t[0] else null
+}
+
+/** رنگ ثابت هر گروه تا گروه‌ها در فهرست و عنوان با یک نگاه تشخیص داده شوند. */
+internal fun groupColor(letter: Char): androidx.compose.ui.graphics.Color = when (letter) {
+    'A' -> androidx.compose.ui.graphics.Color(0xFF3F7DD8)
+    'B' -> androidx.compose.ui.graphics.Color(0xFF2E9E6B)
+    'C' -> androidx.compose.ui.graphics.Color(0xFFD9822B)
+    'D' -> androidx.compose.ui.graphics.Color(0xFF8E5BD0)
+    else -> androidx.compose.ui.graphics.Color(0xFF5F6B7A)
+}
+
 /** آیکن و رنگ هر نوع ثبت؛ در کاردکس، تقویم و پنجرهٔ روز یکسان استفاده می‌شود. */
 internal fun entryIcon(type: String): Int = when (type) {
     EntryType.NOTE -> R.drawable.ic_note

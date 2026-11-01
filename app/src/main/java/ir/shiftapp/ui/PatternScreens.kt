@@ -42,7 +42,7 @@ fun PatternsScreen(vm: MainVm) {
     var creating by remember { mutableStateOf(false) }
     var showPresets by remember { mutableStateOf(false) }
     var presetCodes by remember { mutableStateOf<List<Int>?>(null) }
-    var presetDay by remember { mutableStateOf<Int?>(null) }
+    var presetDay by remember { mutableStateOf<JalaliDate?>(null) }
     var crewPreset by remember { mutableStateOf<PatternPreset?>(null) }
     var showOthers by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<PatternEntity?>(null) }
@@ -82,6 +82,11 @@ fun PatternsScreen(vm: MainVm) {
             AppCard(Modifier.fillMaxWidth(), onClick = { vm.select(p.id); showOthers = false }) {
                 Column(Modifier.padding(start = 16.dp, end = 8.dp, top = 14.dp, bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        groupLetter(p.name)?.let { gl ->
+                            Box(Modifier.size(36.dp).clip(CircleShape).background(groupColor(gl)), contentAlignment = Alignment.Center) {
+                                Text(gl.toString(), style = MaterialTheme.typography.titleMedium, color = androidx.compose.ui.graphics.Color.White)
+                            }
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(p.name, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             if (p.company.isNotBlank()) Text(p.company, style = MaterialTheme.typography.bodySmall, color = Pal.muted)
@@ -110,7 +115,7 @@ fun PatternsScreen(vm: MainVm) {
         }
     }
     if (showPresets) PresetsDialog(
-        onPick = { presetCodes = it.codes; presetDay = it.defaultStartDay; showPresets = false; creating = true },
+        onPick = { presetCodes = it.codes; presetDay = it.defaultStart(); showPresets = false; creating = true },
         onCrews = { crewPreset = it; showPresets = false },
         onClose = { showPresets = false })
     crewPreset?.let { CrewsDialog(vm, it) { crewPreset = null } }
@@ -158,7 +163,7 @@ fun PresetCard(pr: PatternPreset, onPick: (PatternPreset) -> Unit, onCrews: (Pat
                         "برای پوشش کامل: ${pr.crews.fa()} گروه. ترتیب شروع: ${pr.startSequence().joinToString(" ← ")}؛ هر کدام ${pr.offsetDays.fa()} روز بعد از قبلی",
                         style = MaterialTheme.typography.bodySmall, color = Pal.muted
                     )
-                    pr.defaultStartDay?.let { Text("شروع پیش‌فرض گروه A: روز ${it.fa()} ماه جاری (قابل تغییر)", style = MaterialTheme.typography.bodySmall, color = Pal.muted) }
+                    Text("شروع پیش‌فرض گروه A: ${Fa.digits(DateText.format(pr.defaultStart()))} (قابل تغییر)", style = MaterialTheme.typography.bodySmall, color = Pal.muted)
                     AppButton("ساخت ${pr.crews.fa()} گروه (${'A'}–${'A' + pr.crews - 1})", { onCrews(pr) }, Modifier.fillMaxWidth(), style = BtnStyle.Tonal)
                 }
             }
@@ -169,7 +174,7 @@ fun PresetCard(pr: PatternPreset, onPick: (PatternPreset) -> Unit, onCrews: (Pat
 fun CrewsDialog(vm: MainVm, preset: PatternPreset, onClose: () -> Unit) {
     val t = remember { JalaliDate.today() }
     var company by remember { mutableStateOf("") }
-    var dateText by remember { mutableStateOf(DateText.format(preset.defaultStartDay?.let { JalaliDate(t.year, t.month, it) } ?: t)) }
+    var dateText by remember { mutableStateOf(DateText.format(preset.defaultStart(t))) }
     var head by remember { mutableStateOf("") }
     var section by remember { mutableStateOf("") }
     var err by remember { mutableStateOf<String?>(null) }
@@ -187,20 +192,20 @@ fun CrewsDialog(vm: MainVm, preset: PatternPreset, onClose: () -> Unit) {
         AppField(company, { company = it }, "عنوان شرکت (اختیاری)")
         AppField(head, { head = it }, "سرشیفت کل (اختیاری)")
         AppField(section, { section = it }, "بخش / واحد (اختیاری)")
-        AppField(dateText, { dateText = it }, "تاریخ شروع دورهٔ گروه A", placeholder = "مثلا : ۱۴۰۵/۰۷/۱۳", keyboard = KeyboardType.Number, ltr = true, isError = err != null, supporting = err)
+        AppField(dateText, { dateText = DateText.typing(it) }, "تاریخ شروع دورهٔ گروه A", placeholder = "مثلا : ۱۴۰۵/۰۷/۱۳", keyboard = KeyboardType.Number, ltr = true, isError = err != null, supporting = err)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun PatternDialog(vm: MainVm, p: PatternEntity?, assignSlot: Int? = null, selectNew: Boolean = false, onSaved: () -> Unit = {}, presetCodes: List<Int>? = null, startDay: Int? = null, onClose: () -> Unit) {
+fun PatternDialog(vm: MainVm, p: PatternEntity?, assignSlot: Int? = null, selectNew: Boolean = false, onSaved: () -> Unit = {}, presetCodes: List<Int>? = null, startDay: JalaliDate? = null, onClose: () -> Unit) {
     val t = remember { JalaliDate.today() }
     var company by remember { mutableStateOf(p?.company ?: "") }
     var name by remember { mutableStateOf(p?.name ?: "") }
     var supervisor by remember { mutableStateOf(p?.supervisor ?: "") }
     var head by remember { mutableStateOf(p?.headSupervisor ?: "") }
     var section by remember { mutableStateOf(p?.section ?: "") }
-    var dateText by remember { mutableStateOf(DateText.format(p?.base() ?: startDay?.let { JalaliDate(t.year, t.month, it) } ?: t)) }
+    var dateText by remember { mutableStateOf(DateText.format(p?.base() ?: startDay ?: t)) }
     val codes = remember { mutableStateListOf<Int>().apply { p?.let { addAll(ShiftPattern.parse(it.pattern).codes) }; presetCodes?.let { addAll(it) } } }
     var err by remember { mutableStateOf<String?>(null) }
     AppDialog(
@@ -240,7 +245,7 @@ fun PatternDialog(vm: MainVm, p: PatternEntity?, assignSlot: Int? = null, select
             AppButton("حذف آخری", { if (codes.isNotEmpty()) codes.removeAt(codes.lastIndex) }, Modifier.weight(1f), style = BtnStyle.Outline)
             AppButton("پاک کردن", { codes.clear() }, Modifier.weight(1f), style = BtnStyle.Outline)
         }
-        AppField(dateText, { dateText = it }, "تاریخ شروع دوره", placeholder = "مثلا : ۱۴۰۵/۰۷/۱۳", keyboard = KeyboardType.Number, ltr = true, isError = err != null, supporting = err)
+        AppField(dateText, { dateText = DateText.typing(it) }, "تاریخ شروع دوره", placeholder = "مثلا : ۱۴۰۵/۰۷/۱۳", keyboard = KeyboardType.Number, ltr = true, isError = err != null, supporting = err)
     }
 }
 

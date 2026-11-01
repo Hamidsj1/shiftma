@@ -20,4 +20,20 @@ class DateTextTest {
         assertEquals("1405/07/03", DateText.format(JalaliDate(1405, 7, 3)))
         assertEquals(JalaliDate(1405, 7, 3), DateText.parse(DateText.format(JalaliDate(1405, 7, 3))))
     }
+    @Test fun typingAutoFormatsDigitsOnly() {
+        assertEquals(Fa.digits("1405/07/13"), DateText.typing("14050713"))
+        assertEquals(Fa.digits("1405/0"), DateText.typing("14050"))
+        assertEquals(Fa.digits("1405"), DateText.typing("1405"))
+        assertEquals(Fa.digits("1405/07/13"), DateText.typing("۱۴۰۵۰۷۱۳۹۹"))
+        assertEquals("", DateText.typing("abc"))
+    }
+    @Test fun typingKeepsManualSeparators() {
+        assertEquals(Fa.digits("1405/7/3"), DateText.typing("1405-7-3"))
+        assertEquals(Fa.digits("1405/7/3"), DateText.typing("1405 7 3"))
+    }
+    @Test fun parseAcceptsPlainDigitsAndSpaces() {
+        assertEquals(JalaliDate(1405, 7, 13), DateText.parse("14050713"))
+        assertEquals(JalaliDate(1405, 7, 13), DateText.parse("1405 7 13"))
+        assertNull(DateText.parse("14051313"))
+    }
 }

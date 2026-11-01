@@ -38,7 +38,13 @@ class PatternFileTest {
     }
 
     @Test fun presetStartDaysAreValid() {
-        PatternPresets.ALL.mapNotNull { it.defaultStartDay }.forEach { assertTrue(it in 1..29) }
-        assertEquals(19, PatternPresets.ALL.first().defaultStartDay)
+        // روز شروع پیش‌فرض همهٔ الگوها از تاریخ لنگر حساب می‌شود (نه «روز ماه»)
+        val today = ir.shiftapp.core.JalaliDate(1405, 8, 10)
+        PatternPresets.ALL.forEach { p ->
+            val s = p.defaultStart(today)
+            assertTrue(p.title, s.isValid && s <= today)
+            assertEquals(p.title, 0, Math.floorMod(s.toJdn() - PatternPresets.ANCHOR.toJdn(), p.codes.size))
+            assertTrue(p.title, today.toJdn() - s.toJdn() < p.codes.size)
+        }
     }
 }

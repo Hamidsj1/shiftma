@@ -18,6 +18,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import ir.shiftapp.R
+import ir.shiftapp.core.JalaliDate
 import ir.shiftapp.core.PatternPreset
 
 /** صفحهٔ شروع برای کاربر تازه: تا وقتی الگویی نیست، به‌جای تب‌های خالی نمایش داده می‌شود. */
@@ -25,7 +26,7 @@ import ir.shiftapp.core.PatternPreset
 fun WelcomeScreen(vm: MainVm) {
     var creating by remember { mutableStateOf(false) }
     var presetCodes by remember { mutableStateOf<List<Int>?>(null) }
-    var presetDay by remember { mutableStateOf<Int?>(null) }
+    var presetDay by remember { mutableStateOf<JalaliDate?>(null) }
     var crewPreset by remember { mutableStateOf<PatternPreset?>(null) }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.openPatternFile(uri) }
 
@@ -59,7 +60,7 @@ fun WelcomeScreen(vm: MainVm) {
         }
         SectionLabel("الگوهای آماده")
         PresetCards(
-            onPick = { presetCodes = it.codes; presetDay = it.defaultStartDay; creating = true },
+            onPick = { presetCodes = it.codes; presetDay = it.defaultStart(); creating = true },
             onCrews = { crewPreset = it }
         )
     }
