@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- اختیاری: بدون آن یادآور با تأخیر چنددقیقه‌ای (inexact) می‌رسد. حالت «آلارم» به آن نیاز ندارد. -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- روشن کردن صفحه هنگام زنگ آلارم (مثل تماس) -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- اختیاری: به آلارم اجازه می‌دهد صفحهٔ قطع را حتی وقتی برنامه در پس‌زمینه است باز کند -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
+    <!-- اختیاری: فقط برای دکمهٔ «موقعیت من» در بخش اوقات شرعی (آخرین موقعیت تقریبی؛ جایی ارسال نمی‌شود). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- اختیاری: فقط وقتی کاربر در بخش اذان «پخش آنلاین» یا «دانلود» را می‌زند به اینترنت وصل می‌شود. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- پخش کامل اذان با سرویس پیش‌زمینه (دکمهٔ توقف در اعلان) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- بخش یادگیری انگلیسی: خواندن تلفظ لغت‌ها با موتور TTS گوشی (از اندروید ۱۱ باید اعلام شود) -->
+    <queries>
+        <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+        <!-- دفترچه تلفن: باز کردن اپ روبیکا، ایتا و بله برای جست‌وجوی شماره -->
+        <package android:name="app.rbmain.a" />
+        <package android:name="ir.eitaa.messenger" />
+        <package android:name="ir.nasim" />
+        <package android:name="net.telewebion" />
+    </queries>
+    <application
+        android:usesCleartextTraffic="true"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ShiftMa">
+
+        <activity android:name="ir.shiftapp.ui.MainActivity" android:exported="true" android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- فایل الگو (.shiftma): وقتی کاربر روی چنین فایلی بزند، این برنامه برای باز کردن پیشنهاد می‌شود. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/x-shiftma" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.shiftma" />
+                <data android:pathPattern=".*\\..*\\.shiftma" />
+                <data android:pathPattern=".*\\..*\\..*\\.shiftma" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.shiftma" />
+            </intent-filter>
+            <!-- همان فایل وقتی مدیر فایل یا پیام‌رسان نوع (MIME) آن را نمی‌فرستد. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.shiftma" />
+                <data android:pathPattern=".*\\..*\\.shiftma" />
+                <data android:pathPattern=".*\\..*\\..*\\.shiftma" />
+                <data android:pathPattern=".*\\..*\\..*\\..*\\.shiftma" />
+            </intent-filter>
+            <!-- «اشتراک‌گذاری ← شیفت ما» از پیام‌رسان یا مدیر فایل: وقتی باز کردن مستقیم پیشنهاد داده نمی‌شود. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/x-shiftma" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name="ir.shiftapp.ui.PortalWebActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|screenLayout|smallestScreenSize"
+            android:theme="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+
+        <!-- صفحهٔ تمام‌صفحهٔ آلارم: روی قفل‌صفحه هم باز می‌شود و دکمه‌های بزرگ «قطع» و «چرت» دارد. -->
+        <activity
+            android:name="ir.shiftapp.ui.AlarmActivity" android:exported="false" android:launchMode="singleTask"
+            android:showWhenLocked="true" android:turnScreenOn="true"
+            android:taskAffinity="" android:excludeFromRecents="true" />
+
+        <service android:name="ir.shiftapp.system.AzanService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+        <service android:name="ir.shiftapp.system.AlarmRingService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
+
+        <!-- اختیاری: با روشن کردنش توسط کاربر، دکمه‌های صدا در هر حالتی (صفحه خاموش، برنامه بسته) آلارم و اذانِ در حال پخش را قطع می‌کنند. رویداد یا محتوایی از صفحه نمی‌خواند. -->
+        <service
+            android:name="ir.shiftapp.system.AlarmKeyService" android:exported="true"
+            android:label="قطع آلارم با دکمهٔ صدا"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data android:name="android.accessibilityservice" android:resource="@xml/alarm_key_service" />
+        </service>
+
+        <receiver android:name="ir.shiftapp.system.ReminderReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="ir.shiftapp.action.REMINDER_FIRE" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- اعلان همیشگی «تاریخ و اطلاعات»: تازه‌سازی نیمه‌شب/اذان، ریبوت، تغییر ساعت و تاریخ، به‌روزرسانی برنامه و کنار زدن اعلان. -->
+        <receiver android:name="ir.shiftapp.system.DateBarReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="ir.shiftapp.action.DATEBAR_UPDATE" />
+                <action android:name="ir.shiftapp.action.DATEBAR_DISMISSED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name="ir.shiftapp.system.ShiftWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/shift_widget_info" />
+        </receiver>
+
+        <receiver android:name="ir.shiftapp.system.EnglishWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="ir.shiftapp.action.ENGLISH_NEXT" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/english_widget_info" />
+        </receiver>
+
+        <receiver android:name="ir.shiftapp.system.PrayerWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/prayer_widget_info" />
+        </receiver>
+
+        <receiver android:name="ir.shiftapp.system.NextReminderWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/next_widget_info" />
+        </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

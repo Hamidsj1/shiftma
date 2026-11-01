@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- نمای بزرگ اعلان آلارم: عنوان، متن و نوار ۷ روزهٔ تقویم با شیفت هر روز. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:layoutDirection="rtl" android:paddingTop="2dp" android:paddingBottom="4dp">
+
+    <TextView android:id="@+id/na_title" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:maxLines="1" android:ellipsize="end" />
+    <TextView android:id="@+id/na_body" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:textAppearance="@android:style/TextAppearance.Material.Notification" android:maxLines="2" android:ellipsize="end" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:orientation="horizontal" android:layoutDirection="rtl">
+        <LinearLayout
+            android:id="@+id/na_cell0"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num0" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh0" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/na_cell1"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num1" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh1" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/na_cell2"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num2" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh2" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/na_cell3"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num3" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh3" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/na_cell4"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num4" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh4" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/na_cell5"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num5" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh5" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/na_cell6"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:orientation="vertical" android:gravity="center_horizontal"
+            android:layout_marginStart="1dp" android:layout_marginEnd="1dp" android:paddingTop="4dp" android:paddingBottom="4dp">
+            <TextView android:id="@+id/na_wd6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification" android:textSize="11sp" />
+            <TextView android:id="@+id/na_num6" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:textAppearance="@android:style/TextAppearance.Material.Notification.Title" android:textSize="15sp" />
+            <TextView android:id="@+id/na_sh6" android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" android:gravity="center" android:maxLines="1" android:ellipsize="end"
+                android:paddingTop="3dp" android:paddingBottom="3dp" android:textColor="#FF111827" android:textSize="9sp" />
+        </LinearLayout>
+    </LinearLayout>
+    <TextView android:id="@+id/na_stop" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="8dp" android:gravity="center" android:paddingTop="12dp" android:paddingBottom="12dp"
+        android:background="#FFE5484D" android:text="قطع آلارم" android:textColor="#FFFFFFFF"
+        android:textSize="18sp" android:textStyle="bold" />
+</LinearLayout>

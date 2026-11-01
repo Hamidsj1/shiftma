@@ -1,0 +1,13 @@
+<resources>
+    <color name="app_background">#FF0E1020</color>
+    <color name="widget_bg">#FF191C36</color>
+    <color name="widget_text">#FFE4E5F4</color>
+    <color name="widget_sub">#FFB6B9D4</color>
+    <color name="widget_accent">#FF6C6FE0</color>
+    <color name="widget_track">#FF2E3258</color>
+    <color name="widget_chip_first_bg">#FF4A3F1E</color>
+    <color name="widget_chip_first_text">#FFFFE2A0</color>
+    <color name="widget_chip_bg">#FF262A4D</color>
+    <color name="widget_chip_stroke">#FF3A3F6B</color>
+    <color name="widget_holiday">#FFFF9A9A</color>
+</resources>
