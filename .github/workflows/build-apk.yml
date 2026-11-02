@@ -1,0 +1,51 @@
+name: Build APK
+
+# هر push روی هر شاخه + اجرای دستی. خروجی: فایل APK قابل نصب (امضا با کلید debug چون keystore.properties در مخزن نیست).
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Unit tests
+        run: gradle :app:testDebugUnitTest --no-daemon --continue
+        continue-on-error: true      # نتیجه را در لاگ ببینید؛ بیلد APK را متوقف نمی‌کند
+
+      - name: Build APK
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Name the APK
+        run: |
+          V=$(grep -m1 versionName app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          C=$(grep -m1 versionCode app/build.gradle.kts | sed 's/[^0-9]*\([0-9]*\).*/\1/')
+          cp app/build/outputs/apk/release/app-release.apk "shiftma-v${V}-code${C}-${GITHUB_REF_NAME//\//-}.apk"
+          echo "APK=shiftma-v${V}-code${C}-${GITHUB_REF_NAME//\//-}.apk" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shiftma-apk
+          path: shiftma-*.apk
+
+      - name: Publish as pre-release (download from phone)
+        if: github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="test-${GITHUB_REF_NAME//\//-}"
+          gh release delete "$TAG" -y --cleanup-tag || true
+          gh release create "$TAG" "$APK" --prerelease --target "$GITHUB_SHA" \
+            --title "نسخهٔ آزمایشی ($GITHUB_REF_NAME)" --notes "بیلد خودکار؛ فقط برای آزمایش. امضا با کلید debug است."
