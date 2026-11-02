@@ -39,6 +39,7 @@ class ShiftWidget : AppWidgetProvider() {
         private const val TICK_REQUEST = 7011
         private const val TICK_MS = 5 * 60 * 1000L
         private const val HOLIDAY_LIGHT = 0xFFC62828.toInt()
+        private const val TODAY_INDIGO = 0xFF3F36C9.toInt()
 
         fun refresh(context: Context) {
             val app = context.applicationContext
@@ -126,9 +127,10 @@ class ShiftWidget : AppWidgetProvider() {
                     val holiday = cal.kind(d) != DayKind.NORMAL
                     rv.setTextViewText(DAY_LABEL[i], WEEK_SHORT[i])
                     rv.setTextViewText(DAY_NUM[i], Fa.num(d.day))
-                    rv.setInt(DAY_BG[i], "setColorFilter", codeColor(code))
-                    // رنگ قرمز تعطیلی روی کاشی پاستلی خوانا است؛ رنگ عادی متن تیره
-                    rv.setTextColor(DAY_NUM[i], if (holiday) HOLIDAY_LIGHT else 0xFF1B1D2A.toInt())
+                    // روز جاری: پر با نیلی تیره و عدد سفید (حلقه هم می‌ماند)؛ بقیه رنگ شیفت. رنگ قرمز تعطیلی روی کاشی پاستلی خوانا است
+                    val isToday = d == today
+                    rv.setInt(DAY_BG[i], "setColorFilter", if (isToday) TODAY_INDIGO else codeColor(code))
+                    rv.setTextColor(DAY_NUM[i], if (isToday) 0xFFFFFFFF.toInt() else if (holiday) HOLIDAY_LIGHT else 0xFF1B1D2A.toInt())
                     rv.setViewVisibility(DAY_RING[i], if (d == today) View.VISIBLE else View.GONE)
                 }
 

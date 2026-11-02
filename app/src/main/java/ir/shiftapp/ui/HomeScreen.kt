@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.asImageBitmap
@@ -330,6 +332,11 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             HomeHero(vm) { onOpen("shift") }
             ShiftProgressStrip(vm)
         }
+        // سامانه‌ها: نوار روشن افقی درست زیر کارت بالا و بالای تقویم (در حالت «چیدمان» همان گروه پایین برای جابه‌جایی دیده می‌شود)
+        if (!editing && remote.visible("links")) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("سامانه‌ها", style = MaterialTheme.typography.titleSmall)
+            LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
+        }
         // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
         if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs)
         // نصب تازه: به‌جای تقویم خالی، الگوهای پیشنهادی را همین‌جا نشان بده
@@ -354,9 +361,8 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                         when (id) {
                             "sections" -> {
                                 BlockHeader("بخش‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
-                                TileGrid(sections, compact = false, editing = editing, scroll = scroll, onReorder = { reorderTiles("sections", sectionsAll, it) }) { s ->
-                                    if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show()
-                                }
+                                if (editing) TileGrid(sections, compact = false, editing = true, scroll = scroll, onReorder = { reorderTiles("sections", sectionsAll, it) }) { }
+                                else SectionIconGrid(sections) { s -> if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show() }
                                 if (!editing && !prefs.prayerOn && !prefs.prayerHintHidden) {
                                     // پیشنهاد اختیاری: فقط تا وقتی کاربر فعالش نکرده یا پنهانش نکرده دیده می‌شود
                                     AppCard(Modifier.fillMaxWidth()) {
@@ -380,15 +386,10 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                                 BlockHeader("تلویزیون", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 TvStrip(tvSites, tvUi, onAll = { onOpen("tv") })
                             }
-                            "links" -> {
+                            "links" -> if (editing) {
                                 BlockHeader("سامانه‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 // کاشی «افزودن سایت» آخر فهرست است و موقع چیدن (جابه‌جایی) دیده نمی‌شود
-                                if (editing) {
-                                    TileGrid(linkList, compact = true, editing = true, scroll = scroll, onReorder = { reorderTiles("links", links, it) }) { }
-                                } else {
-                                    // نوار افقی با آیکن (کم‌ارتفاع)؛ چیدمان و جابه‌جایی همچنان از «چیدمان» (حالت ویرایش)
-                                    LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
-                                }
+                                TileGrid(linkList, compact = true, editing = true, scroll = scroll, onReorder = { reorderTiles("links", links, it) }) { }
                             }
                             "widget" -> {
                                 BlockHeader("ویجت صفحهٔ اصلی گوشی", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
@@ -406,13 +407,14 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     // دکمهٔ دم‌دستِ دفترچه تلفن: پایین-چپ صفحه، فقط وقتی بخش در دسترس است (رمز ویژه یا فایل کاشی‌ها)
     if (!editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
         val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
-        androidx.compose.material3.SmallFloatingActionButton(
+        androidx.compose.material3.FloatingActionButton(
             onClick = { onOpen("phonebook") },
-            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(16.dp)
-                .semantics { contentDescription = "دفترچه تلفن" },
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-        ) { Icon(painterResource(R.drawable.ic_home_phone), contentDescription = null, modifier = Modifier.size(24.dp)) }
+            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(16.dp).size(64.dp)
+                .semantics { contentDescription = "تماس و دفترچه تلفن" },
+            shape = CircleShape,
+            containerColor = TODAY_BG,
+            contentColor = Color.White
+        ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
     }
     }
     }
@@ -680,24 +682,55 @@ private fun SectionTile(s: HomeSection, onClick: () -> Unit) {
     }
 }
 
-/** سامانه‌ها به‌صورت نوار افقی اسکرول‌شونده با آیکن/آرم؛ «افزودن» آخر نوار است. */
+/** سامانه‌ها: نوار افقی اسکرول‌شونده، کاشی سفید با آرم/آیکن و نام زیرش (سبک روشن)؛ «افزودن» آخر نوار است. */
 @Composable
 private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onClick: (HomeSection) -> Unit) {
-    StripShell {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         items.forEach { s ->
             key(s.id) {
                 Column(
-                    Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }).padding(vertical = 4.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
+                    Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.94f)), contentAlignment = Alignment.Center) {
-                        SiteLogo(s, 40.dp, 10.dp)
-                    }
-                    Text(s.title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    Box(
+                        Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
+                    ) { SiteLogo(s, 40.dp, 10.dp) }
+                    Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
             }
         }
-        StripAction("افزودن", R.drawable.ic_add, true, onAdd)
+        Column(
+            Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = "افزودن سایت", onClick = onAdd),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
+                Ico(R.drawable.ic_add, size = 24.dp, tint = MaterialTheme.colorScheme.primary)
+            }
+            Text("افزودن", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+        }
+    }
+}
+
+/** بخش‌ها: شبکهٔ جمع‌وجور آیکن+نام (۴ ستون) به‌جای کارت‌های بلند؛ ارتفاع صفحه تا نصف کم می‌شود. */
+@Composable
+private fun SectionIconGrid(items: List<HomeSection>, onClick: (HomeSection) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        items.chunked(4).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { s ->
+                    Column(
+                        Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).clickable(role = Role.Button, onClick = { onClick(s) }).padding(vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        IconBadge(s.icon, size = 52.dp, iconSize = 28.dp, modifier = Modifier)
+                        Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    }
+                }
+                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
     }
 }
 
@@ -813,14 +846,15 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
 private fun MiniDay(day: Int, code: Int?, holiday: Boolean, isToday: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(9.dp)
     Box(
-        modifier.height(34.dp).clip(shape).background(if (code != null) shiftColor(code) else Color.Transparent)
-            .clickable(role = Role.Button, onClickLabel = "ساخت آلارم برای این روز", onClick = onClick)
-            .then(if (isToday) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape) else Modifier),
+        modifier.height(34.dp).then(if (isToday) Modifier.shadow(4.dp, shape) else Modifier).clip(shape)
+            .background(if (isToday) TODAY_BG else if (code != null) shiftColor(code) else Color.Transparent)
+            .clickable(role = Role.Button, onClickLabel = "ساخت آلارم برای این روز", onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            day.fa(), style = MaterialTheme.typography.labelLarge,
-            color = if (holiday) Color(0xFFB71C1C) else if (code != null) Color(0xFF1B1D2A) else MaterialTheme.colorScheme.onSurface
+            day.fa(), style = MaterialTheme.typography.labelLarge.let { if (isToday) it.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold) else it },
+            color = if (isToday) Color.White else if (holiday) Color(0xFFB71C1C) else if (code != null) Color(0xFF1B1D2A) else MaterialTheme.colorScheme.onSurface
         )
+        if (isToday && code != null) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp).width(14.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(shiftColor(code)))
     }
 }

@@ -39,6 +39,9 @@ internal fun shiftColor(code: Int) = Color(ShiftType.byCode(code)?.color ?: 0xFF
 /** «شیفت A»؛ اگر نام از قبل با «شیفت» شروع شود تکرار نمی‌شود. */
 internal fun groupTitle(name: String) = if (name.startsWith("شیفت")) name else "شیفت $name"
 
+/** روز جاری: پر با نیلی تیره، عدد سفید و نوار کوچک رنگ شیفت زیر عدد؛ در تقویم، تقویم صفحهٔ اول و ویجت یکسان. */
+internal val TODAY_BG = androidx.compose.ui.graphics.Color(0xFF3F36C9)
+
 /** حرف گروه (A..D) از نام الگو، مثل «A» یا «شیفت D»؛ برای نشان رنگی. null اگر نام این شکل نباشد. */
 internal fun groupLetter(name: String): Char? {
     val t = name.trim().removePrefix("شیفت").trim()
