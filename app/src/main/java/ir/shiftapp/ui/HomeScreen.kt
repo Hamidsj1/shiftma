@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -382,9 +383,11 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                             "links" -> {
                                 BlockHeader("سامانه‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 // کاشی «افزودن سایت» آخر فهرست است و موقع چیدن (جابه‌جایی) دیده نمی‌شود
-                                val addTile = HomeSection(ADD_SITE_ID, "افزودن سایت", "", R.drawable.ic_add, true)
-                                TileGrid(if (editing) linkList else linkList + addTile, compact = true, editing = editing, scroll = scroll, onReorder = { reorderTiles("links", links, it) }) { s ->
-                                    when { s.id == ADD_SITE_ID -> addSiteOpen = true; s.secret -> onOpen(s.id); else -> onLink(s.id) }
+                                if (editing) {
+                                    TileGrid(linkList, compact = true, editing = true, scroll = scroll, onReorder = { reorderTiles("links", links, it) }) { }
+                                } else {
+                                    // نوار افقی با آیکن (کم‌ارتفاع)؛ چیدمان و جابه‌جایی همچنان از «چیدمان» (حالت ویرایش)
+                                    LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
                                 }
                             }
                             "widget" -> {
@@ -674,6 +677,27 @@ private fun SectionTile(s: HomeSection, onClick: () -> Unit) {
                 Text(s.subtitle, style = MaterialTheme.typography.bodySmall, color = Pal.muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
+    }
+}
+
+/** سامانه‌ها به‌صورت نوار افقی اسکرول‌شونده با آیکن/آرم؛ «افزودن» آخر نوار است. */
+@Composable
+private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onClick: (HomeSection) -> Unit) {
+    StripShell {
+        items.forEach { s ->
+            key(s.id) {
+                Column(
+                    Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }).padding(vertical = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.94f)), contentAlignment = Alignment.Center) {
+                        SiteLogo(s, 40.dp, 10.dp)
+                    }
+                    Text(s.title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+            }
+        }
+        StripAction("افزودن", R.drawable.ic_add, true, onAdd)
     }
 }
 

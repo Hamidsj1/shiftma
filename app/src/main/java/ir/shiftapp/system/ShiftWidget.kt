@@ -31,7 +31,7 @@ class ShiftWidget : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
-            try { runCatching { update(context, manager, ids) } } finally { pending.finish() }
+            try { runCatching { updateAll(context) } } finally { pending.finish() }
         }
     }
 
@@ -42,10 +42,16 @@ class ShiftWidget : AppWidgetProvider() {
 
         fun refresh(context: Context) {
             val app = context.applicationContext
-            val mgr = AppWidgetManager.getInstance(app)
-            val ids = mgr.getAppWidgetIds(ComponentName(app, ShiftWidget::class.java))
-            if (ids.isEmpty()) return
-            CoroutineScope(Dispatchers.IO).launch { runCatching { update(app, mgr, ids) } }
+            CoroutineScope(Dispatchers.IO).launch { runCatching { updateAll(app) } }
+        }
+
+        /** هر دو ویجت (۴×۲ و نواری ۴×۱) با یک محاسبه؛ ویجتی که روی صفحه نیست رد می‌شود. */
+        internal suspend fun updateAll(ctx: Context) {
+            val mgr = AppWidgetManager.getInstance(ctx)
+            val full = mgr.getAppWidgetIds(ComponentName(ctx, ShiftWidget::class.java))
+            val strip = mgr.getAppWidgetIds(ComponentName(ctx, ShiftStripWidget::class.java))
+            if (full.isEmpty() && strip.isEmpty()) return
+            update(ctx, mgr, full, R.layout.widget_shift, strip)
         }
 
         private val DAY_LABEL = intArrayOf(R.id.w_d0_lbl, R.id.w_d1_lbl, R.id.w_d2_lbl, R.id.w_d3_lbl, R.id.w_d4_lbl, R.id.w_d5_lbl, R.id.w_d6_lbl)
@@ -56,7 +62,7 @@ class ShiftWidget : AppWidgetProvider() {
 
         private class Chip(val atMs: Long, val text: String, val isNote: Boolean)
 
-        private suspend fun update(ctx: Context, mgr: AppWidgetManager, ids: IntArray) {
+        private suspend fun update(ctx: Context, mgr: AppWidgetManager, ids: IntArray, layout: Int, stripIds: IntArray) {
             val dao = AppDb.get(ctx).dao()
             val prefs = dao.prefsOnce()
             val cal = dao.holidayCalendarOnce(prefs.fridayOff)
@@ -94,8 +100,8 @@ class ShiftWidget : AppWidgetProvider() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
 
-            for (id in ids) {
-                val rv = RemoteViews(ctx.packageName, R.layout.widget_shift)
+            for (id in ids + stripIds) {
+                val rv = RemoteViews(ctx.packageName, if (id in stripIds) R.layout.widget_shift_strip else layout)
 
                 // ردیف ۱
                 if (progress != null) {
@@ -152,7 +158,7 @@ class ShiftWidget : AppWidgetProvider() {
                 mgr.updateAppWidget(id, rv)
             }
 
-            scheduleTick(ctx, ids, progress != null)
+            scheduleTick(ctx, ids + stripIds, progress != null)
         }
 
         /** تا وقتی شیفتی در جریان است، هر ۵ دقیقه ویجت تازه می‌شود تا «باقی‌مانده» کهنه نماند (آلارم غیردقیق، بدون مجوز اضافه). */

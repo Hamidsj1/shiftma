@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">شیفت ما</string>
     <string name="widget_desc">شیفت در جریان، تقویم یک‌هفته‌ای و آلارم‌ها؛ کم‌ارتفاع</string>
+    <string name="widget_strip_desc">نوار باریک: شیفت در جریان و هفتهٔ جاری با رنگ شیفت هر روز</string>
     <string name="english_widget_desc">یک لغت انگلیسی جدید در هر روز، با معنی و جمله</string>
     <string name="prayer_widget_desc">اوقات شرعی امروز با نمایش اذان بعدی (نیاز به روشن بودن امکانات مذهبی)</string>
     <string name="next_widget_desc">نزدیک‌ترین هشدار بعدی: یادآور شیفت، آلارم، یادداشت یا اذان</string>
