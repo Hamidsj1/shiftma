@@ -341,7 +341,6 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                     TextButton({ addSiteOpen = true }, contentPadding = PaddingValues(horizontal = 10.dp)) { Text("+ افزودن سامانه", style = MaterialTheme.typography.labelLarge) }
                 }
             } else {
-                Text("سامانه‌ها", style = MaterialTheme.typography.titleSmall)
                 LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
             }
         }
@@ -528,13 +527,13 @@ private fun HomeHero(vm: MainVm, onOpen: () -> Unit) {
     val onHero = Color.White
     Box(
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge).background(Pal.heroBrush)
-            .clickable(role = Role.Button, onClick = onOpen).padding(14.dp)
+            .clickable(role = Role.Button, onClick = onOpen).padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Image(
                     painterResource(R.drawable.app_logo), contentDescription = null,
-                    modifier = Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).clickable(onClick = onOpen)
+                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpen)
                 )
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -693,30 +692,30 @@ private fun SectionTile(s: HomeSection, onClick: () -> Unit) {
 /** سامانه‌ها: نوار افقی اسکرول‌شونده، کاشی سفید با آرم/آیکن و نام زیرش (سبک روشن)؛ «افزودن» آخر نوار است. */
 @Composable
 private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onClick: (HomeSection) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { s ->
             key(s.id) {
                 Column(
-                    Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }),
-                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
+                    Modifier.width(60.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Box(
-                        Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+                        Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(13.dp)),
                         contentAlignment = Alignment.Center
-                    ) { SiteLogo(s, 40.dp, 10.dp) }
-                    Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    ) { SiteLogo(s, 32.dp, 8.dp) }
+                    Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
             }
         }
         Column(
-            Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = "افزودن سایت", onClick = onAdd),
-            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
+            Modifier.width(60.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = "افزودن سایت", onClick = onAdd),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Box(Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)).border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(16.dp)), contentAlignment = Alignment.Center) {
-                Ico(R.drawable.ic_add, size = 24.dp, tint = MaterialTheme.colorScheme.primary)
+            Box(Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
+                Ico(R.drawable.ic_add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
             }
-            Text("افزودن", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+            Text("افزودن", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
         }
     }
 }
@@ -823,7 +822,7 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         for (i in 0 until 7) {
                             val d = week.getOrNull(i)
-                            if (d == null) Spacer(Modifier.weight(1f).height(42.dp)) else {
+                            if (d == null) Spacer(Modifier.weight(1f).height(34.dp)) else {
                                 val date = JalaliDate(year, mon, d)
                                 val code = p?.let { cur ->
                                     pat?.let { runCatching { DayResolver.resolve(cur.base(), it, date, all[cur.id]?.get(date.key).orEmpty()).effectiveCode }.getOrNull() }
@@ -854,7 +853,7 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
 private fun MiniDay(day: Int, code: Int?, holiday: Boolean, isToday: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(9.dp)
     Box(
-        modifier.height(42.dp).then(if (isToday) Modifier.shadow(4.dp, shape) else Modifier).clip(shape)
+        modifier.height(34.dp).then(if (isToday) Modifier.shadow(4.dp, shape) else Modifier).clip(shape)
             .background(if (isToday) TODAY_BG else if (code != null) shiftColor(code) else Color.Transparent)
             .clickable(role = Role.Button, onClickLabel = "ساخت آلارم برای این روز", onClick = onClick),
         contentAlignment = Alignment.Center
