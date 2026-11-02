@@ -3,6 +3,7 @@ package ir.shiftapp.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -47,7 +48,11 @@ fun PatternsScreen(vm: MainVm) {
     var showOthers by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<PatternEntity?>(null) }
     // فقط الگوی در حال اجرا (انتخاب‌شده) نشان داده می‌شود؛ بقیه پنهان‌اند و حذف نمی‌شوند (ستون‌های جدول چهارشیفت به آن‌ها وابسته است)
-    val visible = if (showOthers) patterns.sortedByDescending { it.id == sel?.id } else patterns.filter { it.id == sel?.id }
+    // مجموعه‌ها (مثل گروه‌های A تا D): در فهرست یک ردیف با چیپ گروه‌ها، نه چند کارت جدا
+    val groups = remember(patterns) { PatternSets.group(patterns) { PatternSets.keyOf(it.name, it.setName) } }
+    val activeGroup = groups.firstOrNull { g -> g.any { it.id == sel?.id } }
+    val rows: List<Any> = if (!showOthers) listOfNotNull(sel)
+        else groups.sortedByDescending { it === activeGroup }.flatMap { g -> if (g.size >= 2 && g !== activeGroup) listOf<Any>(g) else if (g === activeGroup) listOfNotNull(sel) else g }
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.openPatternFile(uri) }
@@ -76,7 +81,16 @@ fun PatternsScreen(vm: MainVm) {
         if (patterns.isEmpty()) item {
             EmptyState(R.drawable.ic_patterns, "هنوز الگویی نیست", text = "یک الگوی دلخواه بسازید یا از الگوهای آماده شروع کنید.")
         }
-        items(visible, key = { it.id }) { p ->
+        // چیپ‌های جابه‌جایی بین گروه‌های مجموعهٔ فعال (بالای کارت فعال)
+        if (activeGroup != null && activeGroup.size >= 2) item(key = "set-active") {
+            SetSwitcher(PatternSets.keyOf(activeGroup[0].name, activeGroup[0].setName), activeGroup, sel?.id) { vm.select(it); showOthers = false }
+        }
+        items(rows, key = { r -> if (r is PatternEntity) r.id else "set-" + ((r as List<*>).first() as PatternEntity).id }) { row ->
+          if (row is List<*>) {
+            @Suppress("UNCHECKED_CAST") val g = row as List<PatternEntity>
+            SetSwitcher(PatternSets.keyOf(g[0].name, g[0].setName), g, null) { vm.select(it); showOthers = false }
+          } else {
+            val p = row as PatternEntity
             val active = sel?.id == p.id
             val codes = remember(p.pattern) { runCatching { ShiftPattern.parse(p.pattern).codes }.getOrDefault(emptyList()) }
             AppCard(Modifier.fillMaxWidth(), onClick = { vm.select(p.id); showOthers = false }) {
@@ -112,6 +126,7 @@ fun PatternsScreen(vm: MainVm) {
                     }
                 }
             }
+          }
         }
     }
     if (showPresets) PresetsDialog(
@@ -267,6 +282,32 @@ fun EmployeesScreen(vm: MainVm) {
                         SmallIconButton(R.drawable.ic_delete, "حذف", { vm.deleteEmployee(e.id) }, tint = MaterialTheme.colorScheme.error)
                     }
                     RowDivider()
+                }
+            }
+        }
+    }
+}
+
+
+/** ردیف یک مجموعهٔ الگو: عنوان مجموعه و یک چیپ رنگی برای هر گروه (A، B، ...)؛ لمس هر چیپ همان گروه را فعال می‌کند. */
+@Composable
+private fun SetSwitcher(title: String, members: List<PatternEntity>, activeId: Long?, onPick: (Long) -> Unit) {
+    AppCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                members.forEach { m ->
+                    val letter = PatternSets.letterOf(m.name)
+                    val on = m.id == activeId
+                    val color = letter?.let { groupColor(it) } ?: Pal.muted
+                    Box(
+                        Modifier.size(44.dp).clip(CircleShape).background(color.copy(alpha = if (on) 1f else 0.85f))
+                            .then(if (on) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+                            .clickable(role = Role.Button, onClickLabel = "فعال‌سازی ${m.name}") { onPick(m.id) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text((letter ?: m.name.firstOrNull() ?: '?').toString(), style = MaterialTheme.typography.titleMedium, color = androidx.compose.ui.graphics.Color.White)
+                    }
                 }
             }
         }

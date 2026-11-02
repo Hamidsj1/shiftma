@@ -12,6 +12,17 @@ class BackupTest {
         listOf(Employee(7, "علی", "")), listOf(Setting("selected_pattern", "1"))
     )
     @Test fun roundTrip() = assertEquals(snap, Backup.fromJson(Backup.toJson(snap)))
+    @Test fun setNameSurvivesRoundTripAndOldBackupsStillLoad() {
+        val withSet = snap.copy(patterns = listOf(PatternEntity(1, "A", "x", 1405, 7, 19, "1;1;4;3;3;4;4;4", setName = "چهارشیفته")))
+        assertEquals("چهارشیفته", Backup.fromJson(Backup.toJson(withSet)).patterns.single().setName)
+        // پشتیبان نسخهٔ قدیم (بدون کلید setName) بدون خطا و با مجموعهٔ خالی خوانده می‌شود
+        val o = org.json.JSONObject(Backup.toJson(snap))
+        val arr = o.getJSONArray("patterns")
+        for (i in 0 until arr.length()) arr.getJSONObject(i).remove("setName")
+        val old = o.toString()
+        assertFalse(old.contains("setName"))
+        assertEquals("", Backup.fromJson(old).patterns.single().setName)
+    }
     @Test fun rejectsForeignFile() { assertThrows(IllegalArgumentException::class.java) { Backup.fromJson("""{"app":"other","version":1}""") } }
     @Test fun rejectsInvalidDate() {
         val bad = Backup.toJson(snap).replace("14000101", "13980230")

@@ -13,7 +13,8 @@ data class PatternEntity(
     val pattern: String,                                         // "1;1;2;2;4;3;3;4"
     val supervisor: String = "",       // مسئول شیفت (اختیاری)
     val headSupervisor: String = "",   // سرشیفت کل (اختیاری)
-    val section: String = ""           // بخش / واحد (اختیاری)
+    val section: String = "",          // بخش / واحد (اختیاری)
+    val setName: String = ""           // مجموعهٔ الگو (مثلاً «چهارشیفته ۸ روزه»)؛ خالی = مستقل. نسخهٔ ۴ دیتابیس
 )
 
 /** مرخصی / اضافه‌کاری / استراحت / تعویض / تغییر دستی / یادداشت در یک جدول با ستون type. */

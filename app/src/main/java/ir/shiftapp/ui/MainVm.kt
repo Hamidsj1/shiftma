@@ -388,13 +388,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun goToday() { JalaliDate.today().let { month.value = JalaliDate(it.year, it.month, 1) } }
 
     fun savePattern(id: Long, name: String, company: String, y: Int, m: Int, d: Int, codes: List<Int>, assignSlot: Int? = null, selectNew: Boolean = false,
-                    supervisor: String = "", headSupervisor: String = "", section: String = ""): String? = try {
+                    supervisor: String = "", headSupervisor: String = "", section: String = "", setName: String? = null): String? = try {
         require(name.isNotBlank()) { "نام الگو را وارد کنید" }
         require(JalaliDate(y, m, d).isValid) { "تاریخ مبنا نامعتبر است" }
         val pat = ShiftPattern.of(codes).serialize()
         viewModelScope.launch {
-            if (id == 0L) { val nid = dao.insert(PatternEntity(0, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim())); if (selectNew || selected.value == null) select(nid); assignSlot?.let { setSlot(it, nid) } }
-            else dao.update(PatternEntity(id, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim()))
+            if (id == 0L) { val nid = dao.insert(PatternEntity(0, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim(), setName.orEmpty().trim())); if (selectNew || selected.value == null) select(nid); assignSlot?.let { setSlot(it, nid) } }
+            else dao.update(PatternEntity(id, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim(), setName ?: patterns.value.firstOrNull { it.id == id }?.setName.orEmpty()))
         }; null
     } catch (e: IllegalArgumentException) { e.message }
 
@@ -501,7 +501,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         for (i in 0 until preset.crews) {
             val d = start.plusDays(preset.slotOf(i) * preset.offsetDays)
             val err = savePattern(0L, ('A' + i).toString(), company, d.year, d.month, d.day, preset.codes,
-                if (i < FourShiftTable.SLOTS) i else null, i == 0, "", headSupervisor, section)
+                if (i < FourShiftTable.SLOTS) i else null, i == 0, "", headSupervisor, section, setName = preset.title)
             if (err != null) return err
         }
         return null
