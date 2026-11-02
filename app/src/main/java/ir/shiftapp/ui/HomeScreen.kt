@@ -555,11 +555,7 @@ private fun HomeHero(vm: MainVm, onOpen: () -> Unit) {
                                         .padding(horizontal = 10.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    groupLetter(cur.name)?.let { gl ->
-                                        Box(Modifier.size(20.dp).clip(CircleShape).background(groupColor(gl)), contentAlignment = Alignment.Center) {
-                                            Text(gl.toString(), style = MaterialTheme.typography.labelSmall, color = Color.White)
-                                        }
-                                    }
+                                    GroupBadge(cur.name)
                                     Text(groupTitle(cur.name), style = MaterialTheme.typography.labelLarge, color = onHero, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     if (all.size > 1) Ico(R.drawable.ic_expand_more, size = 16.dp, tint = onHero)
                                 }

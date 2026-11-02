@@ -57,6 +57,15 @@ internal fun groupColor(letter: Char): androidx.compose.ui.graphics.Color = when
     else -> androidx.compose.ui.graphics.Color(0xFF5F6B7A)
 }
 
+/** نشان گردِ رنگیِ حرف گروه (A..D)؛ اگر نام الگو شکل «گروه + حرف» نباشد چیزی نشان نمی‌دهد. */
+@androidx.compose.runtime.Composable
+internal fun GroupBadge(name: String, size: androidx.compose.ui.unit.Dp = 20.dp) {
+    val gl = groupLetter(name) ?: return
+    Box(Modifier.size(size).clip(CircleShape).background(groupColor(gl)), contentAlignment = Alignment.Center) {
+        Text(gl.toString(), style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White)
+    }
+}
+
 /** آیکن و رنگ هر نوع ثبت؛ در کاردکس، تقویم و پنجرهٔ روز یکسان استفاده می‌شود. */
 internal fun entryIcon(type: String): Int = when (type) {
     EntryType.NOTE -> R.drawable.ic_note
@@ -297,6 +306,7 @@ fun CardexScreen(vm: MainVm) {
                             .clickable(role = Role.Button) { picking = true }.padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        p?.let { GroupBadge(it.name, 18.dp); Spacer(Modifier.width(4.dp)) }
                         Text(p?.let { groupTitle(it.name) } ?: "انتخاب شیفت", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 60.dp))
                         Ico(R.drawable.ic_expand_more, size = 18.dp, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
