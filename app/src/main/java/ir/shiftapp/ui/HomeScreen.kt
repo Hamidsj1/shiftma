@@ -314,8 +314,8 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     Box(Modifier.fillMaxSize()) {
     Column(Modifier.fillMaxSize()) {
     Column(
-        Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp)
+        Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(Modifier.fillMaxWidth().offset(y = (-6).dp), verticalAlignment = Alignment.CenterVertically) {
             SmallIconButton(R.drawable.ic_menu, "بخش‌های دیگر", { drawerScope.launch { drawer.open() } })
@@ -334,8 +334,16 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         }
         // سامانه‌ها: نوار روشن افقی درست زیر کارت بالا و بالای تقویم (در حالت «چیدمان» همان گروه پایین برای جابه‌جایی دیده می‌شود)
         if (!editing && remote.visible("links")) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("سامانه‌ها", style = MaterialTheme.typography.titleSmall)
-            LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
+            if (linkList.isEmpty()) {
+                // سامانه‌ای نیست: فقط یک سطر باریک، نه کاشی بزرگ «افزودن»
+                Row(Modifier.fillMaxWidth().height(36.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("سامانه‌ها", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    TextButton({ addSiteOpen = true }, contentPadding = PaddingValues(horizontal = 10.dp)) { Text("+ افزودن سامانه", style = MaterialTheme.typography.labelLarge) }
+                }
+            } else {
+                Text("سامانه‌ها", style = MaterialTheme.typography.titleSmall)
+                LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
+            }
         }
         // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
         if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs)
@@ -349,7 +357,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         }
         UpcomingNotes(prefs) { onOpen("notes") }
         LayoutBar(editing, { editing = true }, { saveLayout(emptyMap()) }, { editing = false })
-        ReorderLayout(columns = 1, spacing = 22.dp, dr = blockDrag) {
+        ReorderLayout(columns = 1, spacing = 14.dp, dr = blockDrag) {
             shownBlocks.forEach { id ->
                 key(id) {
                     val bi = shownBlocks.indexOf(id)
@@ -793,8 +801,8 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
     val prefsNow by vm.prefs.collectAsState()
     alarmDay?.let { d -> NewAlarmDialog(vm, p, prefsNow, d) { alarmDay = null } }
     AppCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.height(38.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton({ ym -= 1 }) { Ico(R.drawable.ic_chevron_right, desc = "ماه قبل") }
                 Text(
                     "${MONTHS[mon - 1]} ${year.fa()}", Modifier.weight(1f).clickable { ym = today.year * 12 + today.month - 1 },
@@ -815,7 +823,7 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
                     Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         for (i in 0 until 7) {
                             val d = week.getOrNull(i)
-                            if (d == null) Spacer(Modifier.weight(1f).height(34.dp)) else {
+                            if (d == null) Spacer(Modifier.weight(1f).height(42.dp)) else {
                                 val date = JalaliDate(year, mon, d)
                                 val code = p?.let { cur ->
                                     pat?.let { runCatching { DayResolver.resolve(cur.base(), it, date, all[cur.id]?.get(date.key).orEmpty()).effectiveCode }.getOrNull() }
@@ -846,7 +854,7 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
 private fun MiniDay(day: Int, code: Int?, holiday: Boolean, isToday: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(9.dp)
     Box(
-        modifier.height(34.dp).then(if (isToday) Modifier.shadow(4.dp, shape) else Modifier).clip(shape)
+        modifier.height(42.dp).then(if (isToday) Modifier.shadow(4.dp, shape) else Modifier).clip(shape)
             .background(if (isToday) TODAY_BG else if (code != null) shiftColor(code) else Color.Transparent)
             .clickable(role = Role.Button, onClickLabel = "ساخت آلارم برای این روز", onClick = onClick),
         contentAlignment = Alignment.Center
