@@ -132,7 +132,7 @@ let refreshOut = () => {};
 const BLANK = {
   notice: () => ({ enabled: true, items: [] }),
   ad: () => ({ enabled: true, items: [] }),
-  config: () => ({ enabled: true, payLink: '', sections: {} }),
+  config: () => ({ enabled: true, payLink: '', sections: {}, sites: [] }),
   meals: () => ({ enabled: true, complexes: [] }),
   tiles: () => ({ sites: [], sections: { phonebook: false, meals: false }, publicAds: false, publicNotices: true, mealsFeed: '', adsFeed: '', noticeFeed: '', configFeed: '' }),
 };
@@ -252,7 +252,21 @@ function buildConfig() {
   if (sections.imgcompress === 'paid') iss.push(W('«کاهش حجم عکس» خودش خرید درون‌برنامه‌ای بازار دارد؛ قفل دوم از این پنل لازم نیست.'));
   if (paid.length) iss.push(W('قبل از انتشار قانون بازار دربارهٔ فروش با لینک پرداخت بیرونی را بررسی کنید.'));
   if (S.site === '_public') iss.push(W('config.json فقط از «فایل کاشی‌های» هر محل خوانده می‌شود؛ برای محل مشخص بسازید.'));
-  const obj = { enabled: d.enabled }; if (pl) obj.payLink = pl; obj.sections = sections;
+  // کانال به‌روزرسانی آدرس سایت‌ها: قواعد همان core/SiteUpdates.kt (https، بدون @ و IP، فقط سایتِ موجود با همان key)
+  const upd = [], ukeys = new Set();
+  (d.sites || []).forEach((u, i) => {
+    const n = `سایت ${i + 1}`, key = (u.key || '').trim().toLowerCase(), url = (u.url || '').trim(), title = (u.title || '').trim(), sub = (u.subtitle || '').trim();
+    if (!key && !url && !title && !sub) return;
+    if (!/^[a-z0-9_]{1,30}$/.test(key)) { iss.push(E(`${n}: شناسهٔ سایت (key) باید لاتین و حداکثر ۳۰ حرف باشد`)); return; }
+    let host = ''; try { host = new URL(url).hostname; } catch (e) {}
+    if (!url.startsWith('https://') || url.includes('@') || url.length > 600 || !host.includes('.') || /^[0-9.]+$/.test(host) || host.startsWith('[')) { iss.push(E(`${n}: آدرس باید https و بدون @ و IP باشد`)); return; }
+    if (title.length > 40 || sub.length > 60) { iss.push(E(`${n}: عنوان حداکثر ۴۰ و توضیح حداکثر ۶۰ حرف`)); return; }
+    if (ukeys.has(key)) { iss.push(E(`${n}: شناسهٔ تکراری`)); return; } ukeys.add(key);
+    const o = { key, url }; if (title) o.title = title; if (sub) o.subtitle = sub; upd.push(o);
+  });
+  if (upd.length > 30) iss.push(E('حداکثر ۳۰ به‌روزرسانی سایت پذیرفته می‌شود'));
+  if (upd.length) iss.push(W('فقط سایت‌هایی عوض می‌شوند که از قبل در گوشی هستند و کاربر خودش ویرایششان نکرده؛ سایت تازه اضافه نمی‌شود.'));
+  const obj = { enabled: d.enabled }; if (pl) obj.payLink = pl; obj.sections = sections; if (upd.length) obj.sites = upd.slice(0, 30);
   return { obj, iss };
 }
 function buildMeals() {
@@ -277,7 +291,7 @@ function importInto(kind, text) {
   const j = JSON.parse(text), d = D(kind), s = v => (v == null ? '' : String(v));
   if (kind === 'notice') { d.enabled = j.enabled !== false; d.items = (j.items || []).map(o => ({ id: s(o.id), title: s(o.title), body: s(o.body), link: s(o.link), expires: s(o.expires) })); }
   if (kind === 'ad') { d.enabled = j.enabled !== false; d.items = (j.items || []).map(o => ({ id: s(o.id), image: s(o.image), link: s(o.link), title: s(o.title), tile: s(o.tile) })); }
-  if (kind === 'config') { d.enabled = j.enabled !== false; d.payLink = s(j.payLink); d.sections = {}; Object.entries(j.sections || {}).forEach(([k, v]) => { v = s(v).toLowerCase(); if (v === 'hide' || v === 'paid') d.sections[k.trim().toLowerCase()] = v; }); }
+  if (kind === 'config') { d.enabled = j.enabled !== false; d.payLink = s(j.payLink); d.sites = (j.sites || []).map(o => ({ key: s(o.key), url: s(o.url), title: s(o.title), subtitle: s(o.subtitle) })); d.sections = {}; Object.entries(j.sections || {}).forEach(([k, v]) => { v = s(v).toLowerCase(); if (v === 'hide' || v === 'paid') d.sections[k.trim().toLowerCase()] = v; }); }
   if (kind === 'meals') { d.enabled = j.enabled !== false; d.complexes = (j.complexes || []).map(o => ({ name: s(o.name), label: s(o.label), file: s(o.file) })); }
   if (kind === 'tiles') {
     if (j.type !== 'tiles') throw new Error('این فایل کاشی‌ها نیست');
@@ -449,6 +463,22 @@ function tabAd() {
   return shell('ad', 'تبلیغ‌ها (پنل پایین صفحهٔ اول)', `فایل ${siteName()}${S.site === '_public' ? '؛ برای کاربر عمومی بازار' : '؛ فقط برای کاربرانی که فایل کاشی همین محل را وارد کرده‌اند'}.`, editor);
 }
 
+/* ───────────── به‌روزرسانی آدرس سایت‌ها (بدون وارد کردن فایل) ───────────── */
+function siteUpdatesEditor(d) {
+  if (!d.sites) d.sites = [];
+  const list = h('div');
+  const draw = () => list.replaceChildren(...d.sites.map((u, i) => h('div', { class: 'item' },
+    h('div', { class: 'row sp' }, h('span', {}, `سایت ${i + 1}`), h('button', { class: 'btn sm del', onclick: () => { d.sites.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف')),
+    field('شناسهٔ سایت (key؛ مثل nicicocom)', u, 'key', { ltr: true }),
+    field('آدرس تازه (https)', u, 'url', { ltr: true, ph: 'https://' }),
+    field('عنوان تازه (اختیاری)', u, 'title', {}),
+    field('توضیح تازه (اختیاری)', u, 'subtitle', {}))));
+  draw();
+  return h('div', { style: 'margin-top:14px' }, h('h3', {}, 'به‌روزرسانی آدرس سایت‌ها'),
+    h('p', { class: 'sub' }, 'وقتی آدرس یک سامانه عوض شد، اینجا بنویسید تا در گوشی‌ها اصلاح شود. فقط سایت‌های موجود با همان شناسه؛ سایتی که کاربر خودش ویرایش کرده دست‌نخورده می‌ماند.'),
+    list, h('button', { class: 'btn', onclick: () => { d.sites.push({ key: '', url: '', title: '', subtitle: '' }); save(); draw(); refreshOut(); } }, '+ سایت'));
+}
+
 /* ───────────── برگهٔ قفل و پنهان‌سازی بخش‌ها ───────────── */
 function tabConfig() {
   const d = D('config'), rows = h('tbody');
@@ -466,6 +496,7 @@ function tabConfig() {
   const editor = h('div', {}, toggle('قاعده‌ها اعمال شوند (خاموش = همه‌چیز نمایان و رایگان)', d, 'enabled'), h('div', { style: 'height:10px' }),
     field('لینک پرداخت برای بخش‌های پولی (https)', d, 'payLink', { ltr: true, ph: 'https://' }),
     h('table', {}, h('tbody', {}, rows)),
+    siteUpdatesEditor(d),
     h('p', { class: 'sub', style: 'margin-top:10px' }, 'تغییر تا حدود ۳ ساعت دیرتر به گوشی‌ها می‌رسد. برای باز کردن یک بخش پولی برای کاربر، از برگهٔ «کدها» کد بسازید.'));
   return shell('config', 'قفل و پنهان‌سازی بخش‌ها', `فایل config.json ${siteName()}`, editor);
 }

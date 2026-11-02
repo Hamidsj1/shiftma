@@ -106,6 +106,18 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         DefaultTiles.markSeeded(app)
     }
     init { viewModelScope.launch { seedDefaultTiles() } }
+    // به‌روزرسانی آدرس سایت‌ها از config.json (فقط سایت‌های موجود و ویرایش‌نشدهٔ کاربر)؛ بدون تغییر = بدون نوشتن
+    init {
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(ir.shiftapp.system.ConfigLoader.config, prefs.map { it.sitesRaw }.distinctUntilChanged()) { c, raw -> c.siteUpdates to raw }
+                .collect { (updates, raw) ->
+                    val old = TilesPackFile.decodeSites(raw)
+                    val fresh = SiteUpdates.apply(old, updates) ?: return@collect
+                    fresh.filter { n -> old.firstOrNull { it.key == n.key }?.url != n.url }.forEach { SiteIcon.forget(getApplication<Application>(), it.key) }
+                    setPref(PrefKeys.SITES, TilesPackFile.encodeSites(fresh))
+                }
+        }
+    }
     val pendingTiles = MutableStateFlow<TilesPack?>(null)
 
     /** مخاطبینِ یک فایل «مخاطبین + سامانه‌ها» که تا تمام شدن پنجرهٔ کاشی‌ها منتظر می‌مانند. */
@@ -253,6 +265,25 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun resetStrip(strip: Strip) {
         setPref(strip.listKey, "")
         if (strip == Strip.ESSENTIAL) setPref(PrefKeys.ESS_SITES, "")
+    }
+
+    /** ویرایش عنوان/آدرس/توضیح یک سایت (کلید و پس‌نشان و رمز ذخیره‌شده می‌مانند). بعدش به‌روزرسانی راه‌دور به آن دست نمی‌زند. */
+    fun editSite(key: String, title: String, url: String, subtitle: String): String? {
+        val t = title.trim(); val sub = subtitle.trim()
+        var u = url.trim()
+        if (u.isNotEmpty() && !u.contains("://")) u = "https://$u"
+        if (t.isEmpty()) return "عنوان را بنویس"
+        if (t.length > TilesPackFile.MAX_TITLE) return "عنوان حداکثر ${Fa.num(TilesPackFile.MAX_TITLE)} حرف باشد"
+        if (sub.length > TilesPackFile.MAX_SUB) return "توضیح حداکثر ${Fa.num(TilesPackFile.MAX_SUB)} حرف باشد"
+        if (u.startsWith("http://")) return "فقط آدرس امن (https) پذیرفته می‌شود"
+        if (!u.startsWith("https://") || TilesPackFile.hostOf(u).isEmpty() || u.length > TilesPackFile.MAX_URL) return "آدرس درست نیست (مثل example.com)"
+        val old = TilesPackFile.decodeSites(prefs.value.sitesRaw)
+        val cur = old.firstOrNull { it.key == key } ?: return "این سایت دیگر نیست"
+        if (old.any { it.key != key && it.url.equals(u, ignoreCase = true) }) return "این آدرس قبلاً اضافه شده"
+        if (!cur.url.equals(u, ignoreCase = true)) SiteIcon.forget(getApplication<Application>(), key)
+        setPref(PrefKeys.SITES, TilesPackFile.encodeSites(old.map { if (it.key == key) SiteTile(key, t, sub, u, cur.pdf, cur.logo, edited = true) else it }))
+        message.value = "«$t» ویرایش شد"
+        return null
     }
 
     fun removeSite(key: String) {

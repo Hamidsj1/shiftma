@@ -6,7 +6,8 @@ import java.net.URI
 import java.util.Base64
 
 /** یک کاشی سامانه: کلید (برای نام کاربری و رمز ذخیره‌شده)، عنوان، توضیح، آدرس https، دکمهٔ PDF و آرم اختیاری (تصویر کوچک). */
-class SiteTile(val key: String, val title: String, val subtitle: String, val url: String, val pdf: Boolean, val logo: ByteArray?)
+/** [edited] = کاربر خودش ویرایش کرده؛ به‌روزرسانی راه‌دور (config.json) دیگر به آن دست نمی‌زند. فقط در ذخیرهٔ خود برنامه می‌آید، نه در فایل ارسالی. */
+class SiteTile(val key: String, val title: String, val subtitle: String, val url: String, val pdf: Boolean, val logo: ByteArray?, val edited: Boolean = false)
 
 /**
  * محتوای یک فایل کاشی‌ها: سامانه‌ها + شناسهٔ بخش‌های مخفی که با این فایل نمایان می‌شوند (phonebook، meals)
@@ -41,7 +42,7 @@ object TilesPackFile {
     fun keyFor(url: String): String =
         PortalAutofill.siteOf(hostOf(url)).replace(Regex("[^a-z0-9]"), "").take(30)
 
-    private fun parseSites(a: JSONArray?): List<SiteTile> {
+    private fun parseSites(a: JSONArray?, trustEdited: Boolean = false): List<SiteTile> {
         if (a == null) return emptyList()
         require(a.length() <= MAX_SITES) { "تعداد سامانه‌های فایل نامعتبر است" }
         val out = ArrayList<SiteTile>()
@@ -61,24 +62,25 @@ object TilesPackFile {
                 Base64.getDecoder().decode(logoText)
             } catch (e: IllegalArgumentException) { throw IllegalArgumentException("آرم سامانه خراب است") }
             require(logo == null || logo.size <= MAX_LOGO) { "آرم سامانه بیش از حد بزرگ است" }
-            out.add(SiteTile(key, title, sub, url, j.optBoolean("pdf", false), logo))
+            out.add(SiteTile(key, title, sub, url, j.optBoolean("pdf", false), logo, trustEdited && j.optBoolean("edited", false)))
         }
         return out
     }
 
-    private fun sitesToJson(sites: List<SiteTile>): JSONArray = JSONArray().also { a ->
+    private fun sitesToJson(sites: List<SiteTile>, store: Boolean = false): JSONArray = JSONArray().also { a ->
         sites.forEach { s ->
             a.put(JSONObject().put("key", s.key).put("title", s.title).put("subtitle", s.subtitle).put("url", s.url).put("pdf", s.pdf)
+                .also { o -> if (store && s.edited) o.put("edited", true) }
                 .also { o -> s.logo?.let { o.put("logo", Base64.getEncoder().encodeToString(it)) } })
         }
     }
 
     /** برای ذخیره در تنظیمات برنامه. */
-    fun encodeSites(sites: List<SiteTile>): String = if (sites.isEmpty()) "" else sitesToJson(sites).toString()
+    fun encodeSites(sites: List<SiteTile>): String = if (sites.isEmpty()) "" else sitesToJson(sites, store = true).toString()
 
     /** خواندن تنظیمات ذخیره‌شده؛ دادهٔ خراب به‌جای خطا، فهرست خالی می‌دهد. */
     fun decodeSites(raw: String): List<SiteTile> =
-        if (raw.isBlank()) emptyList() else runCatching { parseSites(JSONArray(raw)) }.getOrDefault(emptyList())
+        if (raw.isBlank()) emptyList() else runCatching { parseSites(JSONArray(raw), trustEdited = true) }.getOrDefault(emptyList())
 
     fun toJsonObject(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = ""): JSONObject = JSONObject().apply {
         put("app", "shiftma"); put("type", TYPE); put("version", VERSION)

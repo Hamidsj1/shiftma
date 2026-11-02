@@ -227,11 +227,13 @@ fun SettingsScreen(vm: MainVm) {
             val scope = rememberCoroutineScope()
             val tilesPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.openPatternFile(uri) }
             var del by remember { mutableStateOf<SiteTile?>(null) }
+            var edit by remember { mutableStateOf<SiteTile?>(null) }
             Text(if (sites.isEmpty()) "هنوز سامانه‌ای اضافه نشده" else "${sites.size.fa()} سامانه", style = MaterialTheme.typography.bodyMedium)
             sites.forEach { s ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(s.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     TextButton({ scope.launch { shareTilesFile(ctx, listOf(s), emptySet()) } }) { Text("ارسال") }
+                    TextButton({ edit = s }) { Text("ویرایش") }
                     TextButton({ del = s }) { Text("حذف") }
                 }
             }
@@ -240,6 +242,12 @@ fun SettingsScreen(vm: MainVm) {
                 AppButton("ارسال فایل کاشی‌ها", { scope.launch { shareTilesFile(ctx, sites, usable, prefs.mealFeed, prefs.adFeed, prefs.adPublic, prefs.noticeFeed, prefs.noticePublic, prefs.configFeed) } }, Modifier.fillMaxWidth(), style = BtnStyle.Outline)
             }
             HintText("برنامه هیچ سامانه‌ای به‌صورت پیش‌فرض ندارد؛ دفترچه تلفن و برنامه غذایی هم پنهان‌اند. سامانه‌ها و بخش‌های مخفی فقط با وارد کردن فایل کاشی‌ها (.shiftma) اضافه یا نمایان می‌شوند. فایل کاشی‌های دیگر را هم می‌شود وارد کرد یا با زدن روی خود فایل باز کرد. نام کاربری و رمز هرگز داخل فایل نمی‌آید.")
+            edit?.let { e ->
+                AddSiteDialog(
+                    onAdd = { t, u, sb -> vm.editSite(e.key, t, u, sb) }, onDismiss = { edit = null },
+                    heading = "ویرایش سامانه", confirmLabel = "ذخیره", initialTitle = e.title, initialUrl = e.url, initialSubtitle = e.subtitle
+                )
+            }
             del?.let { d ->
                 ConfirmDialog("سامانهٔ «${d.title}» از صفحهٔ اول حذف شود؟", "حذف", { vm.removeSite(d.key); del = null }, { del = null }, danger = true)
             }

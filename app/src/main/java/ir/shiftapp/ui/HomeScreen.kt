@@ -92,11 +92,11 @@ private val NO_MEALS = MutableStateFlow<List<MealComplex>>(emptyList())
 internal fun AddSiteDialog(
     onAdd: (title: String, url: String, subtitle: String) -> String?, onDismiss: () -> Unit,
     heading: String = "افزودن سایت", confirmLabel: String = "افزودن",
-    initialTitle: String = "", initialUrl: String = "", showSubtitle: Boolean = true
+    initialTitle: String = "", initialUrl: String = "", showSubtitle: Boolean = true, initialSubtitle: String = ""
 ) {
     var title by rememberSaveable { mutableStateOf(initialTitle) }
     var url by rememberSaveable { mutableStateOf(initialUrl) }
-    var sub by rememberSaveable { mutableStateOf("") }
+    var sub by rememberSaveable { mutableStateOf(initialSubtitle) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,

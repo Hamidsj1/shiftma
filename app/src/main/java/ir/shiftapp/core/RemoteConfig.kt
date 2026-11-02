@@ -6,7 +6,7 @@ import org.json.JSONObject
 enum class SectionState { SHOW, HIDE, PAID }
 
 /** تنظیمات دریافتی از گیت‌هاب برای یک محل. بخشی که در فایل نیامده، نمایان است. */
-data class RemoteConfig(val sections: Map<String, SectionState> = emptyMap(), val payLink: String = "") {
+data class RemoteConfig(val sections: Map<String, SectionState> = emptyMap(), val payLink: String = "", val siteUpdates: List<SiteUpdate> = emptyList()) {
     fun stateOf(id: String): SectionState = sections[id] ?: SectionState.SHOW
     fun visible(id: String): Boolean = stateOf(id) != SectionState.HIDE
     fun needsPayment(id: String): Boolean = stateOf(id) == SectionState.PAID
@@ -15,6 +15,8 @@ data class RemoteConfig(val sections: Map<String, SectionState> = emptyMap(), va
 /**
  * فایل JSON تنظیمات هر محل (روی گیت‌هاب، کنار ad.json و notice.json). نمونه:
  * {"enabled":true,"payLink":"https://example.ir/pay","sections":{"sport":"hide","reading":"paid","meals":"show"}}
+ * کانال به‌روزرسانی سایت‌ها (اختیاری): "sites":[{"key":"nicicocom","url":"https://new.example.ir","title":"عنوان تازه","subtitle":"توضیح"}]
+ * فقط برای سایت‌هایی که از قبل در گوشی هستند (با همان key) و کاربر خودش ویرایششان نکرده؛ سایت تازه اضافه نمی‌شود. title و subtitle اختیاری‌اند.
  * مقدارها: show | hide | paid. شناسهٔ بخش‌ها همان شناسهٔ HomeSection است (sport، reading، english، …).
  * enabled=false یعنی همهٔ قاعده‌ها نادیده گرفته شوند (همه چیز نمایان و رایگان).
  */
@@ -48,7 +50,7 @@ object RemoteConfigFile {
                 }
             }
             val link = root.optString("payLink").trim().let { if (NoticeFeed.isSafeUrl(it)) it else "" }
-            RemoteConfig(out, link)
+            RemoteConfig(out, link, SiteUpdates.parse(root.optJSONArray("sites")))
         }
     } catch (e: Exception) { null }
 
