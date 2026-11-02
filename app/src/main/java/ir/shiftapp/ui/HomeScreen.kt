@@ -83,6 +83,9 @@ internal fun openUrl(ctx: Context, url: String) {
 
 private const val ADD_SITE_ID = "__add_site__"
 
+/** فاصلهٔ استاندارد زیر هر بخش دیدنی صفحهٔ اول. */
+private val GAP = 10.dp
+
 /** وقتی DocsVm نیست (مثلاً پیش‌نمایش): فهرست خالی مجتمع‌های برنامه غذایی. */
 private val NO_MEALS = MutableStateFlow<List<MealComplex>>(emptyList())
 
@@ -311,29 +314,31 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             }
         }
     ) {
-    Box(Modifier.fillMaxSize()) {
+    val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val callBtn = remember { UiFlags.callButton(ctx) }
     Column(Modifier.fillMaxSize()) {
+    Box(Modifier.weight(1f).fillMaxWidth()) {
     Column(
-        Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 14.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(0.dp)      // فاصله‌ها دستی و فقط برای بخش‌های دیده‌شده؛ spacedBy بین کامپوزبل‌های خالی هم فاصله می‌گذاشت (فضای پرت)
     ) {
-        Row(Modifier.fillMaxWidth().offset(y = (-6).dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             SmallIconButton(R.drawable.ic_menu, "بخش‌های دیگر", { drawerScope.launch { drawer.open() } })
             Text("بخش‌های دیگر", style = MaterialTheme.typography.labelLarge, color = Pal.muted,
                 modifier = Modifier.clip(MaterialTheme.shapes.small).clickable { drawerScope.launch { drawer.open() } }.padding(horizontal = 6.dp, vertical = 8.dp))
             Spacer(Modifier.weight(1f))
             SmallIconButton(R.drawable.ic_search, "جست‌وجو", { searchOpen = true })
         }
-        RingingBanner()      // فقط وقتی آلارمی زنگ می‌زند: دکمهٔ بزرگ قطع، حتی اگر اعلان دیده نشود
+        RingingBanner(Modifier.padding(bottom = GAP))      // فقط وقتی آلارمی زنگ می‌زند: دکمهٔ بزرگ قطع، حتی اگر اعلان دیده نشود
         val patterns by vm.patterns.collectAsState()
         val patternsLoaded by vm.patternsLoaded.collectAsState()
         // کارت بالا + نوار باریک شیفت در جریان (فقط وقتی شیفتی در جریان است؛ وگرنه هیچ فضایی نمی‌گیرد)
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(bottom = GAP)) {
             HomeHero(vm) { onOpen("shift") }
-            ShiftProgressStrip(vm)
+            ShiftProgressStrip(vm, Modifier.padding(top = 6.dp))
         }
         // سامانه‌ها: نوار روشن افقی درست زیر کارت بالا و بالای تقویم (در حالت «چیدمان» همان گروه پایین برای جابه‌جایی دیده می‌شود)
-        if (!editing && remote.visible("links")) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        if (!editing && remote.visible("links")) Column(Modifier.padding(bottom = GAP)) {
             if (linkList.isEmpty()) {
                 // سامانه‌ای نیست: فقط یک سطر باریک، نه کاشی بزرگ «افزودن»
                 Row(Modifier.fillMaxWidth().height(36.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -345,19 +350,19 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             }
         }
         // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
-        if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs)
+        if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs, Modifier.padding(bottom = GAP))
         // نصب تازه: به‌جای تقویم خالی، الگوهای پیشنهادی را همین‌جا نشان بده
-        if (patternsLoaded && patterns.isEmpty()) QuickStartCard(vm) else {
+        if (patternsLoaded && patterns.isEmpty()) QuickStartCard(vm, Modifier.padding(bottom = GAP)) else {
             // تقویم + نوار باریک آلارم/یادآوری‌ها درست زیرش
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(bottom = GAP)) {
                 HomeMonthCard(vm) { onOpen("shift") }
-                ReminderStrip(vm)
+                ReminderStrip(vm, Modifier.padding(top = 6.dp))
             }
         }
-        UpcomingNotes(prefs) { onOpen("notes") }
+        UpcomingNotes(prefs, Modifier.padding(bottom = GAP)) { onOpen("notes") }
         LayoutBar(editing, { editing = true }, { saveLayout(emptyMap()) }, { editing = false })
-        ReorderLayout(columns = 1, spacing = 14.dp, dr = blockDrag) {
-            shownBlocks.forEach { id ->
+        ReorderLayout(columns = 1, spacing = 12.dp, dr = blockDrag) {
+            shownBlocks.filter { editing || it != "links" }.forEach { id ->
                 key(id) {
                     val bi = shownBlocks.indexOf(id)
                     val up = bi > 0
@@ -369,7 +374,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                             "sections" -> {
                                 BlockHeader("بخش‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 if (editing) TileGrid(sections, compact = false, editing = true, scroll = scroll, onReorder = { reorderTiles("sections", sectionsAll, it) }) { }
-                                else SectionIconGrid(sections) { s -> if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show() }
+                                else SectionsStrip(sections) { s -> if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show() }
                                 if (!editing && !prefs.prayerOn && !prefs.prayerHintHidden) {
                                     // پیشنهاد اختیاری: فقط تا وقتی کاربر فعالش نکرده یا پنهانش نکرده دیده می‌شود
                                     AppCard(Modifier.fillMaxWidth()) {
@@ -409,10 +414,8 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         }
         Spacer(Modifier.height(4.dp))
     }
-    AdPanel(prefs.adFeed, prefs.adPublic)      // پنل تبلیغاتی ثابت پایین صفحه (ui/AdPanel.kt)؛ بدون تبلیغ چیزی نشان نمی‌دهد
-    }
     // دکمهٔ دم‌دستِ دفترچه تلفن: پایین-چپ صفحه، فقط وقتی بخش در دسترس است (رمز ویژه یا فایل کاشی‌ها)
-    if (!editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
+    if (callBtn && !editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
         val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
         androidx.compose.material3.FloatingActionButton(
             onClick = { onOpen("phonebook") },
@@ -423,6 +426,8 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             contentColor = Color.White
         ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
     }
+    }
+    if (!landscape) AdPanel(prefs.adFeed, prefs.adPublic)      // پنل ثابت پایین؛ در حالت افقی ارتفاع را می‌خورد و پنهان است
     }
     }
 }
@@ -451,7 +456,7 @@ private fun DrawerSectionItem(s: HomeSection, onClick: () -> Unit) {
 private fun LayoutBar(editing: Boolean, onStart: () -> Unit, onReset: () -> Unit, onDone: () -> Unit) {
     if (!editing) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onStart) {
+            TextButton(onStart, modifier = Modifier.height(32.dp), contentPadding = PaddingValues(horizontal = 10.dp)) {
                 Ico(R.drawable.ic_edit, size = 18.dp)
                 Spacer(Modifier.width(6.dp))
                 Text("چیدمان صفحه")
@@ -550,6 +555,11 @@ private fun HomeHero(vm: MainVm, onOpen: () -> Unit) {
                                         .padding(horizontal = 10.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
+                                    groupLetter(cur.name)?.let { gl ->
+                                        Box(Modifier.size(20.dp).clip(CircleShape).background(groupColor(gl)), contentAlignment = Alignment.Center) {
+                                            Text(gl.toString(), style = MaterialTheme.typography.labelSmall, color = Color.White)
+                                        }
+                                    }
                                     Text(groupTitle(cur.name), style = MaterialTheme.typography.labelLarge, color = onHero, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     if (all.size > 1) Ico(R.drawable.ic_expand_more, size = 16.dp, tint = onHero)
                                 }
@@ -720,22 +730,19 @@ private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onClick: (Ho
     }
 }
 
-/** بخش‌ها: شبکهٔ جمع‌وجور آیکن+نام (۴ ستون) به‌جای کارت‌های بلند؛ ارتفاع صفحه تا نصف کم می‌شود. */
+/** بخش‌ها: نوار افقی اسکرول‌شونده با آیکن و نام (تصمیم مورد ۷: هر گروه یک نوار افقی)؛ کم‌ارتفاع و بدون کارت‌های بلند. */
 @Composable
-private fun SectionIconGrid(items: List<HomeSection>, onClick: (HomeSection) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items.chunked(4).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { s ->
-                    Column(
-                        Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).clickable(role = Role.Button, onClick = { onClick(s) }).padding(vertical = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        IconBadge(s.icon, size = 52.dp, iconSize = 28.dp, modifier = Modifier)
-                        Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                    }
+private fun SectionsStrip(items: List<HomeSection>, onClick: (HomeSection) -> Unit) {
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { s ->
+            key(s.id) {
+                Column(
+                    Modifier.width(66.dp).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconBadge(s.icon, size = 44.dp, iconSize = 24.dp, modifier = Modifier)
+                    Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
-                repeat(4 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }

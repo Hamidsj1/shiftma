@@ -50,10 +50,10 @@ internal fun groupLetter(name: String): Char? {
 
 /** رنگ ثابت هر گروه تا گروه‌ها در فهرست و عنوان با یک نگاه تشخیص داده شوند. */
 internal fun groupColor(letter: Char): androidx.compose.ui.graphics.Color = when (letter) {
-    'A' -> androidx.compose.ui.graphics.Color(0xFF3F7DD8)
+    'A' -> androidx.compose.ui.graphics.Color(0xFF4FB3E8)
     'B' -> androidx.compose.ui.graphics.Color(0xFF2E9E6B)
-    'C' -> androidx.compose.ui.graphics.Color(0xFFD9822B)
-    'D' -> androidx.compose.ui.graphics.Color(0xFF8E5BD0)
+    'C' -> androidx.compose.ui.graphics.Color(0xFF8E5BD0)
+    'D' -> androidx.compose.ui.graphics.Color(0xFFE05C9A)
     else -> androidx.compose.ui.graphics.Color(0xFF5F6B7A)
 }
 

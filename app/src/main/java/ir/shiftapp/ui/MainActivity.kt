@@ -247,6 +247,7 @@ fun ShiftSection(vm: MainVm, onHome: () -> Unit) {
     val drawerScope = rememberCoroutineScope()
     LaunchedEffect(msg) { msg?.let { snack.showSnackbar(it); vm.message.value = null } }
     val inSub = more != null
+    val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     BackHandler { if (inSub) more = null else onHome() }
     BackHandler(enabled = drawer.isOpen) { drawerScope.launch { drawer.close() } }
     ModalNavigationDrawer(
@@ -273,9 +274,11 @@ fun ShiftSection(vm: MainVm, onHome: () -> Unit) {
                     onMenu = { drawerScope.launch { drawer.open() } }
                 )
             },
-            bottomBar = { ShiftNavBar(if (inSub) -1 else tab) { i -> tab = i; more = null } }
+            bottomBar = { if (!landscape) ShiftNavBar(if (inSub) -1 else tab) { i -> tab = i; more = null } }
         ) { pad ->
-            Box(Modifier.padding(pad).fillMaxSize().padding(horizontal = 16.dp)) {
+            Row(Modifier.padding(pad).fillMaxSize()) {
+            if (landscape) ShiftNavRail(if (inSub) -1 else tab) { i -> tab = i; more = null }      // افقی: ستون کناری به‌جای نوار پایین تا ارتفاع نخورد
+            Box(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 16.dp)) {
                 when {
                     !loaded -> Unit
                     inSub -> MoreScreen(vm, more) { more = it }
@@ -288,7 +291,24 @@ fun ShiftSection(vm: MainVm, onHome: () -> Unit) {
                     }
                 }
             }
+            }
         }
+    }
+}
+
+@Composable
+private fun ShiftNavRail(selected: Int, onSelect: (Int) -> Unit) {
+    NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+        Spacer(Modifier.weight(1f))
+        TABS.forEachIndexed { i, t ->
+            NavigationRailItem(
+                selected = selected == i, onClick = { onSelect(i) },
+                icon = { Icon(painterResource(TAB_ICONS[i]), contentDescription = null) },
+                label = { Text(t, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
+                alwaysShowLabel = true
+            )
+        }
+        Spacer(Modifier.weight(1f))
     }
 }
 

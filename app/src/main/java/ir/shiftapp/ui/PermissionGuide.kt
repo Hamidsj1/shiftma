@@ -53,7 +53,7 @@ private val GUIDE_TEXT = mapOf(
 )
 
 @Composable
-internal fun PermissionGuideEntry(vm: MainVm, prefs: Prefs) {
+internal fun PermissionGuideEntry(vm: MainVm, prefs: Prefs, modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     var tick by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }       // بعد از برگشتن از تنظیمات سیستم
@@ -79,9 +79,9 @@ internal fun PermissionGuideEntry(vm: MainVm, prefs: Prefs) {
     }
 
     if (todo > 0 && !hidden) {
-        AppCard(Modifier.fillMaxWidth(), onClick = { open = true }) {
+        AppCard(modifier.fillMaxWidth(), onClick = { open = true }) {
             Row(
-                Modifier.padding(start = 14.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+                Modifier.padding(start = 12.dp, end = 2.dp, top = 2.dp, bottom = 2.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Ico(R.drawable.ic_alarm, size = 22.dp, tint = Pal.amber)

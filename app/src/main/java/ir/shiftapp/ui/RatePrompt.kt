@@ -29,10 +29,10 @@ object RatePrompt {
 
     fun shouldAsk(c: Context, hasData: Boolean): Boolean {
         val s = sp(c)
-        return RatePolicy.shouldAsk(s.getInt("opens", 0), s.getLong("first", 0L), s.getLong("last", 0L), s.getBoolean("never", false), today(), hasData)
+        return RatePolicy.shouldAsk(s.getInt("opens", 0), s.getLong("first", 0L), s.getLong("last", 0L), s.getBoolean("never", false), today(), hasData, s.getInt("asks", 0))
     }
 
-    fun markAsked(c: Context) = sp(c).edit().putLong("last", today()).apply()
+    fun markAsked(c: Context) { val s = sp(c); s.edit().putLong("last", today()).putInt("asks", s.getInt("asks", 0) + 1).apply() }
     fun markNever(c: Context) = sp(c).edit().putBoolean("never", true).putLong("last", today()).apply()
 
     /** صفحهٔ نظر دادن برنامه در کافه‌بازار؛ اگر بازار نصب نبود صفحهٔ وب. */
@@ -59,7 +59,7 @@ fun RatePromptHost(hasData: Boolean) {
         onDismissRequest = { show = false },
         title = { Text("از «شیفت ما» راضی هستید؟") },
         text = { Text("نظر یا ستارهٔ شما در کافه‌بازار به دیده‌شدن برنامه و رسیدنش به همکاران دیگر کمک می‌کند. اجباری نیست و هیچ بخشی به آن وابسته نیست.") },
-        confirmButton = { TextButton({ show = false; RatePrompt.openBazaar(ctx) }) { Text("ثبت نظر در بازار") } },
+        confirmButton = { TextButton({ show = false; RatePrompt.openBazaar(ctx) }) { Text("امتیاز می‌دهم") } },
         dismissButton = {
             Row2(
                 { TextButton({ show = false }) { Text("بعداً") } },

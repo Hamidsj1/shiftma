@@ -152,10 +152,8 @@ fun AboutScreen() {
                 SettingRow("ارسال خود برنامه (فایل APK)", subtitle = "با بلوتوث، تلگرام، ایتا یا هر برنامهٔ دیگر برای دوستان", icon = R.drawable.ic_share, onClick = { scope.launch { shareApk(ctx) } })
                 RowDivider()
                 SettingRow("اشتراک‌گذاری متن معرفی", icon = R.drawable.ic_note, onClick = { shareLink(ctx) })
-                if (AppInfo.STORE_URL.isNotBlank()) {
-                    RowDivider()
-                    SettingRow("امتیاز دادن در فروشگاه", icon = R.drawable.ic_star, onClick = { openStore(ctx) })
-                }
+                RowDivider()
+                SettingRow("امتیاز به برنامه", subtitle = "ثبت ستاره و نظر در کافه‌بازار", icon = R.drawable.ic_star, onClick = { RatePrompt.openBazaar(ctx) })
                 if (AppInfo.TELEGRAM_ID.isNotBlank()) {
                     RowDivider()
                     SettingRow("ارتباط با توسعه‌دهنده در تلگرام", subtitle = "نظر، پیشنهاد یا گزارش مشکل", icon = R.drawable.ic_telegram, onClick = { openTelegram(ctx) })

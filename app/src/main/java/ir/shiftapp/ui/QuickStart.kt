@@ -18,7 +18,7 @@ import ir.shiftapp.core.PatternPresets
  * همان دیالوگ‌های صفحهٔ خوش‌آمد بخش جدول شیفت را باز می‌کند؛ با ساخته شدن اولین الگو این کارت از صفحهٔ اول برمی‌دارد و تقویم ماه می‌آید.
  */
 @Composable
-internal fun QuickStartCard(vm: MainVm) {
+internal fun QuickStartCard(vm: MainVm, modifier: Modifier = Modifier) {
     var creating by remember { mutableStateOf(false) }
     var presetCodes by remember { mutableStateOf<List<Int>?>(null) }
     var presetDay by remember { mutableStateOf<JalaliDate?>(null) }
@@ -27,7 +27,7 @@ internal fun QuickStartCard(vm: MainVm) {
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.openPatternFile(uri) }
     val pick: (PatternPreset) -> Unit = { presetCodes = it.codes; presetDay = it.defaultStart(); creating = true }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text("از اینجا شروع کنید", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             HintText("الگوی شیفت خودتان را انتخاب کنید و تاریخ شروع دوره را بدهید؛ جدول شیفت، تقویم و گزارش‌ها خودکار ساخته می‌شود. بعداً هم می‌شود عوضش کرد.")

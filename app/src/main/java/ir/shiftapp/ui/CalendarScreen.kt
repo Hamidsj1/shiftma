@@ -107,7 +107,7 @@ fun CalendarScreen(vm: MainVm) {
 private fun DayCell(day: Int, r: EffectiveDay, holiday: Boolean, isToday: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Box(
-        Modifier.height(60.dp).then(if (isToday) Modifier.shadow(6.dp, shape) else Modifier).clip(shape)
+        Modifier.height(if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 44.dp else 60.dp).then(if (isToday) Modifier.shadow(6.dp, shape) else Modifier).clip(shape)
             .background(if (isToday) TODAY_BG else shiftColor(r.effectiveCode))
             .clickable(role = Role.Button, onClick = onClick)
     ) {

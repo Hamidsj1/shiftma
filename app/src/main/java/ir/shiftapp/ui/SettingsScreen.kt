@@ -113,6 +113,9 @@ fun SettingsScreen(vm: MainVm) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         SettingsGroup("ظاهر برنامه", icon = R.drawable.ic_palette) {
             Segmented(listOf("مثل سیستم", "روشن", "تاریک"), themeKeys.indexOf(prefs.theme).coerceAtLeast(0)) { vm.setPref(PrefKeys.THEME, themeKeys[it]) }
+            val appCtx = LocalContext.current
+            var callOn by remember { mutableStateOf(UiFlags.callButton(appCtx)) }
+            GroupSwitch("دکمهٔ تماس روی صفحهٔ اول", callOn, "دکمهٔ گرد دفترچه تلفن؛ با خاموش کردن (از نوبت بعدی باز شدن صفحهٔ اول) پنهان می‌شود.") { callOn = it; UiFlags.setCallButton(appCtx, it) }
         }
 
         SettingsGroup("ساعت شروع و پایان شیفت‌ها", icon = R.drawable.ic_schedule) {
