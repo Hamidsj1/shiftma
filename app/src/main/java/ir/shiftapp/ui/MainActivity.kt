@@ -107,7 +107,7 @@ class MainActivity : ComponentActivity() {
 }
 
 const val EXTRA_SECTION = "section"
-private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income")
+private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income", "planner")
 /** بخش‌هایی که فقط با دسترسی ویژه (رمز روزانه) باز می‌شوند. */
 private val SPECIAL_SECTIONS = setOf("phonebook", "meals")
 
@@ -157,6 +157,7 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
             "files" -> FilesSection(docsVm) { section = null }
             "books" -> ReadingSection(vm, initialTab = 1, initialLibFiles = true) { section = null }   // کاشی کتاب‌ها با مطالعه یکی شد؛ شناسهٔ قدیمی (میانبر) هنوز کار می‌کند
             "notes" -> NotesSection(vm) { section = null }
+            "planner" -> PlannerSection(vm) { section = null }
             "english" -> EnglishSection(vm) { section = null }
             "prayer" -> PrayerSection(vm) { section = null }
             "dhikr" -> DhikrSection(vm) { section = null }

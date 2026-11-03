@@ -147,6 +147,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             HomeSection("payslips", "فیش‌های من", "مشاهده و مقایسهٔ فیش‌های دانلودشده", R.drawable.ic_home_slip, true),
             HomeSection("shift", "جدول شیفت", "تقویم، گروه‌ها، گزارش و مرخصی", R.drawable.ic_tab_calendar, true),
             HomeSection("notes", "یادداشت‌ها", notesSub, R.drawable.ic_home_notes, true),
+            HomeSection("planner", "برنامهٔ روزانه", "اولویت‌ها، برنامهٔ ساعتی و آلارم", R.drawable.ic_home_planner, true),
             HomeSection("files", "فایل‌های من", "عکس، PDF و فایل نمایشی", R.drawable.ic_home_files, true),
             HomeSection("income", "دریافتی‌های ماهانه", "ثبت حقوق، پاداش و سایر دریافتی‌ها", R.drawable.ic_home_income, true),
             HomeSection("prayer", "اوقات شرعی و قبله", prayerSub ?: "اذان، قبله و هشدار", R.drawable.ic_qibla, true),
