@@ -52,7 +52,22 @@ class ShiftWidget : AppWidgetProvider() {
             val full = mgr.getAppWidgetIds(ComponentName(ctx, ShiftWidget::class.java))
             val strip = mgr.getAppWidgetIds(ComponentName(ctx, ShiftStripWidget::class.java))
             if (full.isEmpty() && strip.isEmpty()) return
-            update(ctx, mgr, full, R.layout.widget_shift, strip)
+            try { update(ctx, mgr, full, R.layout.widget_shift, strip) }
+            catch (e: Throwable) {
+                // هر خطای محاسبه/ساخت نما: نمای امن بگذار تا ویجت «بارگذاری نشد» نشان ندهد؛ بعداً خودش دوباره تلاش می‌کند
+                android.util.Log.e("ShiftWidget", "update failed", e)
+                for (id in full + strip) runCatching { mgr.updateAppWidget(id, fallbackViews(ctx)) }
+            }
+        }
+
+        private fun fallbackViews(ctx: Context): RemoteViews {
+            val rv = RemoteViews(ctx.packageName, R.layout.widget_fallback)
+            val open = PendingIntent.getActivity(
+                ctx, 7010, Intent(ctx, MainActivity::class.java).putExtra(EXTRA_SECTION, "shift").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+            rv.setOnClickPendingIntent(R.id.w_fb_root, open)
+            return rv
         }
 
         private val DAY_LABEL = intArrayOf(R.id.w_d0_lbl, R.id.w_d1_lbl, R.id.w_d2_lbl, R.id.w_d3_lbl, R.id.w_d4_lbl, R.id.w_d5_lbl, R.id.w_d6_lbl)
@@ -102,6 +117,7 @@ class ShiftWidget : AppWidgetProvider() {
             )
 
             for (id in ids + stripIds) {
+              try {
                 val rv = RemoteViews(ctx.packageName, if (id in stripIds) R.layout.widget_shift_strip else layout)
 
                 // نشان رنگی گروه (A..D) کنار نام شیفت
@@ -168,6 +184,10 @@ class ShiftWidget : AppWidgetProvider() {
 
                 rv.setOnClickPendingIntent(R.id.w_root, open)
                 mgr.updateAppWidget(id, rv)
+              } catch (e: Throwable) {
+                android.util.Log.e("ShiftWidget", "widget $id failed", e)
+                runCatching { mgr.updateAppWidget(id, fallbackViews(ctx)) }
+              }
             }
 
             scheduleTick(ctx, ids + stripIds, progress != null)
