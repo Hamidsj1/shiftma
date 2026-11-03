@@ -322,10 +322,9 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     val callBtn = remember { UiFlags.callButton(ctx) }
     Column(Modifier.fillMaxSize()) {
     Box(Modifier.weight(1f).fillMaxWidth()) {
-    Column(
-        Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(0.dp)      // فاصله‌ها دستی و فقط برای بخش‌های دیده‌شده؛ spacedBy بین کامپوزبل‌های خالی هم فاصله می‌گذاشت (فضای پرت)
-    ) {
+    val patterns by vm.patterns.collectAsState()
+    val patternsLoaded by vm.patternsLoaded.collectAsState()
+    val partA: @Composable ColumnScope.() -> Unit = {
         Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             SmallIconButton(R.drawable.ic_menu, "بخش‌های دیگر", { drawerScope.launch { drawer.open() } })
             Text("بخش‌های دیگر", style = MaterialTheme.typography.labelLarge, color = Pal.muted,
@@ -334,8 +333,6 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             SmallIconButton(R.drawable.ic_search, "جست‌وجو", { searchOpen = true })
         }
         RingingBanner(Modifier.padding(bottom = GAP))      // فقط وقتی آلارمی زنگ می‌زند: دکمهٔ بزرگ قطع، حتی اگر اعلان دیده نشود
-        val patterns by vm.patterns.collectAsState()
-        val patternsLoaded by vm.patternsLoaded.collectAsState()
         // کارت بالا + نوار باریک شیفت در جریان (فقط وقتی شیفتی در جریان است؛ وگرنه هیچ فضایی نمی‌گیرد)
         Column(Modifier.padding(bottom = GAP)) {
             HomeHero(vm) { onOpen("shift") }
@@ -355,6 +352,8 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         }
         // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
         if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs, Modifier.padding(bottom = GAP))
+    }
+    val partB: @Composable ColumnScope.() -> Unit = {
         // نصب تازه: به‌جای تقویم خالی، الگوهای پیشنهادی را همین‌جا نشان بده
         if (patternsLoaded && patterns.isEmpty()) QuickStartCard(vm, Modifier.padding(bottom = GAP)) else {
             // تقویم + نوار باریک آلارم/یادآوری‌ها درست زیرش
@@ -363,7 +362,11 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                 ReminderStrip(vm, Modifier.padding(top = 6.dp))
             }
         }
+    }
+    val partC: @Composable ColumnScope.() -> Unit = {
         UpcomingNotes(prefs, Modifier.padding(bottom = GAP)) { onOpen("notes") }
+    }
+    val partD: @Composable ColumnScope.() -> Unit = {
         LayoutBar(editing, { editing = true }, { saveLayout(emptyMap()) }, { editing = false })
         ReorderLayout(columns = 1, spacing = 12.dp, dr = blockDrag) {
             shownBlocks.filter { editing || it != "links" }.forEach { id ->
@@ -417,6 +420,17 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             }
         }
         Spacer(Modifier.height(4.dp))
+    }
+    val paneMod = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+    if (landscape) {
+        // افقی: دو پنل کنار هم؛ راست/اول = هدر، سامانه‌ها و یادآورها، چپ/دوم = تقویم و بخش‌ها. هرکدام اسکرول خودش را دارد.
+        Row(Modifier.fillMaxSize()) {
+            val leftScroll = rememberScrollState()
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(leftScroll).then(paneMod)) { partA(); partC() }
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll).then(paneMod)) { partB(); partD() }
+        }
+    } else {
+        Column(Modifier.fillMaxSize().verticalScroll(scroll).then(paneMod)) { partA(); partB(); partC(); partD() }
     }
     // دکمهٔ دم‌دستِ دفترچه تلفن: پایین-چپ صفحه، فقط وقتی بخش در دسترس است (رمز ویژه یا فایل کاشی‌ها)
     if (callBtn && !editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
