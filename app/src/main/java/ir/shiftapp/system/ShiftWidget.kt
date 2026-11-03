@@ -37,6 +37,23 @@ class ShiftWidget : AppWidgetProvider() {
     }
 
     companion object {
+        /** نوار پیشرفت به‌صورت بیت‌مپ ساده (ProgressBar در RemoteViews بعضی لانچرها بارگذاری را خراب می‌کند). */
+        fun barBitmap(ctx: Context, fraction: Double): android.graphics.Bitmap {
+            val w = 400; val h = 16
+            val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
+            val c = android.graphics.Canvas(bmp)
+            val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            val r = h / 2f
+            p.color = ctx.getColor(R.color.widget_track)
+            c.drawRoundRect(0f, 0f, w.toFloat(), h.toFloat(), r, r, p)
+            val fw = (w * fraction.coerceIn(0.0, 1.0)).toFloat()
+            if (fw > 0f) {
+                p.color = ctx.getColor(R.color.widget_accent)
+                c.drawRoundRect(0f, 0f, maxOf(fw, h.toFloat()), h.toFloat(), r, r, p)
+            }
+            return bmp
+        }
+
         private const val TICK_REQUEST = 7011
         private const val TICK_MS = 5 * 60 * 1000L
         private const val HOLIDAY_LIGHT = 0xFFC62828.toInt()
@@ -134,7 +151,7 @@ class ShiftWidget : AppWidgetProvider() {
                     rv.setInt(R.id.w_dot, "setColorFilter", codeColor(progress.code))
                     rv.setTextViewText(R.id.w_name, codeName(progress.code))
                     rv.setViewVisibility(R.id.w_bar, View.VISIBLE)
-                    rv.setProgressBar(R.id.w_bar, 100, (progress.fraction * 100).toInt(), false)
+                    rv.setImageViewBitmap(R.id.w_bar, barBitmap(ctx, progress.fraction))
                     rv.setTextViewText(R.id.w_remain, "${ShiftProgress.clock(progress.remainingMin)} مانده")
                 } else {
                     val tc = resolve(today)?.effectiveCode
