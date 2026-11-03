@@ -38,7 +38,7 @@ class ShiftWidget : AppWidgetProvider() {
 
     companion object {
         /** نوار پیشرفت به‌صورت بیت‌مپ ساده (ProgressBar در RemoteViews بعضی لانچرها بارگذاری را خراب می‌کند). */
-        fun barBitmap(ctx: Context, fraction: Double): android.graphics.Bitmap {
+        fun barBitmap(ctx: Context, fraction: Float): android.graphics.Bitmap {
             val w = 400; val h = 16
             val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888)
             val c = android.graphics.Canvas(bmp)
@@ -46,7 +46,7 @@ class ShiftWidget : AppWidgetProvider() {
             val r = h / 2f
             p.color = ctx.getColor(R.color.widget_track)
             c.drawRoundRect(0f, 0f, w.toFloat(), h.toFloat(), r, r, p)
-            val fw = (w * fraction.coerceIn(0.0, 1.0)).toFloat()
+            val fw = w * fraction.coerceIn(0f, 1f)
             if (fw > 0f) {
                 p.color = ctx.getColor(R.color.widget_accent)
                 c.drawRoundRect(0f, 0f, maxOf(fw, h.toFloat()), h.toFloat(), r, r, p)

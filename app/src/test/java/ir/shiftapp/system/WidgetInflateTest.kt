@@ -38,7 +38,7 @@ class WidgetInflateTest {
         setInt(R.id.w_dot, "setColorFilter", 0xFF2E9E6B.toInt())
         setTextViewText(R.id.w_name, "شیفت صبح")
         setViewVisibility(R.id.w_bar, View.VISIBLE)
-        setImageViewBitmap(R.id.w_bar, ShiftWidget.barBitmap(ctx, 0.4))
+        setImageViewBitmap(R.id.w_bar, ShiftWidget.barBitmap(ctx, 0.4f))
         setTextViewText(R.id.w_remain, "۴:۳۷ مانده")
         val bg = intArrayOf(R.id.w_d0_bg, R.id.w_d1_bg, R.id.w_d2_bg, R.id.w_d3_bg, R.id.w_d4_bg, R.id.w_d5_bg, R.id.w_d6_bg)
         val ring = intArrayOf(R.id.w_d0_ring, R.id.w_d1_ring, R.id.w_d2_ring, R.id.w_d3_ring, R.id.w_d4_ring, R.id.w_d5_ring, R.id.w_d6_ring)
