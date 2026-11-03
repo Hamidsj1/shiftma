@@ -487,11 +487,9 @@
             android:textColor="@color/widget_text"
             android:textSize="12sp"
             android:textStyle="bold" />
-        <View
-            android:layout_width="6dp"
-            android:layout_height="match_parent" />
         <TextView
             android:id="@+id/w_btn_call"
+            android:layout_marginStart="6dp"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
