@@ -48,9 +48,9 @@ private fun rememberAds(adsFeed: String, publicAds: Boolean, tile: String): List
  * بنر ۱۲۸۰×۲۰۰ پیکسل (نسبت ۶٫۴ به ۱) پیشنهاد می‌شود. چند تبلیغ هر ۱۰ ثانیه جابه‌جا می‌شوند.
  */
 @Composable
-fun AdPanel(adsFeed: String = "", publicAds: Boolean = false) {
+fun AdPanel(adsFeed: String = "", publicAds: Boolean = false, compact: Boolean = false) {
     val ads = rememberAds(adsFeed, publicAds, "")
-    AdBanner(ads, withDivider = true)
+    AdBanner(ads, withDivider = true, compact = compact)
 }
 
 /** تبلیغ انحصاری یک کاشی؛ بالای صفحهٔ همان کاشی. فقط تبلیغ‌هایی که tile آن‌ها برابر [tile] است. */
@@ -60,8 +60,9 @@ fun TileAd(tile: String, adsFeed: String = "", publicAds: Boolean = false) {
     AdBanner(ads, withDivider = false)
 }
 
+/** [compact]: حالت افقی گوشی؛ بنر همان است ولی باریک‌تر و وسط‌چین (ارتفاع حدود ۴۰dp) تا جای محتوا را نگیرد. */
 @Composable
-private fun AdBanner(ads: List<AdLoader.Loaded>, withDivider: Boolean) {
+private fun AdBanner(ads: List<AdLoader.Loaded>, withDivider: Boolean, compact: Boolean = false) {
     val ctx = LocalContext.current
     var index by remember { mutableIntStateOf(0) }
     LaunchedEffect(ads) {
@@ -75,7 +76,9 @@ private fun AdBanner(ads: List<AdLoader.Loaded>, withDivider: Boolean) {
     val ad = ads[index.coerceIn(0, ads.lastIndex)]
     Column(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         if (withDivider) HorizontalDivider(color = Pal.hairline)
-        AppCard(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), onClick = { openUrl(ctx, ad.item.linkUrl) }) {
+        val cardMod = if (compact) Modifier.widthIn(max = 260.dp).fillMaxWidth().align(Alignment.CenterHorizontally).padding(horizontal = 12.dp, vertical = 3.dp)
+            else Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+        AppCard(cardMod, onClick = { openUrl(ctx, ad.item.linkUrl) }) {
             Box {
                 Image(
                     bitmap = ad.bitmap.asImageBitmap(),

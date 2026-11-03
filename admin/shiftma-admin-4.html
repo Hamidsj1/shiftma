@@ -264,6 +264,18 @@ function buildConfig() {
     if (ukeys.has(key)) { iss.push(E(`${n}: شناسهٔ تکراری`)); return; } ukeys.add(key);
     const o = { key, url }; if (title) o.title = title; if (sub) o.subtitle = sub; upd.push(o);
   });
+  // هم‌گام‌سازی خودکار با برگهٔ «کاشی‌ها»: آدرس/عنوان هر سامانهٔ دارای شناسه (key) همان محل، خودش به sites می‌رود
+  // (ورودی دستی همین برگه اولویت دارد). فایل کاشی‌ها فقط با «ورود فایل» به گوشی می‌رسد؛ تغییر آدرس بدون ورود فایل از همین کانال است.
+  const tdata = (S.data[S.site] || {}).tiles, auto = [];
+  if (tdata && tdata.sites) tdata.sites.forEach(t => {
+    const key = (t.key || '').trim().toLowerCase(), url = (t.url || '').trim(), title = (t.title || '').trim(), sub = (t.subtitle || '').trim();
+    if (!/^[a-z0-9_]{1,30}$/.test(key) || ukeys.has(key)) return;
+    let host = ''; try { host = new URL(url).hostname; } catch (e) {}
+    if (!url.startsWith('https://') || url.includes('@') || url.length > 600 || !host.includes('.') || /^[0-9.]+$/.test(host) || host.startsWith('[')) return;
+    if (title.length > 40 || sub.length > 60) return;
+    const o = { key, url }; if (title) o.title = title; if (sub) o.subtitle = sub; auto.push(o); ukeys.add(key);
+  });
+  if (auto.length) { upd.push(...auto); iss.push(W(`${auto.length} سامانه از برگهٔ «کاشی‌ها» خودکار در sites آمد (آدرس و عنوان همان‌ها)؛ اگر نمی‌خواهید عوض شوند، شناسه‌شان را از برگهٔ کاشی‌ها بردارید.`)); }
   if (upd.length > 30) iss.push(E('حداکثر ۳۰ به‌روزرسانی سایت پذیرفته می‌شود'));
   if (upd.length) iss.push(W('فقط سایت‌هایی عوض می‌شوند که از قبل در گوشی هستند و کاربر خودش ویرایششان نکرده؛ سایت تازه اضافه نمی‌شود.'));
   const obj = { enabled: d.enabled }; if (pl) obj.payLink = pl; obj.sections = sections; if (upd.length) obj.sites = upd.slice(0, 30);

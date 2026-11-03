@@ -20,8 +20,8 @@ android {
         applicationId = "ir.shiftapp.shiftma"   // قبل از اولین انتشار به شناسهٔ دلخواه خودتان تغییر دهید؛ بعد از انتشار قابل تغییر نیست
         minSdk = 26            // java.time بدون desugaring
         targetSdk = 34
-        versionCode = 14           // با هر انتشار جدید یکی زیاد شود
-        versionName = "1.0.13"
+        versionCode = 15           // با هر انتشار جدید یکی زیاد شود
+        versionName = "1.0.14"
     }
     signingConfigs {
         create("release") {
