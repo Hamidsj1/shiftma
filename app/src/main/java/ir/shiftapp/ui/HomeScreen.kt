@@ -83,6 +83,9 @@ internal fun openUrl(ctx: Context, url: String) {
 
 private const val ADD_SITE_ID = "__add_site__"
 
+/** رنگ گرم دکمهٔ تماس (نارنجی)، جدا از آبی/بنفش شیفت و روز امروز. */
+private val CALL_WARM = Color(0xFFE8743B)
+
 /** فاصلهٔ استاندارد زیر هر بخش دیدنی صفحهٔ اول. */
 private val GAP = 10.dp
 
@@ -420,10 +423,10 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
         androidx.compose.material3.FloatingActionButton(
             onClick = { onOpen("phonebook") },
-            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(16.dp).size(64.dp)
+            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(start = 10.dp, end = 10.dp, bottom = 26.dp).size(64.dp)
                 .semantics { contentDescription = "تماس و دفترچه تلفن" },
             shape = CircleShape,
-            containerColor = TODAY_BG,
+            containerColor = CALL_WARM,
             contentColor = Color.White
         ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
     }

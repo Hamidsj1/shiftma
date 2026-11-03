@@ -181,6 +181,7 @@ fun FourShiftScreen(vm: MainVm) {
                             ) { Ico(R.drawable.ic_add, size = 20.dp, tint = MaterialTheme.colorScheme.primary, desc = "افزودن شیفت") }
                         } else {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 2.dp)) {
+                                if (groupLetter(c.title) != null) { GroupBadge(c.title, 18.dp); Spacer(Modifier.height(2.dp)) }
                                 Text(c.title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
                                 if (c.subtitle.isNotBlank()) Text(c.subtitle, style = MaterialTheme.typography.labelSmall, color = Pal.muted, maxLines = 1, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
                             }

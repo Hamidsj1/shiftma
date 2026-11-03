@@ -104,6 +104,16 @@ class ShiftWidget : AppWidgetProvider() {
             for (id in ids + stripIds) {
                 val rv = RemoteViews(ctx.packageName, if (id in stripIds) R.layout.widget_shift_strip else layout)
 
+                // نشان رنگی گروه (A..D) کنار نام شیفت
+                val gl = p?.let { ir.shiftapp.ui.groupLetter(it.name) }
+                if (gl == null) rv.setViewVisibility(R.id.w_grp, View.GONE) else {
+                    rv.setViewVisibility(R.id.w_grp, View.VISIBLE)
+                    rv.setTextViewText(R.id.w_grp, gl.toString())
+                    rv.setInt(R.id.w_grp, "setBackgroundResource", when (gl) {
+                        'A' -> R.drawable.widget_grp_a; 'B' -> R.drawable.widget_grp_b; 'C' -> R.drawable.widget_grp_c; 'D' -> R.drawable.widget_grp_d
+                        else -> R.drawable.widget_grp_x
+                    })
+                }
                 // ردیف ۱
                 if (progress != null) {
                     rv.setInt(R.id.w_dot, "setColorFilter", codeColor(progress.code))
