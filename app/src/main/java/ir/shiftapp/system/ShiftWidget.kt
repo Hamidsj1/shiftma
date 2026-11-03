@@ -199,6 +199,14 @@ class ShiftWidget : AppWidgetProvider() {
                 }
 
                 rv.setOnClickPendingIntent(R.id.w_root, open)
+                if (id !in stripIds) {
+                    fun go(code: Int, section: String) = PendingIntent.getActivity(
+                        ctx, code, Intent(ctx, MainActivity::class.java).putExtra(EXTRA_SECTION, section).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                    rv.setOnClickPendingIntent(R.id.w_btn_sites, go(7012, "home"))
+                    rv.setOnClickPendingIntent(R.id.w_btn_call, go(7013, "phonebook"))
+                }
                 mgr.updateAppWidget(id, rv)
               } catch (e: Throwable) {
                 android.util.Log.e("ShiftWidget", "widget $id failed", e)

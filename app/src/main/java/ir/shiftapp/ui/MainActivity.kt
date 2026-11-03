@@ -107,7 +107,7 @@ class MainActivity : ComponentActivity() {
 }
 
 const val EXTRA_SECTION = "section"
-private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income", "planner")
+private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income", "planner", "home")
 /** بخش‌هایی که فقط با دسترسی ویژه (رمز روزانه) باز می‌شوند. */
 private val SPECIAL_SECTIONS = setOf("phonebook", "meals")
 
@@ -122,7 +122,7 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
     val ctx = LocalContext.current
     val special by vm.specialOn.collectAsState()
     val prefs by vm.prefs.collectAsState()
-    LaunchedEffect(launch) { if (launch != null) { section = launch; onLaunchConsumed() } }
+    LaunchedEffect(launch) { if (launch != null) { section = if (launch == "home") null else launch; onLaunchConsumed() } }
     // بخش‌های مخفی تا وقتی دسترسی ویژه فعال نشده باز نمی‌شوند (مثلاً از میانبر ویجت)
     val enabledSections by vm.enabledSections.collectAsState()
     val sites = remember(prefs.sitesRaw) { TilesPackFile.decodeSites(prefs.sitesRaw) }

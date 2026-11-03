@@ -40,6 +40,10 @@ class WidgetInflateTest {
         setViewVisibility(R.id.w_bar, View.VISIBLE)
         setImageViewBitmap(R.id.w_bar, ShiftWidget.barBitmap(ctx, 0.4f))
         setTextViewText(R.id.w_remain, "۴:۳۷ مانده")
+        if (full) {
+            val pi = android.app.PendingIntent.getActivity(ctx, 1, android.content.Intent("x"), android.app.PendingIntent.FLAG_IMMUTABLE)
+            setOnClickPendingIntent(R.id.w_btn_sites, pi); setOnClickPendingIntent(R.id.w_btn_call, pi)
+        }
         val bg = intArrayOf(R.id.w_d0_bg, R.id.w_d1_bg, R.id.w_d2_bg, R.id.w_d3_bg, R.id.w_d4_bg, R.id.w_d5_bg, R.id.w_d6_bg)
         val ring = intArrayOf(R.id.w_d0_ring, R.id.w_d1_ring, R.id.w_d2_ring, R.id.w_d3_ring, R.id.w_d4_ring, R.id.w_d5_ring, R.id.w_d6_ring)
         val lbl = intArrayOf(R.id.w_d0_lbl, R.id.w_d1_lbl, R.id.w_d2_lbl, R.id.w_d3_lbl, R.id.w_d4_lbl, R.id.w_d5_lbl, R.id.w_d6_lbl)
