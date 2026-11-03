@@ -55,4 +55,20 @@ object SiteUpdates {
         }
         return if (changed) out else null
     }
+
+    /** متن تغییرها بین فهرست قدیم و جدید، برای تاریخچهٔ به‌روزرسانی (فقط آدرس/عنوان). */
+    fun changes(old: List<SiteTile>, fresh: List<SiteTile>): List<String> = fresh.mapNotNull { n ->
+        val o = old.firstOrNull { it.key == n.key } ?: return@mapNotNull null
+        when {
+            o.url != n.url -> "«${n.title}»: آدرس از ${TilesPackFile.hostOf(o.url)} به ${TilesPackFile.hostOf(n.url)} تغییر کرد"
+            o.title != n.title || o.subtitle != n.subtitle -> "«${n.title}»: عنوان/توضیح به‌روز شد"
+            else -> null
+        }
+    }
+
+    /** سایت‌هایی که تغییر راه‌دور دارند ولی چون کاربر خودش ویرایششان کرده اعمال نمی‌شود. */
+    fun skippedEdited(sites: List<SiteTile>, updates: List<SiteUpdate>): List<SiteTile> {
+        val byKey = updates.associateBy { it.key }
+        return sites.filter { s -> s.edited && byKey[s.key]?.let { it.url != s.url } == true }
+    }
 }

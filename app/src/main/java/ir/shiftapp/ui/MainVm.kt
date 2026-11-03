@@ -114,6 +114,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     val old = TilesPackFile.decodeSites(raw)
                     val fresh = SiteUpdates.apply(old, updates) ?: return@collect
                     fresh.filter { n -> old.firstOrNull { it.key == n.key }?.url != n.url }.forEach { SiteIcon.forget(getApplication<Application>(), it.key) }
+                    ir.shiftapp.system.UpdateLog.addChanges(getApplication<Application>(), SiteUpdates.changes(old, fresh))
                     setPref(PrefKeys.SITES, TilesPackFile.encodeSites(fresh))
                 }
         }

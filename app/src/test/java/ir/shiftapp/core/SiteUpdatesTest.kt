@@ -55,4 +55,19 @@ class SiteUpdatesTest {
         assertFalse(cfg.visible("sport"))
         assertTrue(RemoteConfigFile.parse("""{"enabled":false,"sites":[{"key":"a","url":"https://new.ir"}]}""").siteUpdates.isEmpty())
     }
+
+    @Test fun changesDescribeUrlChange() {
+        val old = listOf(tile("a", "https://old.ir/x"))
+        val fresh = SiteUpdates.apply(old, listOf(SiteUpdate("a", "https://new.ir/x")))!!
+        val c = SiteUpdates.changes(old, fresh)
+        assertEquals(1, c.size)
+        assertTrue(c[0].contains("old.ir") && c[0].contains("new.ir"))
+        assertTrue(SiteUpdates.changes(old, old).isEmpty())
+    }
+
+    @Test fun skippedEditedListsOnlyEditedWithDifferentUrl() {
+        val sites = listOf(tile("a", "https://mine.ir", edited = true), tile("b", "https://b.ir", edited = true), tile("c", "https://c.ir"))
+        val ups = listOf(SiteUpdate("a", "https://new.ir"), SiteUpdate("b", "https://b.ir"), SiteUpdate("c", "https://new2.ir"))
+        assertEquals(listOf("a"), SiteUpdates.skippedEdited(sites, ups).map { it.key })
+    }
 }

@@ -69,12 +69,25 @@ object ConfigLoader {
     internal fun run(ctx: Context): Boolean {
         val url = feedUrl(ctx)
         if (url.isEmpty()) return true
-        val json = try { String(download(url), Charsets.UTF_8) } catch (e: Exception) { return false }
-        val cfg = RemoteConfigFile.parseOrNull(json) ?: return false   // فایل خراب: بخش‌ها را ناگهان باز/بسته نکن
+        val json = try { String(download(url), Charsets.UTF_8) } catch (e: Exception) {
+            UpdateLog.recordCheck(ctx, false, "دریافت فایل ممکن نشد (اینترنت یا آدرس): ${e.message.orEmpty().take(60)}"); _tick.value++; return false
+        }
+        val cfg = RemoteConfigFile.parseOrNull(json) ?: run {
+            UpdateLog.recordCheck(ctx, false, "فایل تنظیمات معتبر نیست"); _tick.value++; return false   // فایل خراب: بخش‌ها را ناگهان باز/بسته نکن
+        }
         sp(ctx).edit().putString(KEY_JSON, json).apply()
         _config.value = cfg
+        UpdateLog.recordCheck(ctx, true)
+        _tick.value++
         return true
     }
+
+    private val _tick = MutableStateFlow(0)
+    /** با هر بررسی (موفق یا ناموفق) عوض می‌شود تا صفحهٔ تنظیمات تازه شود. */
+    val tick: StateFlow<Int> get() = _tick
+
+    /** بررسی دستیِ همین لحظه (دکمهٔ تنظیمات). */
+    suspend fun refreshNow(ctx: Context): Boolean = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { run(ctx) }
 
     private fun download(url: String): ByteArray {
         val c = URL(url).openConnection() as HttpURLConnection
