@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.view.View
 import android.widget.RemoteViews
+import androidx.compose.ui.graphics.toArgb
 import ir.shiftapp.R
 import ir.shiftapp.core.*
 import ir.shiftapp.data.*
@@ -122,13 +123,11 @@ class ShiftWidget : AppWidgetProvider() {
 
                 // نشان رنگی گروه (A..D) کنار نام شیفت
                 val gl = p?.let { ir.shiftapp.ui.groupLetter(it.name) }
-                if (gl == null) rv.setViewVisibility(R.id.w_grp, View.GONE) else {
-                    rv.setViewVisibility(R.id.w_grp, View.VISIBLE)
+                if (gl == null) rv.setViewVisibility(R.id.w_grp_box, View.GONE) else {
+                    rv.setViewVisibility(R.id.w_grp_box, View.VISIBLE)
                     rv.setTextViewText(R.id.w_grp, gl.toString())
-                    rv.setInt(R.id.w_grp, "setBackgroundResource", when (gl) {
-                        'A' -> R.drawable.widget_grp_a; 'B' -> R.drawable.widget_grp_b; 'C' -> R.drawable.widget_grp_c; 'D' -> R.drawable.widget_grp_d
-                        else -> R.drawable.widget_grp_x
-                    })
+                    // رنگ با setColorFilter روی ImageView (همان روشِ نقطهٔ شیفت)؛ بدون setBackgroundResource که برای RemoteViews مجاز تضمین‌شده نیست
+                    rv.setInt(R.id.w_grp_bg, "setColorFilter", ir.shiftapp.ui.groupColor(gl).toArgb())
                 }
                 // ردیف ۱
                 if (progress != null) {
