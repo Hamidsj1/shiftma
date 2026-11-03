@@ -73,9 +73,9 @@ fun PatternsScreen(vm: MainVm) {
         if (patterns.size > 1) item {
             Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 TextButton({ showOthers = !showOthers }) {
-                    Text(if (showOthers) "بستن فهرست" else "تغییر گروه شیفت (${(patterns.size - 1).fa()} گروه دیگر)")
+                    Text(if (showOthers) "بستن بایگانی" else "بایگانی و برنامه‌های دیگر (${(patterns.size - 1).fa()} مورد)")
                 }
-                if (showOthers) HintText("روی گروه موردنظر بزنید تا فعال شود.")
+                if (showOthers) HintText("برنامه‌های قبلی و گروه‌های دیگر؛ هیچ‌چیز پاک نشده است. روی گروه موردنظر بزنید تا فعال شود.")
             }
         }
         if (patterns.isEmpty()) item {
@@ -185,29 +185,56 @@ fun PresetCard(pr: PatternPreset, onPick: (PatternPreset) -> Unit, onCrews: (Pat
         }
 }
 
+/**
+ * انتخاب مرحله‌به‌مرحلهٔ الگو (مورد ۱۱): الگو (قبلاً انتخاب شده) ← «گروه من» ← تاریخ شروع دورهٔ گروه من (+ اطلاعات اختیاری).
+ * همهٔ گروه‌های الگو ساخته می‌شوند (برای جدول چهارشیفت) ولی گروه من فعال می‌شود.
+ */
 @Composable
 fun CrewsDialog(vm: MainVm, preset: PatternPreset, onClose: () -> Unit) {
     val t = remember { JalaliDate.today() }
+    var step by remember { mutableStateOf(0) }
+    var mine by remember { mutableStateOf(0) }
     var company by remember { mutableStateOf("") }
-    var dateText by remember { mutableStateOf(DateText.format(preset.defaultStart(t))) }
+    var dateText by remember { mutableStateOf(DateText.format(preset.startOf(0, preset.defaultStart(t)))) }
     var head by remember { mutableStateOf("") }
     var section by remember { mutableStateOf("") }
     var err by remember { mutableStateOf<String?>(null) }
+    fun pickMine(i: Int) { mine = i; dateText = DateText.format(preset.startOf(i, preset.defaultStart(t))) }
     AppDialog(
-        "ساخت ${preset.crews.fa()} گروه", onClose,
-        confirmText = "ساخت گروه‌ها", dismissText = "انصراف",
+        if (step == 0) "گام ۱ از ۲: گروه من" else "گام ۲ از ۲: تاریخ شروع", onClose,
+        confirmText = if (step == 0) "بعدی" else "ساخت و فعال‌سازی", dismissText = if (step == 0) "انصراف" else "قبلی",
+        onDismissClick = { if (step == 0) onClose() else step = 0 },
         onConfirm = {
-            val d = DateText.parse(dateText)
-            err = if (d == null) "تاریخ شروع دوره نامعتبر است (مثال: ۱۴۰۵/۰۷/۱۳)" else vm.createCrews(preset, company, d, head, section)
-            if (err == null) onClose()
+            if (step == 0) step = 1 else {
+                val d = DateText.parse(dateText)
+                err = if (d == null) "تاریخ شروع دوره نامعتبر است (مثال: ۱۴۰۵/۰۷/۱۳)"
+                else vm.createCrews(preset, company, preset.aStartFromMine(mine, d), head, section, mine)
+                if (err == null) onClose()
+            }
         }
     ) {
         Text(preset.title, style = MaterialTheme.typography.titleSmall)
-        HintText("گروه‌های ${'A'} تا ${'A' + preset.crews - 1} ساخته می‌شوند. ترتیب شروع: ${preset.startSequence().joinToString(" ← ")}؛ هر کدام ${preset.offsetDays.fa()} روز بعد از قبلی. بعد از ساخت، همه در تب «چهارشیفت» دیده می‌شوند.")
-        AppField(company, { company = it }, "عنوان شرکت (اختیاری)")
-        AppField(head, { head = it }, "سرشیفت کل (اختیاری)")
-        AppField(section, { section = it }, "بخش / واحد (اختیاری)")
-        AppField(dateText, { dateText = DateText.typing(it) }, "تاریخ شروع دورهٔ گروه A", placeholder = "مثلا : ۱۴۰۵/۰۷/۱۳", keyboard = KeyboardType.Number, ltr = true, isError = err != null, supporting = err)
+        if (step == 0) {
+            HintText("شما عضو کدام گروه هستید؟ همهٔ گروه‌های ${'A'} تا ${'A' + preset.crews - 1} برای جدول چهارشیفت ساخته می‌شوند، ولی صفحه‌ها با گروه شما شروع می‌شوند. بعداً هم می‌شود گروه را عوض کرد.")
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                (0 until preset.crews).forEach { i ->
+                    val on = i == mine
+                    Box(
+                        Modifier.size(48.dp).clip(CircleShape).background(groupColor('A' + i))
+                            .then(if (on) Modifier.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape) else Modifier)
+                            .clickable(role = Role.RadioButton, onClickLabel = "گروه ${'A' + i}") { pickMine(i) },
+                        contentAlignment = Alignment.Center
+                    ) { Text(('A' + i).toString(), style = MaterialTheme.typography.titleMedium, color = androidx.compose.ui.graphics.Color.White) }
+                }
+            }
+            HintText("ترتیب شروع گروه‌ها: ${preset.startSequence().joinToString(" ← ")}؛ هر کدام ${preset.offsetDays.fa()} روز بعد از قبلی.")
+        } else {
+            HintText("تاریخی را بنویسید که دورهٔ گروه ${'A' + mine} از آن شروع می‌شود (روز اول چرخه). پیشنهاد برنامه بر اساس امروز پر شده است؛ تاریخ بقیهٔ گروه‌ها خودکار حساب می‌شود.")
+            AppField(dateText, { dateText = DateText.typing(it) }, "تاریخ شروع دورهٔ گروه ${'A' + mine}", placeholder = "مثلا : ۱۴۰۵/۰۷/۱۳", keyboard = KeyboardType.Number, ltr = true, isError = err != null, supporting = err)
+            AppField(company, { company = it }, "عنوان شرکت (اختیاری)")
+            AppField(head, { head = it }, "سرشیفت کل (اختیاری)")
+            AppField(section, { section = it }, "بخش / واحد (اختیاری)")
+        }
     }
 }
 

@@ -497,11 +497,11 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
 
     /** ساخت همهٔ گروه‌های یک الگوی آماده (A, B, ...) با فاصلهٔ شروع مشخص؛ گروه‌ها در تب چهارشیفت هم قرار می‌گیرند. */
-    fun createCrews(preset: PatternPreset, company: String, start: JalaliDate, headSupervisor: String = "", section: String = ""): String? {
+    fun createCrews(preset: PatternPreset, company: String, start: JalaliDate, headSupervisor: String = "", section: String = "", mine: Int = 0): String? {
         for (i in 0 until preset.crews) {
             val d = start.plusDays(preset.slotOf(i) * preset.offsetDays)
             val err = savePattern(0L, ('A' + i).toString(), company, d.year, d.month, d.day, preset.codes,
-                if (i < FourShiftTable.SLOTS) i else null, i == 0, "", headSupervisor, section, setName = preset.title)
+                if (i < FourShiftTable.SLOTS) i else null, i == mine, "", headSupervisor, section, setName = preset.title)
             if (err != null) return err
         }
         return null

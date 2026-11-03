@@ -20,6 +20,12 @@ data class PatternPreset(
      * روز شروع پیش‌فرض دوره (گروه A): نزدیک‌ترین روز تا [today] (خودِ امروز هم ممکن است) که فاصله‌اش از [PatternPresets.ANCHOR]
      * مضرب طول چرخه باشد. چون فقط به فاصله‌ی روزها بستگی دارد، با عوض شدن ماه (۳۰/۳۱ روزه) جابه‌جا نمی‌شود.
      */
+    /** تاریخ شروع دورهٔ گروه [crew] (۰ = A) وقتی گروه A از [aStart] شروع می‌کند. */
+    fun startOf(crew: Int, aStart: JalaliDate): JalaliDate = aStart.plusDays(slotOf(crew) * offsetDays)
+
+    /** برعکس [startOf]: اگر «گروه من» ([crew]) از [mineStart] شروع می‌کند، گروه A از چه روزی شروع می‌کند. */
+    fun aStartFromMine(crew: Int, mineStart: JalaliDate): JalaliDate = mineStart.plusDays(-slotOf(crew) * offsetDays)
+
     fun defaultStart(today: JalaliDate = JalaliDate.today()): JalaliDate {
         val len = codes.size.coerceAtLeast(1)
         return today.plusDays(-Math.floorMod(today.toJdn() - PatternPresets.ANCHOR.toJdn(), len))
