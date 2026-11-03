@@ -28,6 +28,26 @@ jobs:
       - name: Build APK
         run: gradle :app:assembleRelease --no-daemon
 
+      - name: Inspect widget resources in the release APK (diagnostic)
+        continue-on-error: true
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
+          echo "aapt2=$AAPT2"
+          $AAPT2 dump resources $APK > res.txt
+          echo "=== widget resources present:"; grep -E "(layout|drawable|color|xml|id)/(widget_|w_)" res.txt | head -120
+          for name in widget_shift widget_shift_strip widget_english widget_fallback; do
+            f=$(awk -v n="layout/$name" '$0 ~ n {f=1} f && /\(file\)/ {print $3; exit}' res.txt)
+            echo "=== layout $name -> $f"
+            [ -n "$f" ] && $AAPT2 dump xmltree --file "$f" $APK | head -150
+          done
+          for name in shift_widget_info shift_strip_widget_info english_widget_info; do
+            f=$(awk -v n="xml/$name" '$0 ~ n {f=1} f && /\(file\)/ {print $3; exit}' res.txt)
+            echo "=== xml $name -> $f"
+            [ -n "$f" ] && $AAPT2 dump xmltree --file "$f" $APK
+          done
+          echo "=== manifest receivers"; $AAPT2 dump xmltree --file AndroidManifest.xml $APK | grep -n -A12 -i "ShiftWidget\|ShiftStripWidget\|EnglishWidget" | head -120
+
       - name: Name the APK
         run: |
           V=$(grep -m1 versionName app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
