@@ -716,49 +716,61 @@ private fun SectionTile(s: HomeSection, onClick: () -> Unit) {
 /** سامانه‌ها: نوار افقی اسکرول‌شونده، کاشی سفید با آرم/آیکن و نام زیرش (سبک روشن)؛ «افزودن» آخر نوار است. */
 @Composable
 private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onClick: (HomeSection) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    StripBg { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { s ->
             key(s.id) {
                 Column(
-                    Modifier.width(60.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Box(
-                        Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(13.dp)),
+                        Modifier.size(54.dp).clip(RoundedCornerShape(15.dp)).background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(15.dp)),
                         contentAlignment = Alignment.Center
-                    ) { SiteLogo(s, 32.dp, 8.dp) }
-                    Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    ) { SiteLogo(s, 40.dp, 10.dp) }
+                    Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
             }
         }
         Column(
-            Modifier.width(60.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = "افزودن سایت", onClick = onAdd),
+            Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = "افزودن سایت", onClick = onAdd),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Box(Modifier.size(44.dp).clip(RoundedCornerShape(13.dp)).border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(13.dp)), contentAlignment = Alignment.Center) {
-                Ico(R.drawable.ic_add, size = 20.dp, tint = MaterialTheme.colorScheme.primary)
+            Box(Modifier.size(54.dp).clip(RoundedCornerShape(15.dp)).border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
+                Ico(R.drawable.ic_add, size = 24.dp, tint = MaterialTheme.colorScheme.primary)
             }
-            Text("افزودن", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+            Text("افزودن", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
         }
     }
+    }
+}
+
+/** پس‌زمینهٔ ملایم برای نوارهای «سامانه‌ها» و «بخش‌ها» تا کاشی‌های سفید از زمینه جدا دیده شوند. */
+@Composable
+private fun StripBg(content: @Composable () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f))
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+    ) { content() }
 }
 
 /** بخش‌ها: نوار افقی اسکرول‌شونده با آیکن و نام (تصمیم مورد ۷: هر گروه یک نوار افقی)؛ کم‌ارتفاع و بدون کارت‌های بلند. */
 @Composable
 private fun SectionsStrip(items: List<HomeSection>, onClick: (HomeSection) -> Unit) {
-    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    StripBg { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { s ->
             key(s.id) {
                 Column(
-                    Modifier.width(66.dp).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).clickable(role = Role.Button, onClick = { onClick(s) }),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    IconBadge(s.icon, size = 44.dp, iconSize = 24.dp, modifier = Modifier)
-                    Text(s.title, style = MaterialTheme.typography.labelSmall, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    IconBadge(s.icon, size = 54.dp, iconSize = 28.dp, modifier = Modifier)
+                    Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                 }
             }
         }
+    }
     }
 }
 
