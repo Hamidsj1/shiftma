@@ -10,6 +10,7 @@ import androidx.core.app.NotificationManagerCompat
 import ir.shiftapp.core.SpecialAccess
 import ir.shiftapp.core.TilesPackFile
 import ir.shiftapp.data.AppDb
+import ir.shiftapp.data.prefsOnce
 
 /**
  * متن گزارش برای ارسال به توسعه‌دهنده: نسخه، دستگاه، وضعیت مجوزها و ویجت‌ها، «تعداد» داده‌ها و آخرین رویدادها.
