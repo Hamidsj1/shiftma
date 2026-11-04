@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>پنل ادمین شیفت ما</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3f51b5">
+<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -95,6 +98,7 @@ details.gh .gridg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180p
     <h1>پنل ادمین شیفت ما</h1>
     <p>اعلان‌ها، تبلیغ‌ها، قفل بخش‌ها، برنامهٔ غذایی، فایل کاشی و کدهای باز شدن؛ همه در یک‌جا</p>
     <div class="bar" id="siteBar" role="group" aria-label="محل"></div>
+    <button class="btn sm" id="installBtn" hidden style="margin-top:8px">نصب پنل روی این دستگاه</button>
     <details class="gh" id="gh"></details>
   </div>
 </header>
@@ -443,6 +447,55 @@ function tabNotice() {
   return shell('notice', 'اعلان‌ها (پنل نوتیفیکیشن)', `فایل ${siteName()}؛ برنامه هر ۳ ساعت و هنگام باز شدن آن را می‌گیرد.`, editor, h('div', { class: 'card' }, prev));
 }
 
+
+/* ───────────── نصب پنل (PWA) ───────────── */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; const b = document.getElementById('installBtn'); b.hidden = false; b.onclick = async () => { deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; b.hidden = true; }; });
+window.addEventListener('appinstalled', () => { document.getElementById('installBtn').hidden = true; });
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+/* ───────────── بنرساز (اندازهٔ استاندارد برنامه ۱۲۸۰×۲۰۰) ───────────── */
+const BANNER_W = 1280, BANNER_H = 200;
+function bannerMaker(onDone) {
+  const st = { title: '', sub: '', c1: '#3f51b5', c2: '#7e57c2', ink: '#ffffff', size: 64, align: 'right', bg: null, logo: null };
+  const cv = h('canvas', { width: BANNER_W, height: BANNER_H, style: 'width:100%;border-radius:10px;border:1px solid var(--line);aspect-ratio:6.4/1;background:#fff' });
+  const loadImg = f => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = URL.createObjectURL(f); });
+  const draw = async () => {
+    try { await document.fonts.load('800 48px Vazirmatn'); await document.fonts.load('400 30px Vazirmatn'); } catch (e) {}
+    const c = cv.getContext('2d'); c.clearRect(0, 0, BANNER_W, BANNER_H);
+    const g = c.createLinearGradient(0, 0, BANNER_W, 0); g.addColorStop(0, st.c1); g.addColorStop(1, st.c2); c.fillStyle = g; c.fillRect(0, 0, BANNER_W, BANNER_H);
+    if (st.bg) { const r = Math.max(BANNER_W / st.bg.width, BANNER_H / st.bg.height), w = st.bg.width * r, hh = st.bg.height * r; c.globalAlpha = .55; c.drawImage(st.bg, (BANNER_W - w) / 2, (BANNER_H - hh) / 2, w, hh); c.globalAlpha = 1; }
+    const PAD = 56, LOGO = 140; let left = PAD, right = BANNER_W - PAD;     // حاشیهٔ امن: برنامه در حالت باریک لبه‌ها را می‌برد
+    if (st.logo) { const r = Math.min(LOGO / st.logo.width, LOGO / st.logo.height), w = st.logo.width * r, hh = st.logo.height * r; const x = st.align === 'left' ? BANNER_W - PAD - w : PAD; c.drawImage(st.logo, x, (BANNER_H - hh) / 2, w, hh); if (st.align === 'left') right = x - 24; else left = x + w + 24; }
+    c.fillStyle = st.ink; c.direction = 'rtl'; c.textBaseline = 'middle';
+    const fam = 'Vazirmatn, Tahoma, sans-serif', hasSub = !!st.sub.trim();
+    const fit = (txt, wt, sz, maxW) => { let s = sz; c.font = `${wt} ${s}px ${fam}`; while (s > 18 && c.measureText(txt).width > maxW) { s -= 2; c.font = `${wt} ${s}px ${fam}`; } };
+    const mw = right - left, x = st.align === 'center' ? (left + right) / 2 : st.align === 'left' ? left : right;
+    c.textAlign = st.align === 'center' ? 'center' : st.align === 'left' ? 'left' : 'right';
+    if (st.title.trim()) { fit(st.title, 800, st.size, mw); c.fillText(st.title, x, hasSub ? BANNER_H * .38 : BANNER_H / 2); }
+    if (hasSub) { fit(st.sub, 400, Math.round(st.size * .5), mw); c.globalAlpha = .92; c.fillText(st.sub, x, BANNER_H * .72); c.globalAlpha = 1; }
+  };
+  const bind = (label, key, o = {}) => { const l = field(label, st, key, { ...o, onchange: () => draw() }); return l; };
+  const color = (label, key) => { const i = h('input', { type: 'color', value: st[key], style: 'height:38px;padding:2px;width:100%;cursor:pointer' }); i.addEventListener('input', () => { st[key] = i.value; draw(); }); return h('label', { class: 'f' }, h('span', { class: 'lb' }, label), i); };
+  const pick = (label, key) => { const fi = h('input', { type: 'file', accept: 'image/*', hidden: true }); fi.addEventListener('change', async () => { const f = fi.files[0]; fi.value = ''; if (f) { st[key] = await loadImg(f); draw(); } }); return h('span', {}, h('button', { class: 'btn sm', type: 'button', onclick: () => fi.click() }, label), ' ', h('button', { class: 'btn sm', type: 'button', onclick: () => { st[key] = null; draw(); } }, 'حذف'), fi); };
+  const align = h('select', {}, ...[['right', 'راست‌چین'], ['center', 'وسط'], ['left', 'چپ‌چین']].map(([v, t]) => h('option', { value: v }, t)));
+  align.addEventListener('change', () => { st.align = align.value; draw(); });
+  const toBlob = (type, q) => new Promise(r => cv.toBlob(r, type, q));
+  const makeFile = async () => { let b = await toBlob('image/png'); let ext = 'png'; if (b.size > 1400000) { b = await toBlob('image/jpeg', .9); ext = 'jpg'; } return new File([b], `banner.${ext}`, { type: b.type }); };
+  const dlg = $('#dlg');
+  const close = () => dlg.close();
+  dlg.replaceChildren(h('h3', {}, 'ساخت بنر (۱۲۸۰×۲۰۰)'), h('p', { class: 'sub' }, 'اندازهٔ دقیق بنر برنامه است. متن در حاشیهٔ امن می‌ماند تا در حالت افقی (باریک) بریده نشود.'), cv,
+    h('div', { class: 'two' }, bind('عنوان', 'title'), bind('زیرعنوان (اختیاری)', 'sub')),
+    h('div', { class: 'two' }, color('رنگ ابتدا', 'c1'), color('رنگ انتها', 'c2')),
+    h('div', { class: 'two' }, color('رنگ متن', 'ink'), h('label', { class: 'f' }, h('span', { class: 'lb' }, 'چینش'), align)),
+    h('div', { class: 'row', style: 'margin:6px 0 10px' }, pick('تصویر پس‌زمینه', 'bg'), pick('لوگو', 'logo')),
+    h('div', { class: 'row', style: 'justify-content:flex-end;gap:8px' },
+      h('button', { class: 'btn', onclick: close }, 'بستن'),
+      h('button', { class: 'btn', onclick: async () => { const f = await makeFile(); const a = h('a', { href: URL.createObjectURL(f), download: f.name }); document.body.append(a); a.click(); a.remove(); } }, 'دانلود تصویر'),
+      h('button', { class: 'btn pri', onclick: async e => { const b = e.target; b.disabled = true; try { const f = await makeFile(); const url = await ghUpload('adsRepo', f, { exts: ['png', 'jpg'], maxBytes: 1500000, prefix: 'banner' }); close(); onDone(url); toast('بنر ساخته و آپلود شد؛ آدرس در فیلد گذاشته شد.'); } catch (er) { toast(er.message, true); } finally { b.disabled = false; } } }, 'آپلود و استفاده')));
+  draw(); dlg.showModal();
+}
+
 /* ───────────── برگهٔ تبلیغ‌ها ───────────── */
 function tabAd() {
   const d = D('ad'), list = h('div');
@@ -458,7 +511,7 @@ function tabAd() {
           h('button', { class: 'btn sm del', onclick: () => { d.items.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف'))),
         box,
         field('نشانی تصویر بنر (https، ۱۲۸۰×۲۰۰، حداکثر ۱٫۵ مگابایت)', it, 'image', { ltr: true, ph: 'https://raw.githubusercontent.com/…/ad1.png', onchange: loadImg, hint: 'برای عوض کردن تصویر، نام فایل را هم عوض کنید؛ برنامه تصویرها را با نشانی کش می‌کند.' }),
-        h('div', { class: 'row', style: 'margin:-4px 0 10px' }, uploadBtn('آپلود تصویر از دستگاه', 'image/png,image/jpeg,image/webp,image/gif', 'adsRepo',
+        h('div', { class: 'row', style: 'margin:-4px 0 10px' }, h('button', { class: 'btn sm pri', type: 'button', onclick: () => bannerMaker(url => { it.image = url; draw(); refreshOut(); }) }, 'ساخت بنر'), uploadBtn('آپلود تصویر از دستگاه', 'image/png,image/jpeg,image/webp,image/gif', 'adsRepo',
           { exts: ['png', 'jpg', 'jpeg', 'webp', 'gif'], maxBytes: 1500000, prefix: 'banner' },
           url => { it.image = url; draw(); refreshOut(); },
           async f => { const z = await imgSize(f); if (z && (z[0] > 4000 || z[1] > 1500)) { toast(`ابعاد تصویر ${z[0]}×${z[1]} است؛ برنامه تصویر بزرگ‌تر از ۴۰۰۰×۱۵۰۰ را رد می‌کند`, true); return false; } if (z && Math.abs(z[0] / z[1] - 6.4) / 6.4 > 0.05) return confirm(`اندازهٔ تصویر ${z[0]}×${z[1]} است؛ اندازهٔ پیشنهادی ۱۲۸۰×۲۰۰ است و ممکن است بریده یا کشیده دیده شود. با این حال آپلود شود؟`); return true; }),
