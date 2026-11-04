@@ -259,6 +259,42 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     StripDialogs(vm, Strip.ESSENTIAL, essSites, essUi)
     StripDialogs(vm, Strip.TV, tvSites, tvUi)
     if (addSiteOpen) AddSiteDialog(onAdd = { t, u, sub -> vm.addSite(t, u, sub) }, onDismiss = { addSiteOpen = false })
+    // لمس طولانی روی کاشی سامانه/بخش: ویرایش، حذف (فقط سامانه‌های کاربر) و جابه‌جایی راست/چپ
+    var manage by remember { mutableStateOf<Pair<String, HomeSection>?>(null) }      // ("links"|"sections", کاشی)
+    var editKey by remember { mutableStateOf<String?>(null) }
+    var deleteKey by remember { mutableStateOf<String?>(null) }
+    fun moveTile(group: String, all: List<HomeSection>, visible: List<HomeSection>, id: String, delta: Int) {
+        val full = HomeLayout.order(all.map { it.id }, layout[group])
+        saveLayout(layout + (group to HomeLayout.moveVisible(full, visible.map { it.id }, id, delta)))
+    }
+    manage?.let { (group, t) ->
+        val isSite = group == "links" && t.logo && !t.secret && t.iconKey != null
+        val visible = if (group == "links") linkList else sections
+        val all = if (group == "links") links else sectionsAll
+        AppDialog(t.title, { manage = null }, dismissText = "بستن") {
+            if (isSite) {
+                TextButton({ editKey = t.iconKey; manage = null }, Modifier.fillMaxWidth()) { Text("ویرایش (نام، آدرس، توضیح)") }
+                TextButton({ deleteKey = t.iconKey; manage = null }, Modifier.fillMaxWidth()) { Text("حذف از صفحهٔ اول", color = MaterialTheme.colorScheme.error) }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // در چیدمان راست‌به‌چپ، اولین کاشی سمت راست است
+                TextButton({ moveTile(group, all, visible, t.id, -1); manage = null }, Modifier.weight(1f), enabled = visible.firstOrNull()?.id != t.id) { Text("انتقال به راست ›") }
+                TextButton({ moveTile(group, all, visible, t.id, 1); manage = null }, Modifier.weight(1f), enabled = visible.lastOrNull()?.id != t.id) { Text("‹ انتقال به چپ") }
+            }
+        }
+    }
+    editKey?.let { k ->
+        val cur = TilesPackFile.decodeSites(prefs.sitesRaw).firstOrNull { it.key == k }
+        if (cur == null) editKey = null else AddSiteDialog(
+            onAdd = { t, u, sb -> vm.editSite(k, t, u, sb) }, onDismiss = { editKey = null },
+            heading = "ویرایش سامانه", confirmLabel = "ذخیره", initialTitle = cur.title, initialUrl = cur.url, initialSubtitle = cur.subtitle
+        )
+    }
+    deleteKey?.let { k ->
+        val cur = TilesPackFile.decodeSites(prefs.sitesRaw).firstOrNull { it.key == k }
+        ConfirmDialog("سامانهٔ «${cur?.title.orEmpty()}» از صفحهٔ اول حذف شود؟", "حذف", { vm.removeSite(k); deleteKey = null }, { deleteKey = null }, danger = true)
+    }
+
     if (searchOpen) AppSearchDialog(
         searchItems,
         onPick = { r -> searchOpen = false; if (r.id.startsWith("http")) onLink(r.id) else onOpen(r.id) },
@@ -347,7 +383,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                     TextButton({ addSiteOpen = true }, contentPadding = PaddingValues(horizontal = 10.dp)) { Text("+ افزودن سامانه", style = MaterialTheme.typography.labelLarge) }
                 }
             } else {
-                LinksStrip(linkList, onAdd = { addSiteOpen = true }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
+                LinksStrip(linkList, onAdd = { addSiteOpen = true }, onLong = { manage = "links" to it }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
             }
         }
         // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
@@ -381,7 +417,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                             "sections" -> {
                                 BlockHeader("بخش‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 if (editing) TileGrid(sections, compact = false, editing = true, scroll = scroll, onReorder = { reorderTiles("sections", sectionsAll, it) }) { }
-                                else SectionsStrip(sections) { s -> if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show() }
+                                else SectionsStrip(sections, onLong = { manage = "sections" to it }) { s -> if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show() }
                                 if (!editing && !prefs.prayerOn && !prefs.prayerHintHidden) {
                                     // پیشنهاد اختیاری: فقط تا وقتی کاربر فعالش نکرده یا پنهانش نکرده دیده می‌شود
                                     AppCard(Modifier.fillMaxWidth()) {
@@ -715,12 +751,13 @@ private fun SectionTile(s: HomeSection, onClick: () -> Unit) {
 
 /** سامانه‌ها: نوار افقی اسکرول‌شونده، کاشی سفید با آرم/آیکن و نام زیرش (سبک روشن)؛ «افزودن» آخر نوار است. */
 @Composable
-private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onClick: (HomeSection) -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onLong: (HomeSection) -> Unit, onClick: (HomeSection) -> Unit) {
     StripBg { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { s ->
             key(s.id) {
                 Column(
-                    Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).combinedClickable(role = Role.Button, onClick = { onClick(s) }, onLongClick = { onLong(s) }, onLongClickLabel = "ویرایش و جابه‌جایی"),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Box(
@@ -757,12 +794,13 @@ private fun StripBg(content: @Composable () -> Unit) {
 
 /** بخش‌ها: نوار افقی اسکرول‌شونده با آیکن و نام (تصمیم مورد ۷: هر گروه یک نوار افقی)؛ کم‌ارتفاع و بدون کارت‌های بلند. */
 @Composable
-private fun SectionsStrip(items: List<HomeSection>, onClick: (HomeSection) -> Unit) {
+@OptIn(ExperimentalFoundationApi::class)
+private fun SectionsStrip(items: List<HomeSection>, onLong: (HomeSection) -> Unit, onClick: (HomeSection) -> Unit) {
     StripBg { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { s ->
             key(s.id) {
                 Column(
-                    Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).clickable(role = Role.Button, onClick = { onClick(s) }),
+                    Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).combinedClickable(role = Role.Button, onClick = { onClick(s) }, onLongClick = { onLong(s) }, onLongClickLabel = "جابه‌جایی"),
                     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     IconBadge(s.icon, size = 54.dp, iconSize = 28.dp, modifier = Modifier)
