@@ -70,6 +70,8 @@ class PortalWebActivity : Activity() {
     private var cred: PortalVault.Cred? = null
     private var portalKey: String? = null
     private var startUrl = ""
+    private var reused = false
+    private val holderKey get() = portalKey ?: startUrl
     private var busy = false
     private lateinit var status: TextView
     private var defaultUa = ""
@@ -124,7 +126,10 @@ class PortalWebActivity : Activity() {
             textSize = 11f; setTextColor(MUTED); setPadding(dp(12), dp(2), dp(12), dp(2)); visibility = View.GONE
             setBackgroundColor(0xFFF3F4F6.toInt())
         }
-        web = WebView(this).apply {
+        // همان صفحهٔ باز و واردشدهٔ این سامانه اگر تازه بسته شده بود (مثلاً رفتن به فیش‌ها یا تقویم)
+        val held = PortalWebHolder.obtain(this, holderKey, startUrl)
+        reused = held.reused
+        web = held.web.apply {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f)
         }
 
@@ -188,7 +193,7 @@ class PortalWebActivity : Activity() {
             download(url, userAgent, mimeType, contentDisposition)
         }
 
-        if (savedInstanceState == null) web.loadUrl(startUrl) else web.restoreState(savedInstanceState)
+        if (!reused) { if (savedInstanceState == null) web.loadUrl(startUrl) else web.restoreState(savedInstanceState) }
     }
 
     /**
@@ -580,7 +585,8 @@ class PortalWebActivity : Activity() {
     }
 
     override fun onDestroy() {
-        if (::web.isInitialized) { web.stopLoading(); (web.parent as? ViewGroup)?.removeView(web); web.destroy() }
+        // صفحه نابود نمی‌شود؛ تا ۱۵ دقیقه نگه داشته می‌شود تا بازگشت به همین سامانه دوباره ورود نخواهد
+        if (::web.isInitialized) PortalWebHolder.release(applicationContext, holderKey, web)
         super.onDestroy()
     }
 
