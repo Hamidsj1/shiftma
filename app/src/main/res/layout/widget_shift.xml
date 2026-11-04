@@ -99,7 +99,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -143,7 +143,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -187,7 +187,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -231,7 +231,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -275,7 +275,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -319,7 +319,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -363,7 +363,7 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="40dp"
+                android:layout_height="34dp"
                 android:layout_marginTop="1dp"
                 >
                 <ImageView
@@ -469,36 +469,139 @@
             android:visibility="gone" />
     </LinearLayout>
 
-    <!-- ردیف پایین: میان‌بر سامانه‌ها و تلفن -->
+    <!-- ردیف پایین: تلفن ثابت، سپس سامانه‌ها با ورق‌زدن (بخش‌های پنهان در اپ، اینجا هم پنهان) -->
     <LinearLayout
+        android:id="@+id/w_icons"
         android:layout_width="match_parent"
-        android:layout_height="26dp"
+        android:layout_height="58dp"
         android:layout_marginTop="4dp"
         android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/w_ph"
+            android:layout_width="58dp"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_ph_i"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="تلفن"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/w_sep"
+            android:layout_width="1dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:src="@drawable/widget_sep" />
         <TextView
-            android:id="@+id/w_btn_sites"
+            android:id="@+id/w_prev"
+            android:layout_width="20dp"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:text="›"
+            android:textColor="@color/widget_sub"
+            android:textSize="22sp" />
+        <LinearLayout
+            android:id="@+id/w_s0"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="@drawable/widget_chip"
-            android:gravity="center"
-            android:singleLine="true"
-            android:text="سامانه‌ها"
-            android:textColor="@color/widget_text"
-            android:textSize="12sp"
-            android:textStyle="bold" />
-        <TextView
-            android:id="@+id/w_btn_call"
-            android:layout_marginStart="6dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s0_i"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s0_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="56dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/w_s1"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
-            android:background="@drawable/widget_chip"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s1_i"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s1_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="56dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/w_s2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s2_i"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s2_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="56dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/w_s3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s3_i"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s3_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="56dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/w_next"
+            android:layout_width="20dp"
+            android:layout_height="44dp"
             android:gravity="center"
-            android:singleLine="true"
-            android:text="تلفن"
-            android:textColor="@color/widget_text"
-            android:textSize="12sp"
-            android:textStyle="bold" />
+            android:text="‹"
+            android:textColor="@color/widget_sub"
+            android:textSize="22sp" />
     </LinearLayout>
 </LinearLayout>

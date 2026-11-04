@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIncoming(i: Intent?) {
         i?.getStringExtra(EXTRA_SECTION)?.takeIf { it in SECTION_IDS }?.let { launchSection = it }
+        i?.getStringExtra(EXTRA_SITE_URL)?.takeIf { it.startsWith("https://") }?.let { launchSection = "site:$it" }
         val uri = when (i?.action) {
             Intent.ACTION_VIEW -> i.data
             // «اشتراک‌گذاری ← شیفت ما»: فایل در clipData یا EXTRA_STREAM می‌آید
@@ -107,6 +108,8 @@ class MainActivity : ComponentActivity() {
 }
 
 const val EXTRA_SECTION = "section"
+/** آدرس سامانه‌ای که ویجت خواسته باز شود؛ فقط اگر در سامانه‌های کاربر باشد باز می‌شود. */
+const val EXTRA_SITE_URL = "site_url"
 private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income", "planner", "home")
 /** بخش‌هایی که فقط با دسترسی ویژه (رمز روزانه) باز می‌شوند. */
 private val SPECIAL_SECTIONS = setOf("phonebook", "meals")
@@ -122,7 +125,16 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
     val ctx = LocalContext.current
     val special by vm.specialOn.collectAsState()
     val prefs by vm.prefs.collectAsState()
-    LaunchedEffect(launch) { if (launch != null) { section = if (launch == "home") null else launch; onLaunchConsumed() } }
+    LaunchedEffect(launch, prefs.sitesRaw) {
+        if (launch != null) {
+            if (launch.startsWith("site:")) {
+                val u = launch.removePrefix("site:")
+                if (TilesPackFile.decodeSites(prefs.sitesRaw).any { it.url == u }) { section = null; portal = u }
+                else if (prefs.sitesRaw.isEmpty()) return@LaunchedEffect      // تنظیمات هنوز بارگذاری نشده؛ صبر کن
+            } else section = if (launch == "home") null else launch
+            onLaunchConsumed()
+        }
+    }
     // بخش‌های مخفی تا وقتی دسترسی ویژه فعال نشده باز نمی‌شوند (مثلاً از میانبر ویجت)
     val enabledSections by vm.enabledSections.collectAsState()
     val sites = remember(prefs.sitesRaw) { TilesPackFile.decodeSites(prefs.sitesRaw) }

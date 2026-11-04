@@ -35,6 +35,7 @@
         <package android:name="com.farsitel.bazaar" />
     </queries>
     <application
+        android:name="ir.shiftapp.ShiftApp"
         android:usesCleartextTraffic="true"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

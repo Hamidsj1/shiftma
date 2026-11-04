@@ -70,10 +70,10 @@ object ConfigLoader {
         val url = feedUrl(ctx)
         if (url.isEmpty()) return true
         val json = try { String(download(url), Charsets.UTF_8) } catch (e: Exception) {
-            UpdateLog.recordCheck(ctx, false, "دریافت فایل ممکن نشد (اینترنت یا آدرس): ${e.message.orEmpty().take(60)}"); _tick.value++; return false
+            DiagLog.w("CONFIG", "دریافت ناموفق: ${e.javaClass.simpleName}"); UpdateLog.recordCheck(ctx, false, "دریافت فایل ممکن نشد (اینترنت یا آدرس): ${e.message.orEmpty().take(60)}"); _tick.value++; return false
         }
         val cfg = RemoteConfigFile.parseOrNull(json) ?: run {
-            UpdateLog.recordCheck(ctx, false, "فایل تنظیمات معتبر نیست"); _tick.value++; return false   // فایل خراب: بخش‌ها را ناگهان باز/بسته نکن
+            DiagLog.w("CONFIG", "فایل نامعتبر"); UpdateLog.recordCheck(ctx, false, "فایل تنظیمات معتبر نیست"); _tick.value++; return false   // فایل خراب: بخش‌ها را ناگهان باز/بسته نکن
         }
         sp(ctx).edit().putString(KEY_JSON, json).apply()
         _config.value = cfg

@@ -42,7 +42,14 @@ class WidgetInflateTest {
         setTextViewText(R.id.w_remain, "۴:۳۷ مانده")
         if (full) {
             val pi = android.app.PendingIntent.getActivity(ctx, 1, android.content.Intent("x"), android.app.PendingIntent.FLAG_IMMUTABLE)
-            setOnClickPendingIntent(R.id.w_btn_sites, pi); setOnClickPendingIntent(R.id.w_btn_call, pi)
+            val bmp = android.graphics.Bitmap.createBitmap(120, 120, android.graphics.Bitmap.Config.ARGB_8888)
+            setViewVisibility(R.id.w_icons, View.VISIBLE); setViewVisibility(R.id.w_ph, View.VISIBLE); setViewVisibility(R.id.w_sep, View.VISIBLE)
+            setImageViewBitmap(R.id.w_ph_i, bmp); setOnClickPendingIntent(R.id.w_ph, pi)
+            for ((sl, im, tx) in listOf(Triple(R.id.w_s0, R.id.w_s0_i, R.id.w_s0_t), Triple(R.id.w_s1, R.id.w_s1_i, R.id.w_s1_t), Triple(R.id.w_s2, R.id.w_s2_i, R.id.w_s2_t), Triple(R.id.w_s3, R.id.w_s3_i, R.id.w_s3_t))) {
+                setViewVisibility(sl, View.VISIBLE); setImageViewBitmap(im, bmp); setTextViewText(tx, "کسرا"); setOnClickPendingIntent(sl, pi)
+            }
+            setViewVisibility(R.id.w_prev, View.INVISIBLE); setViewVisibility(R.id.w_next, View.VISIBLE)
+            setOnClickPendingIntent(R.id.w_prev, pi); setOnClickPendingIntent(R.id.w_next, pi)
         }
         val bg = intArrayOf(R.id.w_d0_bg, R.id.w_d1_bg, R.id.w_d2_bg, R.id.w_d3_bg, R.id.w_d4_bg, R.id.w_d5_bg, R.id.w_d6_bg)
         val ring = intArrayOf(R.id.w_d0_ring, R.id.w_d1_ring, R.id.w_d2_ring, R.id.w_d3_ring, R.id.w_d4_ring, R.id.w_d5_ring, R.id.w_d6_ring)

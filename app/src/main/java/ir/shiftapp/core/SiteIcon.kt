@@ -93,3 +93,7 @@ object SiteIcon {
         return bos.toByteArray()
     }
 }
+
+/** خواندن همگام (بدون شبکه) آیکن ذخیره‌شدهٔ سایت برای ویجت؛ null اگر هنوز دریافت نشده. */
+fun SiteIcon.cachedBytes(ctx: Context, key: String): ByteArray? =
+    runCatching { File(File(ctx.filesDir, "site_icons"), "$key.png").takeIf { it.isFile }?.readBytes() }.getOrNull()
