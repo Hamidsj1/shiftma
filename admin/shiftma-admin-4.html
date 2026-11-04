@@ -476,12 +476,26 @@ function tabAd() {
 }
 
 /* ───────────── به‌روزرسانی آدرس سایت‌ها (بدون وارد کردن فایل) ───────────── */
+/* کلیدهای موجود در برگهٔ «کاشی‌ها»؛ شناسهٔ به‌روزرسانی باید دقیقاً یکی از همین‌ها باشد وگرنه در گوشی اعمال نمی‌شود */
+function tileKeys() { return ((D('tiles').sites) || []).filter(t => t && t.key).map(t => ({ key: String(t.key).trim().toLowerCase(), title: t.title || '' })); }
+function keyField(u) {
+  const keys = tileKeys();
+  const warn = h('small', { style: 'color:#b3261e' });
+  const check = () => { const k = String(u.key || '').trim().toLowerCase(); warn.textContent = k && !keys.some(x => x.key === k) ? '⚠ این شناسه در برگهٔ «کاشی‌ها» نیست؛ در گوشی‌ها اعمال نمی‌شود.' : ''; };
+  const f = field('شناسهٔ سایت (key) — یکی از فهرست را انتخاب کنید', u, 'key', { ltr: true, ph: keys.length ? keys[0].key : 'ابتدا در برگهٔ کاشی‌ها key بدهید', onchange: check });
+  const id = 'dl' + Math.random().toString(36).slice(2, 8);
+  f.input.setAttribute('list', id);
+  f.append(h('datalist', { id }, ...keys.map(x => h('option', { value: x.key }, x.title))),
+    h('small', {}, keys.length ? 'موجود: ' + keys.map(x => `${x.key} (${x.title})`).join('، ') : 'هنوز سامانه‌ای با key در برگهٔ «کاشی‌ها» نیست.'), warn);
+  check();
+  return f;
+}
 function siteUpdatesEditor(d) {
   if (!d.sites) d.sites = [];
   const list = h('div');
   const draw = () => list.replaceChildren(...d.sites.map((u, i) => h('div', { class: 'item' },
     h('div', { class: 'row sp' }, h('span', {}, `سایت ${i + 1}`), h('button', { class: 'btn sm del', onclick: () => { d.sites.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف')),
-    field('شناسهٔ سایت (key؛ مثل nicicocom)', u, 'key', { ltr: true }),
+    keyField(u),
     field('آدرس تازه (https)', u, 'url', { ltr: true, ph: 'https://' }),
     field('عنوان تازه (اختیاری)', u, 'title', {}),
     field('توضیح تازه (اختیاری)', u, 'subtitle', {}))));
