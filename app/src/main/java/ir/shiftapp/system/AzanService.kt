@@ -89,6 +89,7 @@ class AzanService : Service() {
         AlarmKeyStop.stopSession(session)
         session = null
         AzanPlayer.stop()
+        AlarmKeyStop.restoreVolume(applicationContext)
         super.onDestroy()
     }
 

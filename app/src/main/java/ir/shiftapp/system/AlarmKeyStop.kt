@@ -4,7 +4,10 @@ import android.accessibilityservice.AccessibilityService
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.media.VolumeProvider
+import android.os.Handler
+import android.os.Looper
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.PowerManager
@@ -46,12 +49,80 @@ object AlarmKeyStop {
         AzanService.stop(app)
     }
 
+    /**
+     * منطق «لمس کوتاه = قطع آلارم، نگه‌داشتن = کم/زیاد کردن صدا». اندروید بعد از حدود نیم‌ثانیه نگه‌داشتن، رویدادهای تکراری
+     * (repeatCount > 0) می‌فرستد؛ تا آن موقع دکمه «لمس کوتاه» حساب می‌شود و با رها کردن، آلارم قطع می‌شود.
+     * [onHold] برای هر تکرار (حداکثر هر [throttleMs]) با کد دکمه صدا زده می‌شود.
+     */
+    class HoldGesture(
+        private val onTap: () -> Unit, private val onHold: (keyCode: Int) -> Unit,
+        private val now: () -> Long = { System.currentTimeMillis() }, private val throttleMs: Long = 220L
+    ) {
+        private var downCode = -1
+        private var tap = false
+        private var lastHold = 0L
+
+        fun down(code: Int, repeatCount: Int) {
+            if (repeatCount == 0) { downCode = code; tap = true; return }
+            downCode = code
+            tap = false                       // نگه داشته شد؛ رها کردن دیگر آلارم را قطع نمی‌کند
+            val t = now()
+            if (t - lastHold >= throttleMs) { lastHold = t; onHold(code) }
+        }
+
+        /** true = این رها کردن مال دکمه‌ای بود که ما گرفته بودیم (باید بلعیده شود). */
+        fun up(code: Int): Boolean {
+            if (downCode != code) return false
+            val wasTap = tap
+            downCode = -1; tap = false
+            if (wasTap) onTap()
+            return true
+        }
+    }
+
+    private const val VOL_PREFS = "shiftma_volsave"
+
+    /** صدای آلارم سیستم را یک پله کم/زیاد می‌کند؛ مقدار اولیه یک‌بار ذخیره می‌شود تا بعد از آلارم برگردانده شود. */
+    fun adjustAlarmVolume(ctx: Context, raise: Boolean) {
+        runCatching {
+            val am = ctx.getSystemService(AudioManager::class.java) ?: return
+            val sp = ctx.applicationContext.getSharedPreferences(VOL_PREFS, Context.MODE_PRIVATE)
+            if (!sp.contains("v")) sp.edit().putInt("v", am.getStreamVolume(AudioManager.STREAM_ALARM)).apply()
+            am.adjustStreamVolume(AudioManager.STREAM_ALARM, if (raise) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER, 0)
+        }
+    }
+
+    /** بعد از پایان آلارم/اذان: اگر با نگه‌داشتن دکمه صدا کم شده بود، به مقدار قبلی برمی‌گردد تا آلارم بعدی بی‌صدا نماند. */
+    fun restoreVolume(ctx: Context) {
+        runCatching {
+            val sp = ctx.applicationContext.getSharedPreferences(VOL_PREFS, Context.MODE_PRIVATE)
+            if (!sp.contains("v")) return
+            val v = sp.getInt("v", -1)
+            sp.edit().remove("v").apply()
+            if (v >= 0) ctx.getSystemService(AudioManager::class.java)?.setStreamVolume(AudioManager.STREAM_ALARM, v, 0)
+        }
+    }
+
     /** نشست رسانه‌ای که دکمه‌های صدا را می‌گیرد و به‌جای تغییر بلندی، [onVolume] را اجرا می‌کند. */
     fun startSession(ctx: Context, tag: String, onVolume: () -> Unit): MediaSession? = runCatching {
         val s = MediaSession(ctx, tag)
         touch(s)
+        val app = ctx.applicationContext
+        val h = Handler(Looper.getMainLooper())
+        var lastCall = 0L
+        var held = false
+        val stop = Runnable { onVolume() }
+        // نشست رسانه‌ای رها شدن دکمه را نمی‌بیند: اگر تا ۴۵۰ms تکرار نیامد = لمس کوتاه (قطع)؛ اگر تکرار آمد = نگه داشتن (کم/زیاد کردن صدا)
+        fun adjust(direction: Int) {
+            val t = System.currentTimeMillis()
+            if (t - lastCall > 700) held = false
+            if (!held && lastCall != 0L && t - lastCall < 200) { h.removeCallbacks(stop); held = true }
+            lastCall = t
+            if (held) AlarmKeyStop.adjustAlarmVolume(app, raise = direction > 0)
+            else { h.removeCallbacks(stop); h.postDelayed(stop, 450L) }
+        }
         s.setPlaybackToRemote(object : VolumeProvider(VolumeProvider.VOLUME_CONTROL_RELATIVE, 1, 0) {
-            override fun onAdjustVolume(direction: Int) { onVolume() }
+            override fun onAdjustVolume(direction: Int) { adjust(direction) }
             override fun onSetVolumeTo(volume: Int) { onVolume() }
         })
         s.isActive = true
@@ -91,7 +162,10 @@ object AlarmKeyStop {
  * در بقیهٔ اوقات هیچ دکمه‌ای را نمی‌گیرد. هیچ رویداد یا محتوایی از صفحه خوانده نمی‌شود (در تنظیمات سرویس نوع رویدادی ثبت نشده است).
  */
 class AlarmKeyService : AccessibilityService() {
-    private var swallowUpOf = -1
+    private val gesture = AlarmKeyStop.HoldGesture(
+        onTap = { AlarmKeyStop.stopAll(applicationContext) },
+        onHold = { code -> AlarmKeyStop.adjustAlarmVolume(applicationContext, raise = code == KeyEvent.KEYCODE_VOLUME_UP) }
+    )
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
 
@@ -100,14 +174,9 @@ class AlarmKeyService : AccessibilityService() {
     override fun onKeyEvent(event: KeyEvent): Boolean {
         val code = event.keyCode
         if (!AlarmKeyStop.isVolumeKey(code)) return false
-        if (event.action == KeyEvent.ACTION_UP) {
-            // رها کردن دکمه‌ای که پایین‌رفتنش را برای قطع آلارم گرفته‌ایم هم نباید بلندی را تغییر دهد
-            if (swallowUpOf == code) { swallowUpOf = -1; return true }
-            return false
-        }
+        if (event.action == KeyEvent.ACTION_UP) return gesture.up(code)      // رها کردن: لمس کوتاه = قطع؛ بعد از نگه‌داشتن = فقط بلعیده می‌شود
         if (!AlarmKeyStop.isRinging()) return false
-        if (event.repeatCount == 0) AlarmKeyStop.stopAll(applicationContext)
-        swallowUpOf = code
+        gesture.down(code, event.repeatCount)
         return true
     }
 }

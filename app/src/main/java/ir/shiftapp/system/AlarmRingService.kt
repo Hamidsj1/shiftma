@@ -283,6 +283,7 @@ class AlarmRingService : Service() {
         stopEffects()
         stopVolumeStop()
         abandonAlarmAudioFocus()
+        AlarmKeyStop.restoreVolume(applicationContext)      // اگر با نگه‌داشتن دکمه صدا کم شده بود، برگردد
         super.onDestroy()
     }
 

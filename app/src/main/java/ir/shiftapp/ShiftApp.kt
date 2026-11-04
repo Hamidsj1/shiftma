@@ -9,5 +9,6 @@ class ShiftApp : Application() {
         super.onCreate()
         DiagLog.installCrashHandler(this)
         DiagLog.i("APP", "start")
+        ir.shiftapp.system.AlarmKeyStop.restoreVolume(this)      // اگر پروسه وسط آلارمِ کم‌شده بسته شده بود
     }
 }

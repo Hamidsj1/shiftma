@@ -72,11 +72,16 @@ class AlarmActivity : ComponentActivity() {
     }
 
     private var stopAlarm: () -> Unit = {}
+    private val gesture = AlarmKeyStop.HoldGesture(
+        onTap = { stopAlarm() },
+        onHold = { code -> AlarmKeyStop.adjustAlarmVolume(applicationContext, raise = code == KeyEvent.KEYCODE_VOLUME_UP) }
+    )
 
     /** دکمه‌های صدا آلارم را قطع می‌کنند (به‌جای تغییر صدا)؛ از dispatchKeyEvent تا هیچ ویوی دیگری قبل از آن دکمه را نگیرد. */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (AlarmKeyStop.isVolumeKey(event.keyCode)) {
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) stopAlarm()
+            // لمس کوتاه = قطع، نگه‌داشتن = کم/زیاد کردن صدای آلارم
+            if (event.action == KeyEvent.ACTION_DOWN) gesture.down(event.keyCode, event.repeatCount) else gesture.up(event.keyCode)
             return true
         }
         return super.dispatchKeyEvent(event)
