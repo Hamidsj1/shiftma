@@ -342,7 +342,7 @@ internal fun StripShell(content: @Composable RowScope.() -> Unit) {
     }
     Box(
         Modifier.fillMaxWidth().clip(shape)
-            .background(Brush.horizontalGradient(listOf(lerp(base, blue, t), lerp(blue, base, t)))).padding(vertical = 10.dp, horizontal = 8.dp)
+            .background(Brush.horizontalGradient(listOf(lerp(base, blue, t), lerp(blue, base, t)))).padding(vertical = 7.dp, horizontal = 8.dp)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -439,7 +439,7 @@ private fun EssentialSiteItem(title: String, url: String, key: String, onClick: 
             if (bmp != null) Image(bmp, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)))
             else Text(title.firstOrNull()?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4338CA))
         }
-        Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 

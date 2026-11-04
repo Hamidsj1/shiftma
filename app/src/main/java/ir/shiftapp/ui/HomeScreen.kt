@@ -368,7 +368,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     }
     val partD: @Composable ColumnScope.() -> Unit = {
         LayoutBar(editing, { editing = true }, { saveLayout(emptyMap()) }, { editing = false })
-        ReorderLayout(columns = 1, spacing = 12.dp, dr = blockDrag) {
+        ReorderLayout(columns = 1, spacing = 4.dp, dr = blockDrag) {
             shownBlocks.filter { editing || it != "links" }.forEach { id ->
                 key(id) {
                     val bi = shownBlocks.indexOf(id)
@@ -376,7 +376,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                     val down = bi < shownBlocks.size - 1
                     // کشیدن گروه: لمس طولانی روی عنوانش
                     val handle = if (editing) Modifier.dragHandle(blockDrag, id, { blocks }) { o -> rememberBlockDrop(o); reorderBlocks(o) } else Modifier
-                    Column(Modifier.reorderItem(blockDrag, id), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.reorderItem(blockDrag, id), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         when (id) {
                             "sections" -> {
                                 BlockHeader("بخش‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
