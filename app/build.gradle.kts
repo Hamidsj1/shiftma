@@ -20,10 +20,19 @@ android {
         applicationId = "ir.shiftapp.shiftma"   // قبل از اولین انتشار به شناسهٔ دلخواه خودتان تغییر دهید؛ بعد از انتشار قابل تغییر نیست
         minSdk = 26            // java.time بدون desugaring
         targetSdk = 34
-        versionCode = 28           // با هر انتشار جدید یکی زیاد شود
-        versionName = "1.0.27"
+        versionCode = 29           // با هر انتشار جدید یکی زیاد شود
+        versionName = "1.0.28"
     }
     signingConfigs {
+        // کلید آزمایشیِ ثابت (فقط برای ساخت‌های CI/debug؛ هرگز برای انتشار بازار): بدون آن هر ساخت CI کلید debug تازه می‌ساخت و
+        // نصب روی نسخهٔ قبلی ممکن نبود. جزئیات: docs/TEST_SIGNING.md
+        getByName("debug") {
+            val f = rootProject.file("ci/test-signing.p12")
+            if (f.isFile) {
+                storeFile = f; storeType = "pkcs12"
+                storePassword = "shiftma-test"; keyAlias = "shiftma-test"; keyPassword = "shiftma-test"
+            }
+        }
         create("release") {
             if (keystoreProps.isNotEmpty()) {
                 storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
