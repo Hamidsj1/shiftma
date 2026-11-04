@@ -61,14 +61,15 @@ class ShiftWidget : AppWidgetProvider() {
             p.style = android.graphics.Paint.Style.STROKE; p.strokeWidth = 3f; p.color = 0xFFDCDFF0.toInt()
             c.drawRoundRect(2f, 2f, n - 2f, n - 2f, 34f, 34f, p)
             p.style = android.graphics.Paint.Style.FILL
-            val box = android.graphics.RectF(22f, 22f, n - 22f, n - 22f)
+            val box = android.graphics.RectF(18f, 18f, n - 18f, n - 18f)
             if (inner != null) {
                 val path = android.graphics.Path().apply { addRoundRect(box, 16f, 16f, android.graphics.Path.Direction.CW) }
                 c.save(); c.clipPath(path)
                 c.drawBitmap(inner, null, box, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
                 c.restore()
             } else {
-                p.color = color; c.drawRoundRect(box, 16f, 16f, p)
+                p.color = color
+                if (glyph != null) c.drawCircle(n / 2f, n / 2f, box.width() / 2f, p) else c.drawRoundRect(box, 16f, 16f, p)   // تلفن: دایرهٔ نارنجی مثل دکمهٔ تماس اپ
                 if (glyph != null) {
                     androidx.core.content.ContextCompat.getDrawable(ctx, glyph)?.mutate()?.let { d ->
                         d.setTint(0xFFFFFFFF.toInt()); d.setBounds(34, 34, n - 34, n - 34); d.draw(c)
@@ -97,7 +98,7 @@ class ShiftWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.w_ph, if (phone) View.VISIBLE else View.GONE)
             rv.setViewVisibility(R.id.w_sep, if (phone && sites.isNotEmpty()) View.VISIBLE else View.GONE)
             if (phone) {
-                rv.setImageViewBitmap(R.id.w_ph_i, roundTile(ctx, null, "", 0xFFE8743B.toInt(), R.drawable.ic_home_phone))
+                rv.setImageViewBitmap(R.id.w_ph_i, roundTile(ctx, null, "", 0xFFE8743B.toInt(), R.drawable.ic_call))
                 rv.setOnClickPendingIntent(R.id.w_ph, go(7013, "phonebook"))
             }
             val sp = ctx.getSharedPreferences(PAGE_PREFS, Context.MODE_PRIVATE)
