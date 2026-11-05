@@ -73,9 +73,6 @@ fun ImportTilesDialog(pack: TilesPack, onAdd: (Set<String>) -> Unit, onReplace: 
         if (pack.noticeFeed.isNotEmpty()) {
             Text(if (pack.publicNotices) "اعلان‌های محل کار شما و اعلان‌های عمومی برنامه به‌صورت اعلان گوشی می‌رسد." else "فقط اعلان‌های مخصوص محل کار شما به‌صورت اعلان گوشی می‌رسد.", style = MaterialTheme.typography.bodyMedium)
         }
-        if (pack.configFeed.isNotEmpty()) {
-            Text("تنظیم بخش‌های برنامه (نمایان، پنهان یا ویژه) مخصوص محل کار شما از اینترنت (گیت‌هاب) دریافت می‌شود.", style = MaterialTheme.typography.bodyMedium)
-        }
         if (pack.mealsFeed.isNotEmpty()) {
             Text("برنامهٔ غذایی مجتمع‌ها از اینترنت (گیت‌هاب) خودکار دریافت می‌شود.", style = MaterialTheme.typography.bodyMedium)
         }

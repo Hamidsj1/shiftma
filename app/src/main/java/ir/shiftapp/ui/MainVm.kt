@@ -174,6 +174,28 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             SpecialAccess.addSections(getApplication<Application>(), pack.sections)
             enabledSections.value = currentSections()
         }
+        applyFeeds(pack)
+        val parts = ArrayList<String>()
+        if (sites.isNotEmpty()) parts.add("${Fa.num(sites.size)} سامانه")
+        if (pack.sections.isNotEmpty()) parts.add("${Fa.num(pack.sections.size)} بخش")
+        if (pack.mealsFeed.isNotEmpty()) parts.add("دریافت خودکار برنامه غذایی")
+        if (pack.noticeFeed.isNotEmpty()) parts.add("اعلان‌های محل کار")
+        if (parts.isNotEmpty()) message.value = parts.joinToString(" و ") + " اضافه شد"
+        releaseHeldMeals()
+    }
+
+    /**
+     * بستهٔ «فقط‌خوراک» (بدون سامانه و بخش؛ مثلاً آدرس‌های منطقه که همراه فایل الگو/مخاطبین می‌آید) پنجرهٔ تأیید ندارد:
+     * بی‌صدا اعمال می‌شود و کاربر چیزی از آن نمی‌بیند. برای بستهٔ دارای سامانه/بخش خودش را برمی‌گرداند تا پنجرهٔ تأیید بیاید.
+     */
+    private fun silentFeedsOnly(t: TilesPack?): TilesPack? {
+        if (t == null || t.sites.isNotEmpty() || t.sections.isNotEmpty()) return t
+        applyFeeds(t)
+        return null
+    }
+
+    /** آدرس‌های خوراک (غذا، تبلیغ، اعلان، تنظیمات) را ذخیره می‌کند؛ فقط غیرخالی‌ها؛ نبودن کلید یعنی دست نزن. */
+    private fun applyFeeds(pack: TilesPack) {
         // آدرس خوراک برنامه غذایی شرکت: فقط با تأیید همین فایل کاشی‌ها ذخیره می‌شود؛ بدونش هیچ درخواستی به اینترنت نمی‌رود
         if (pack.mealsFeed.isNotEmpty()) setPref(PrefKeys.MEAL_FEED, pack.mealsFeed)
         if (pack.adsFeed.isNotEmpty()) {      // تبلیغ همین محل؛ تبلیغ عمومی فقط اگر فایل بخواهد کنارش بماند
@@ -189,14 +211,6 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             setPref(PrefKeys.CONFIG_FEED, pack.configFeed)
             ConfigLoader.setFeed(getApplication<Application>(), pack.configFeed)
         }
-        val parts = ArrayList<String>()
-        if (sites.isNotEmpty()) parts.add("${Fa.num(sites.size)} سامانه")
-        if (pack.sections.isNotEmpty()) parts.add("${Fa.num(pack.sections.size)} بخش")
-        if (pack.mealsFeed.isNotEmpty()) parts.add("دریافت خودکار برنامه غذایی")
-        if (pack.noticeFeed.isNotEmpty()) parts.add("اعلان‌های محل کار")
-        if (pack.configFeed.isNotEmpty()) parts.add("تنظیمات بخش‌های محل کار")
-        if (parts.isNotEmpty()) message.value = parts.joinToString(" و ") + " اضافه شد"
-        releaseHeldMeals()
     }
 
     /**
@@ -444,7 +458,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                 when (inc) {
                     is Incoming.Patterns -> pendingImport.value = inc.list
                     is Incoming.Contacts -> {
-                        val t = inc.tiles
+                        val t = silentFeedsOnly(inc.tiles)
                         if (t != null) { heldContacts = inc.list; heldPrefix = inc.prefix; pendingTiles.value = t }      // فایل مخاطبین + سامانه‌ها: اول کاشی‌ها، بعد مخاطبین
                         else showContacts(inc.list, inc.prefix)
                     }
@@ -452,12 +466,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     is Incoming.Tiles -> pendingTiles.value = inc.pack
                     is Incoming.Bundle -> {
                         val b = inc.bundle
+                        val bTiles = silentFeedsOnly(b.tiles)      // آدرس‌های منطقهٔ فرستنده بی‌صدا اعمال می‌شود
                         // فایل ارسال انتخابی: اول الگوها، بعد کاشی‌ها، بعد برنامه غذایی، آخر مخاطبین
                         heldContacts = b.contacts.takeIf { it.isNotEmpty() }
                         heldPrefix = b.prefix
                         heldMeals = b.meals.takeIf { it.isNotEmpty() }
-                        if (b.patterns.isNotEmpty()) { heldTiles = b.tiles; pendingImport.value = b.patterns }
-                        else if (b.tiles != null) pendingTiles.value = b.tiles
+                        if (b.patterns.isNotEmpty()) { heldTiles = bTiles; pendingImport.value = b.patterns }
+                        else if (bTiles != null) pendingTiles.value = bTiles
                         else releaseHeldMeals()
                     }
                 }

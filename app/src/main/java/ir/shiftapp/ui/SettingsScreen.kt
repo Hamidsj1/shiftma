@@ -333,10 +333,9 @@ private fun SiteUpdateBox(configFeed: String, sites: List<SiteTile>) {
     val hasFeed = ir.shiftapp.system.ConfigLoader.feedUrl(ctx).isNotEmpty()
     val log = remember(tick, msg) { ir.shiftapp.system.UpdateLog.entries(ctx) }
     val skipped = remember(remote, sites) { SiteUpdates.skippedEdited(sites, remote.siteUpdates) }
-    Text("به‌روزرسانی آنلاین سامانه‌ها", style = MaterialTheme.typography.titleSmall)
-    if (!hasFeed) {
-        HintText("منبع به‌روزرسانی روی این گوشی تنظیم نشده؛ فایل کاشی‌ای که وارد شده کلید configFeed نداشته است. فایل جدید را از پنل بگیرید و دوباره وارد کنید.")
-    } else {
+    // کاربرِ بدون منطقه چیزی از این قابلیت نمی‌بیند (نه کادر، نه توضیحی دربارهٔ آدرس)
+    if (hasFeed) {
+        Text("به‌روزرسانی آنلاین سامانه‌ها", style = MaterialTheme.typography.titleSmall)
         val ok = remember(tick, msg) { ir.shiftapp.system.UpdateLog.lastOk(ctx) }
         Text("آخرین بررسی: ${fmtStamp(remember(tick, msg) { ir.shiftapp.system.UpdateLog.lastCheck(ctx) })}" + if (ok) "" else " (ناموفق)", style = MaterialTheme.typography.bodySmall)
         if (!ok) HintText(ir.shiftapp.system.UpdateLog.lastError(ctx).ifEmpty { "بررسی ناموفق بود" })
