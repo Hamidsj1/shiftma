@@ -95,7 +95,7 @@ details.gh .gridg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180p
 <body>
 <header>
   <div class="wrap">
-    <h1>پنل ادمین شیفت ما</h1>
+    <h1>پنل ادمین شیفت ما <button class="btn sm" id="verBtn" type="button" style="vertical-align:middle;margin-inline-start:8px"></button></h1>
     <p>اعلان‌ها، تبلیغ‌ها، قفل بخش‌ها، برنامهٔ غذایی، فایل کاشی و کدهای باز شدن؛ همه در یک‌جا</p>
     <div class="bar" id="siteBar" role="group" aria-label="محل"></div>
     <button class="btn sm" id="installBtn" hidden style="margin-top:8px">نصب پنل روی این دستگاه</button>
@@ -872,8 +872,22 @@ function render() {
   $('#view').replaceChildren(VIEWS[S.tab]());
   save();
 }
+/* نسخهٔ پنل: با هر تغییر پنل عدد و فهرست زیر را به‌روز کنید تا روشن باشد کاربر نسخهٔ تازه را دارد */
+const PANEL_VERSION = '1.0.30 · 1405/08/14';
+const PANEL_CHANGES = [
+  ['1.0.30', ['برگهٔ «منطقه‌ها»: ساخت regions.json عمومی برای وصل‌کردن خودکار گوشی‌های بدون configFeed', 'اثرانگشت آدرس کامل سامانه‌ها (نه فقط میزبان) و شماره‌های یکتای دفترچه به‌عنوان شاخص کمکی', 'فایل کاشی‌ها کلید region (شناسهٔ محل) را می‌گذارد']],
+  ['قبل از 1.0.30', ['فهرست کلیدها و انتخاب کلید سامانه', 'سازندهٔ بنر با اندازهٔ مناسب برنامه', 'قابل نصب به‌صورت PWA (نیاز به HTTPS)']]
+];
+$('#verBtn').textContent = 'نسخه ' + PANEL_VERSION.split(' ')[0];
+$('#verBtn').title = PANEL_VERSION;
+$('#verBtn').addEventListener('click', () => {
+  const dlg = $('#dlg');
+  dlg.replaceChildren(h('h3', {}, 'نسخهٔ پنل ' + PANEL_VERSION), ...PANEL_CHANGES.flatMap(([v, l]) => [h('h4', { style: 'margin:10px 0 4px' }, v), h('ul', {}, ...l.map(x => h('li', {}, x)))]),
+    h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn pri', onclick: () => dlg.close() }, 'بستن')));
+  dlg.showModal();
+});
 drawGh(); render();
-window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, sigOf, phoneSigs, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
+window.__admin = { PANEL_VERSION, S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, sigOf, phoneSigs, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
 </script>
 </body>
 </html>
