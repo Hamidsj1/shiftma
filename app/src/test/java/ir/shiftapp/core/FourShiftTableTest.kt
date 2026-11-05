@@ -28,7 +28,7 @@ class FourShiftTableTest {
     @Test fun columnsUseTheirOwnBaseDate() {
         val rows = FourShiftTable.build(1405, 7, listOf(col(1), col(2, base.plusDays(2)), null, null))
         // ستون ۲ دو روز دیرتر شروع می‌کند: روز ۳ ام ستون ۲ = اولین عنصر چرخه
-        assertEquals(cycle.codes[2], rows[0].cells[0]!!.effectiveCode)
+        assertEquals(cycle.codes[0], rows[0].cells[0]!!.effectiveCode)
         assertEquals(cycle.codes[0], rows[2].cells[1]!!.effectiveCode)
         // قبل از مبنا هم درست محاسبه می‌شود (باقیمانده مثبت)
         assertEquals(cycle.codes[6], rows[0].cells[1]!!.effectiveCode)

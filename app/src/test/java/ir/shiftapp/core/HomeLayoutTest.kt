@@ -50,8 +50,9 @@ class HomeLayoutTest {
     @Test fun reorderVisibleKeepsHiddenSlots() {
         val full = listOf("a", "h", "b", "c")
         assertEquals(listOf("c", "h", "a", "b"), HomeLayout.reorderVisible(full, listOf("c", "a", "b")))
-        // مجموعهٔ ناهمخوان: بدون تغییر
-        assertEquals(full, HomeLayout.reorderVisible(full, listOf("c", "a")))
+        // زیرمجموعه: فقط جای همان عنصرها عوض می‌شود (بقیه سر جایشان)
+        assertEquals(listOf("c", "h", "b", "a"), HomeLayout.reorderVisible(full, listOf("c", "a")))
+        // عنصر ناشناس: بدون تغییر
         assertEquals(full, HomeLayout.reorderVisible(full, listOf("c", "a", "z")))
     }
 

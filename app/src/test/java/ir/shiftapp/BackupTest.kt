@@ -25,7 +25,7 @@ class BackupTest {
     }
     @Test fun rejectsForeignFile() { assertThrows(IllegalArgumentException::class.java) { Backup.fromJson("""{"app":"other","version":1}""") } }
     @Test fun rejectsInvalidDate() {
-        val bad = Backup.toJson(snap).replace("14000101", "13980230")
+        val bad = Backup.toJson(snap).replace("14000101", "13981230")
         assertThrows(IllegalArgumentException::class.java) { Backup.fromJson(bad) }
     }
     @Test fun rejectsBadPattern() {
@@ -45,7 +45,7 @@ class BackupHolidayTest {
         assertEquals(emptyList<Holiday>(), Backup.fromJson(v1).holidays)
     }
     @Test fun rejectsBadHolidayDate() {
-        val bad = """{"app":"shiftma","version":2,"patterns":[],"entries":[],"employees":[],"settings":[],"holidays":[{"dateKey":"14000230","title":"x"}]}"""
+        val bad = """{"app":"shiftma","version":2,"patterns":[],"entries":[],"employees":[],"settings":[],"holidays":[{"dateKey":"14011230","title":"x"}]}"""
         assertThrows(IllegalArgumentException::class.java) { Backup.fromJson(bad) }
     }
 }

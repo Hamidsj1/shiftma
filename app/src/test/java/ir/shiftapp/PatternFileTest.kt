@@ -28,7 +28,7 @@ class PatternFileTest {
         assertThrows(IllegalArgumentException::class.java) { PatternFile.fromJson("""{"app":"shiftma","type":"patterns","version":1,"patterns":[]}""") }
         val badDate = """{"app":"shiftma","type":"patterns","version":1,"patterns":[{"name":"A","baseYear":1400,"baseMonth":12,"baseDay":31,"pattern":"1;4"}]}"""
         assertThrows(IllegalArgumentException::class.java) { PatternFile.fromJson(badDate) }
-        val badPattern = """{"app":"shiftma","type":"patterns","version":1,"patterns":[{"name":"A","baseYear":1405,"baseMonth":7,"baseDay":1,"pattern":"9;9"}]}"""
+        val badPattern = """{"app":"shiftma","type":"patterns","version":1,"patterns":[{"name":"A","baseYear":1405,"baseMonth":7,"baseDay":1,"pattern":"1;0"}]}"""
         assertThrows(IllegalArgumentException::class.java) { PatternFile.fromJson(badPattern) }
     }
 

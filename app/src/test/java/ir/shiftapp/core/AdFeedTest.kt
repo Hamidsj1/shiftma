@@ -26,7 +26,7 @@ class AdFeedTest {
     }
 
     @Test fun capsItemCount() {
-        val items = (1..9).joinToString(",") { """{"image":"https://x.ir/$it.png","link":"https://x.ir/l"}""" }
+        val items = (1..AdFeed.MAX_ITEMS + 3).joinToString(",") { """{"image":"https://x.ir/$it.png","link":"https://x.ir/l"}""" }
         assertEquals(AdFeed.MAX_ITEMS, AdFeed.parse("""{"items":[$items]}""").size)
     }
 
