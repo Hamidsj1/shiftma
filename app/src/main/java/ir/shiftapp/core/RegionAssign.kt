@@ -16,7 +16,8 @@ class RegionRule(
  * وصل‌کردن خودکار یک گوشی به منطقه‌اش، وقتی فایل کاشی‌هایی که دست‌به‌دست شده `configFeed` نداشته است.
  * قاعده‌ها از فایل عمومی می‌آیند (پیش‌فرض خاموش: `enabled` باید true باشد). تطبیق فقط روی خود گوشی انجام می‌شود:
  *  ۱) اگر گوشی برچسب منطقه دارد (کلید `region` فایلی که وارد شده) و قاعده‌ای با همان شناسه هست، همان؛
- *  ۲) وگرنه میزبان کاشی‌های گوشی با میزبان‌های قاعده‌ها مقایسه می‌شود؛ فقط اگر دقیقاً یک قاعده جور شود؛ چندمعنایی = هیچ.
+ *  ۲) وگرنه میزبان کاشی‌های گوشی با میزبان‌های قاعده‌ها مقایسه می‌شود و قاعده‌ای می‌برد که بیشترین میزبان مشترک را دارد؛
+ *     فقط اگر برندهٔ یکتا باشد؛ مساوی = چندمعنایی = هیچ (یک میزبان مشترک بین چند منطقه، به‌تنهایی چیزی را مشخص نمی‌کند).
  * فقط آدرس‌های https گیت‌هاب ([MealFeed.isSafeUrl]) پذیرفته می‌شوند. جزئیات: docs/REGION_ASSIGN.md
  */
 object RegionAssign {
@@ -64,8 +65,10 @@ object RegionAssign {
         val t = tag.trim().lowercase()
         if (t.isNotEmpty()) rules.firstOrNull { it.id == t }?.let { return it }
         if (siteHosts.isEmpty()) return null
-        val hit = rules.filter { r -> r.hosts.any { it in siteHosts } }
-        return hit.singleOrNull()
+        val score = rules.associateWith { r -> r.hosts.count { it in siteHosts } }
+        val best = score.values.maxOrNull() ?: return null
+        if (best == 0) return null
+        return score.entries.filter { it.value == best }.singleOrNull()?.key
     }
 
     /** برچسب منطقهٔ فایل (کلید `region`)؛ نامعتبر = خالی. */

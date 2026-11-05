@@ -115,14 +115,15 @@ const SITES0 = [['_public', 'عمومی (همهٔ کاربران)'], ['sungun', 
 const SECTIONS = [['payslips', 'فیش‌های من'], ['notes', 'یادداشت‌ها'], ['files', 'فایل‌های من'], ['income', 'دریافتی‌های ماهانه'], ['prayer', 'اوقات شرعی و قبله'], ['english', 'یادگیری انگلیسی'], ['pay', 'حقوق و اضافه‌کار'], ['sport', 'ورزش و تغذیه'], ['reading', 'مطالعه و کتابخوانی'], ['dhikr', 'ذکر، قضا و رمضان'], ['convert', 'تبدیل واحد'], ['age', 'محاسبهٔ سن'], ['datecv', 'مبدل تاریخ'], ['span', 'محاسبهٔ مدت'], ['imgcompress', 'کاهش حجم عکس'], ['phonebook', 'دفترچه تلفن'], ['meals', 'برنامه غذایی']];
 const PROTECTED = [['shift', 'جدول شیفت'], ['settings', 'تنظیمات'], ['about', 'درباره و اشتراک‌گذاری']];
 const STORE_LINK = 'https://cafebazaar.ir/app/ir.shiftapp.shiftma';
-const FILES = { notice: ['notice.json', 'adsRepo'], ad: ['ad.json', 'adsRepo'], config: ['config.json', 'adsRepo'], meals: ['meals.json', 'mealsRepo'] };
-const TABS = [['notice', 'اعلان‌ها'], ['ad', 'تبلیغ‌ها'], ['config', 'قفل و پنهان‌سازی بخش‌ها'], ['meals', 'برنامه غذایی'], ['tiles', 'فایل کاشی‌ها'], ['codes', 'کدها']];
+const FILES = { notice: ['notice.json', 'adsRepo'], ad: ['ad.json', 'adsRepo'], config: ['config.json', 'adsRepo'], meals: ['meals.json', 'mealsRepo'], regions: ['regions.json', 'adsRepo'] };
+const TABS = [['notice', 'اعلان‌ها'], ['ad', 'تبلیغ‌ها'], ['config', 'قفل و پنهان‌سازی بخش‌ها'], ['meals', 'برنامه غذایی'], ['tiles', 'فایل کاشی‌ها'], ['regions', 'منطقه‌ها'], ['codes', 'کدها']];
 
 /* ───────────── حالت برنامه ───────────── */
 const def = () => ({ gh: { user: 'Hamidsj1', adsRepo: 'shiftma-ads', mealsRepo: 'shiftma-meals', branch: 'main' },
-  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {} });
+  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {}, regions: { enabled: false, extra: {} } });
 let S; try { S = Object.assign(def(), JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { S = def(); }
 S.gh = Object.assign(def().gh, S.gh || {});
+S.regions = Object.assign({ enabled: false, extra: {} }, S.regions || {}); S.regions.extra = S.regions.extra || {};
 let SEC = { special: '', paid: '', token: '' }, remember = false;
 try { const t = JSON.parse(localStorage.getItem(LSS) || 'null'); if (t) { SEC = Object.assign(SEC, t); remember = true; } } catch (e) {}
 function save() {
@@ -361,14 +362,14 @@ async function ghRead(kind) {
   if (!r.ok) throw new Error('خطا در دریافت (' + r.status + ')');
   return r.text();
 }
-async function ghWrite(kind, text) {
+async function ghWrite(kind, text, site = S.site) {
   if (!SEC.token) throw new Error('توکن گیت‌هاب را در بخش «اتصال به گیت‌هاب» (بالای صفحه) وارد کنید');
-  const [file, repoKey] = FILES[kind], repo = S.gh[repoKey], path = pathOf(file);
+  const [file, repoKey] = FILES[kind], repo = S.gh[repoKey], path = pathOf(file, site);
   const api = `https://api.github.com/repos/${S.gh.user}/${repo}/contents/${path}`;
   const hd = { Authorization: 'Bearer ' + SEC.token, Accept: 'application/vnd.github+json' };
   let sha; const g = await fetch(api + '?ref=' + encodeURIComponent(S.gh.branch), { headers: hd, cache: 'no-store' });
   if (g.ok) sha = (await g.json()).sha; else if (g.status !== 404) throw new Error('خواندن فایل ناموفق بود (' + g.status + ')؛ توکن یا نام ریپو را بررسی کنید');
-  const r = await fetch(api, { method: 'PUT', headers: hd, body: JSON.stringify({ message: `پنل ادمین: ${file} ${siteName()}`, content: b64utf8(text), branch: S.gh.branch, sha }) });
+  const r = await fetch(api, { method: 'PUT', headers: hd, body: JSON.stringify({ message: `پنل ادمین: ${file} ${site === '_public' ? 'عمومی' : siteName()}`, content: b64utf8(text), branch: S.gh.branch, sha }) });
   if (!r.ok) { let m = ''; try { m = (await r.json()).message; } catch (e) {} throw new Error('ذخیره نشد (' + r.status + ') ' + (m || '')); }
 }
 
@@ -630,6 +631,8 @@ function buildTiles() {
   if (feeds.adsFeed) { obj.adsFeed = feeds.adsFeed; if (d.publicAds) obj.publicAds = true; }
   if (feeds.noticeFeed) { obj.noticeFeed = feeds.noticeFeed; if (!d.publicNotices) obj.publicNotices = false; }
   if (feeds.configFeed) obj.configFeed = feeds.configFeed;
+  // برچسب منطقه: فایل‌های بدون آدرس هم که دست‌به‌دست شوند، با این شناسه به منطقه‌شان وصل می‌شوند (برگهٔ «منطقه‌ها»)
+  if (S.site !== '_public' && KEY_RE.test(S.site)) obj.region = S.site;
   return { obj, iss };
 }
 function resizeLogo(file) {
@@ -679,6 +682,58 @@ function tabTiles() {
   const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'نام فایل: ', path, h('br'), 'این فایل را برای کاربران همان محل در تلگرام/ایتا بفرستید؛ با لمس آن در «شیفت ما» باز می‌شود.'), issues, ta,
     h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'), dl, h('button', { class: 'btn', onclick: () => openImport('tiles') }, 'وارد کردن فایل')));
   return h('div', { class: 'grid' }, h('div', { class: 'card' }, h('h2', {}, 'فایل کاشی‌ها'), h('p', { class: 'sub' }, `ساخت فایل .shiftma برای محل ${siteName()}: سامانه‌ها، بخش‌های مخفی و آدرس خوراک‌ها. نام کاربری و رمز هرگز داخل فایل نمی‌آید.`), editor), out);
+}
+
+/* ───────────── برگهٔ منطقه‌ها (regions.json عمومی) ───────────── */
+const HOST_OK = /^[a-z0-9]([a-z0-9.-]{0,98}[a-z0-9])?$/;
+function buildRegions() {
+  const R = S.regions, iss = [], regions = [], owners = {};
+  if (!R.enabled) iss.push(W('خاموش است: برنامه‌ها هیچ کاری نمی‌کنند (enabled=false). برای فعال‌شدن روشنش کنید و منتشر کنید.'));
+  S.sites.filter(x => x.key !== '_public').forEach(x => {
+    const key = x.key, t = (S.data[key] || {}).tiles, hosts = new Set();
+    if (!KEY_RE.test(key)) { iss.push(E(`شناسهٔ محل «${key}» معتبر نیست`)); return; }
+    if (t && t.sites) t.sites.forEach(y => { const hh = hostOf((y.url || '').trim()); if (hh && hh.includes('.')) hosts.add(hh); });
+    String(R.extra[key] || '').split(/[\s,،;]+/).map(v => v.trim().toLowerCase()).filter(Boolean).forEach(v => {
+      if (!v.includes('.') || !HOST_OK.test(v)) iss.push(E(`${x.name}: میزبان «${v}» معتبر نیست (مثل my.example.ir)`)); else hosts.add(v);
+    });
+    if (!t) iss.push(W(`${x.name}: برگهٔ «فایل کاشی‌ها» این محل هنوز پر نشده؛ میزبان‌ها فقط از ورودی دستی می‌آیند.`));
+    if (!hosts.size) iss.push(W(`${x.name}: میزبانی ندارد؛ فقط فایل‌های جدید (با برچسب region) وصلش می‌کنند.`));
+    hosts.forEach(v => (owners[v] = owners[v] || []).push(x.name));
+    const o = { id: key, hosts: [...hosts].sort(), configFeed: rawUrl(S.gh.adsRepo, pathOf('config.json', key)),
+      adsFeed: rawUrl(S.gh.adsRepo, pathOf('ad.json', key)), noticeFeed: rawUrl(S.gh.adsRepo, pathOf('notice.json', key)) };
+    if (t && t.publicAds) o.publicAds = true; if (t && t.publicNotices === false) o.publicNotices = false;
+    [o.configFeed, o.adsFeed, o.noticeFeed].forEach(u => { if (!ghOk(u)) iss.push(E(`${x.name}: آدرس خوراک باید https و روی گیت‌هاب باشد`)); });
+    regions.push(o);
+  });
+  Object.entries(owners).filter(([, n]) => n.length > 1).forEach(([v, n]) => iss.push(W(`میزبان ${v} در چند منطقه مشترک است (${n.join('، ')}): به‌تنهایی چیزی را مشخص نمی‌کند؛ باید کاربر میزبان دیگری از همان محل هم داشته باشد (بیشترین میزبان مشترک می‌برد؛ مساوی = هیچ) یا فایلش برچسب region داشته باشد.`)));
+  if (regions.length > 40) iss.push(E('حداکثر ۴۰ منطقه پذیرفته می‌شود'));
+  if (!regions.length) iss.push(E('حداقل یک محل لازم است'));
+  iss.push(W('فقط وقتی اعمال می‌شود که گوشی configFeed نداشته باشد؛ آدرسی که از قبل هست عوض نمی‌شود. فایل در ریشهٔ ریپو (عمومی) ذخیره می‌شود.'));
+  return { obj: { enabled: !!R.enabled, regions: regions.slice(0, 40) }, iss };
+}
+function tabRegions() {
+  const R = S.regions, file = 'regions.json', repo = S.gh.adsRepo;
+  const issues = h('ul', { class: 'issues' }), ta = h('textarea', { class: 'json', readonly: true, dir: 'ltr', rows: 16 });
+  const link = h('a', { target: '_blank', rel: 'noopener', style: 'font-size:12px;direction:ltr;display:inline-block;word-break:break-all', href: rawUrl(repo, file) }, rawUrl(repo, file));
+  const pub = h('button', { class: 'btn pri', onclick: async () => {
+    if (!confirm(`«${file}» عمومی روی گیت‌هاب ذخیره شود؟\n${S.gh.user}/${repo}/${file}\n(روی همهٔ گوشی‌ها اثر می‌گذارد)`)) return;
+    pub.disabled = true;
+    try { await ghWrite('regions', ta.value + '\n', '_public'); toast('در گیت‌هاب ذخیره شد. تا ۶ ساعت دیگر به گوشی‌ها می‌رسد.'); }
+    catch (e) { toast(e.message, true); } finally { update(); }
+  } }, 'انتشار در گیت‌هاب');
+  const update = () => {
+    const { obj, iss } = buildRegions(); ta.value = JSON.stringify(obj, null, 2);
+    issues.replaceChildren(...iss.map(x => h('li', { class: x.l }, x.m)));
+    pub.disabled = iss.some(x => x.l === 'err');
+  };
+  refreshOut = update;
+  const rows = S.sites.filter(x => x.key !== '_public').map(x => field(`میزبان‌های اضافه برای ${x.name} (${x.key})`, R.extra, x.key, { ltr: true, ph: 'my.example.ir, other.example.ir', hint: 'میزبان سامانه‌های برگهٔ «فایل کاشی‌ها» همین محل خودکار می‌آید؛ اینجا فقط موارد اضافه را بنویسید.' }));
+  const editor = h('div', {}, toggle('تطبیق خودکار منطقه فعال باشد (خاموش = برنامه‌ها هیچ کاری نمی‌کنند)', R, 'enabled'), h('div', { style: 'height:10px' }), ...rows,
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'برنامه این فایل را بدون هیچ پیامی بررسی می‌کند: اگر گوشی کاربر configFeed ندارد و میزبان سامانه‌هایش (یا برچسب region فایلش) یک منطقه را روشن مشخص کند، آدرس‌های همان منطقه را اضافه می‌کند. مساوی یا نامشخص = هیچ.'));
+  update();
+  const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'مسیر در ریپو: ', h('code', { class: 'path' }, `${repo}/${file}`), h('br'), link), issues, ta,
+    h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'), h('button', { class: 'btn', onclick: () => download(file, ta.value + '\n') }, 'دانلود'), pub));
+  return h('div', { class: 'grid' }, h('div', { class: 'card' }, h('h2', {}, 'منطقه‌ها'), h('p', { class: 'sub' }, 'فایل عمومی regions.json: وصل‌کردن خودکار گوشی‌هایی که فایل کاشی‌شان بدون configFeed دست‌به‌دست شده.'), editor), out);
 }
 
 /* ───────────── کدها (HMAC-SHA256) ───────────── */
@@ -774,7 +829,7 @@ function drawSites() {
 }
 
 /* ───────────── رندر اصلی ───────────── */
-const VIEWS = { notice: tabNotice, ad: tabAd, config: tabConfig, meals: tabMeals, tiles: tabTiles, codes: tabCodes };
+const VIEWS = { notice: tabNotice, ad: tabAd, config: tabConfig, meals: tabMeals, tiles: tabTiles, regions: tabRegions, codes: tabCodes };
 function render() {
   drawSites();
   $('#tabs').replaceChildren(...TABS.map(([k, n]) => h('button', { role: 'tab', 'aria-selected': String(S.tab === k), onclick: () => { S.tab = k; save(); render(); } }, n)));
@@ -783,7 +838,7 @@ function render() {
   save();
 }
 drawGh(); render();
-window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
+window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
 </script>
 </body>
 </html>

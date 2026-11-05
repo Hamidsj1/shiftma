@@ -61,6 +61,14 @@ class RegionAssignTest {
         assertNull(RegionAssign.pick(emptyList(), setOf("my.nicico.com"), "sungun"))
     }
 
+    @Test fun moreMatchingHostsWinsWhenOneHostIsShared() {
+        val shared = RegionAssign.parse(json(regions = rule("sungun", "\"my.nicico.com\",\"a.sungun.ir\"") + "," + rule("daralu", "\"my.nicico.com\",\"b.daralu.ir\"")))!!
+        assertNull(RegionAssign.pick(shared, setOf("my.nicico.com"), ""))                       // فقط میزبان مشترک: نامشخص
+        assertEquals("sungun", RegionAssign.pick(shared, setOf("my.nicico.com", "a.sungun.ir"), "")!!.id)
+        assertEquals("daralu", RegionAssign.pick(shared, setOf("b.daralu.ir", "my.nicico.com", "x.ir"), "")!!.id)
+        assertNull(RegionAssign.pick(shared, setOf("a.sungun.ir", "b.daralu.ir"), ""))         // مساوی
+    }
+
     @Test fun tagWinsOverHostsAndUnknownTagFallsBackToHosts() {
         assertEquals("daralu", RegionAssign.pick(two, setOf("my.nicico.com"), "daralu")!!.id)
         assertEquals("sungun", RegionAssign.pick(two, emptySet(), "SUNGUN")!!.id)      // بدون سامانه هم با برچسب
