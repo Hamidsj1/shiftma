@@ -68,8 +68,10 @@ object RegionLoader {
                     } else sp.edit().putLong(KEY_NEXT, now + RETRY_MS).apply()      // خطا یا فایل خراب: قاعده‌های قبلی می‌مانند
                 }
                 val rules = RegionAssign.parse(raw) ?: return@withContext
-                val hosts = TilesPackFile.decodeSites(p.sitesRaw).map { TilesPackFile.hostOf(it.url) }.filter { it.isNotEmpty() }.toSet()
-                val rule = RegionAssign.pick(rules, hosts, regionTag(ctx)) ?: return@withContext
+                val sites = TilesPackFile.decodeSites(p.sitesRaw)
+                val hosts = sites.map { TilesPackFile.hostOf(it.url) }.filter { it.isNotEmpty() }.toSet()
+                val sigs = sites.mapNotNull { RegionAssign.sig(it.url) }.toSet()
+                val rule = RegionAssign.pick(rules, hosts, sigs, regionTag(ctx)) ?: return@withContext
                 dao.put(Setting(PrefKeys.CONFIG_FEED, rule.configFeed))
                 if (p.adFeed.isEmpty() && rule.adsFeed.isNotEmpty()) {
                     dao.put(Setting(PrefKeys.AD_FEED, rule.adsFeed)); dao.put(Setting(PrefKeys.AD_PUBLIC, rule.publicAds.toString()))

@@ -50,30 +50,30 @@ class RegionAssignTest {
     }
 
     @Test fun pickByUniqueHost() {
-        assertEquals("sungun", RegionAssign.pick(two, setOf("my.nicico.com", "other.ir"), "")!!.id)
-        assertEquals("daralu", RegionAssign.pick(two, setOf("b.daralu.ir"), "")!!.id)
+        assertEquals("sungun", RegionAssign.pick(two, setOf("my.nicico.com", "other.ir"), emptySet(), "")!!.id)
+        assertEquals("daralu", RegionAssign.pick(two, setOf("b.daralu.ir"), emptySet(), "")!!.id)
     }
 
     @Test fun ambiguousOrUnknownHostPicksNothing() {
-        assertNull(RegionAssign.pick(two, setOf("my.nicico.com", "b.daralu.ir"), ""))      // دو منطقه جور شد
-        assertNull(RegionAssign.pick(two, setOf("unknown.ir"), ""))
-        assertNull(RegionAssign.pick(two, emptySet(), ""))
-        assertNull(RegionAssign.pick(emptyList(), setOf("my.nicico.com"), "sungun"))
+        assertNull(RegionAssign.pick(two, setOf("my.nicico.com", "b.daralu.ir"), emptySet(), ""))      // دو منطقه جور شد
+        assertNull(RegionAssign.pick(two, setOf("unknown.ir"), emptySet(), ""))
+        assertNull(RegionAssign.pick(two, emptySet(), emptySet(), ""))
+        assertNull(RegionAssign.pick(emptyList(), setOf("my.nicico.com"), emptySet(), "sungun"))
     }
 
     @Test fun moreMatchingHostsWinsWhenOneHostIsShared() {
         val shared = RegionAssign.parse(json(regions = rule("sungun", "\"my.nicico.com\",\"a.sungun.ir\"") + "," + rule("daralu", "\"my.nicico.com\",\"b.daralu.ir\"")))!!
-        assertNull(RegionAssign.pick(shared, setOf("my.nicico.com"), ""))                       // فقط میزبان مشترک: نامشخص
-        assertEquals("sungun", RegionAssign.pick(shared, setOf("my.nicico.com", "a.sungun.ir"), "")!!.id)
-        assertEquals("daralu", RegionAssign.pick(shared, setOf("b.daralu.ir", "my.nicico.com", "x.ir"), "")!!.id)
-        assertNull(RegionAssign.pick(shared, setOf("a.sungun.ir", "b.daralu.ir"), ""))         // مساوی
+        assertNull(RegionAssign.pick(shared, setOf("my.nicico.com"), emptySet(), ""))                       // فقط میزبان مشترک: نامشخص
+        assertEquals("sungun", RegionAssign.pick(shared, setOf("my.nicico.com", "a.sungun.ir"), emptySet(), "")!!.id)
+        assertEquals("daralu", RegionAssign.pick(shared, setOf("b.daralu.ir", "my.nicico.com", "x.ir"), emptySet(), "")!!.id)
+        assertNull(RegionAssign.pick(shared, setOf("a.sungun.ir", "b.daralu.ir"), emptySet(), ""))         // مساوی
     }
 
     @Test fun tagWinsOverHostsAndUnknownTagFallsBackToHosts() {
-        assertEquals("daralu", RegionAssign.pick(two, setOf("my.nicico.com"), "daralu")!!.id)
-        assertEquals("sungun", RegionAssign.pick(two, emptySet(), "SUNGUN")!!.id)      // بدون سامانه هم با برچسب
-        assertEquals("sungun", RegionAssign.pick(two, setOf("my.nicico.com"), "nosuch")!!.id)
-        assertNull(RegionAssign.pick(two, emptySet(), "nosuch"))
+        assertEquals("daralu", RegionAssign.pick(two, setOf("my.nicico.com"), emptySet(), "daralu")!!.id)
+        assertEquals("sungun", RegionAssign.pick(two, emptySet(), emptySet(), "SUNGUN")!!.id)      // بدون سامانه هم با برچسب
+        assertEquals("sungun", RegionAssign.pick(two, setOf("my.nicico.com"), emptySet(), "nosuch")!!.id)
+        assertNull(RegionAssign.pick(two, emptySet(), emptySet(), "nosuch"))
     }
 
     @Test fun tagIsCleanedInFiles() {
@@ -93,5 +93,28 @@ class RegionAssignTest {
         assertFalse(f.isEmpty)
         assertNotNull(TilesPackFile.withFeeds(null, f))
         assertNull(TilesPackFile.withFeeds(null, Feeds(region = "a")))
+    }
+
+    @Test fun sigIsStableAcrossCaseSlashQueryAndMatchesThePanelAlgorithm() {
+        assertEquals("725d07ba9076", RegionAssign.sig("https://my.nicico.com/sungun"))      // همان مقدار ادمین پنل (sigOf)
+        assertEquals("725d07ba9076", RegionAssign.sig("https://MY.nicico.com/Sungun/?a=1#x"))
+        assertEquals("725d07ba9076", RegionAssign.sig("https://www.my.nicico.com/sungun/"))
+        assertEquals("c4d4494b6ac9", RegionAssign.sig("https://my.nicico.com"))
+        assertNull(RegionAssign.sig("ftp://my.nicico.com/x")); assertNull(RegionAssign.sig("not a url")); assertNull(RegionAssign.sig(""))
+    }
+
+    @Test fun sharedHostButDifferentPathsAreTotallyDistinguishable() {
+        val s = RegionAssign.sig("https://my.nicico.com/sungun")!!; val d = RegionAssign.sig("https://my.nicico.com/daralu")!!
+        val rules = RegionAssign.parse(json(regions =
+            rule("sungun", "\"my.nicico.com\"", ""","sigs":["$s"]""") + "," + rule("daralu", "\"my.nicico.com\"", ""","sigs":["$d"]""")))!!
+        assertNull(RegionAssign.pick(rules, setOf("my.nicico.com"), emptySet(), ""))                      // فقط میزبان مشترک: نامشخص
+        assertEquals("sungun", RegionAssign.pick(rules, setOf("my.nicico.com"), setOf(s), "")!!.id)
+        assertEquals("daralu", RegionAssign.pick(rules, setOf("my.nicico.com"), setOf(d, "000000000000"), "")!!.id)
+        assertNull(RegionAssign.pick(rules, setOf("my.nicico.com"), setOf(s, d), ""))                     // مساوی
+    }
+
+    @Test fun badSigsAreDropped() {
+        val r = RegionAssign.parse(json(regions = rule("a", "\"x.ir\"", ""","sigs":["725D07BA9076","short","zzzzzzzzzzzz",5]""")))!!
+        assertEquals(setOf("725d07ba9076"), r[0].sigs)
     }
 }

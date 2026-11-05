@@ -686,30 +686,40 @@ function tabTiles() {
 
 /* ───────────── برگهٔ منطقه‌ها (regions.json عمومی) ───────────── */
 const HOST_OK = /^[a-z0-9]([a-z0-9.-]{0,98}[a-z0-9])?$/;
+/* اثرانگشت آدرس سامانه (همان الگوریتم RegionAssign.sig در برنامه؛ هر تغییر باید در هر دو انجام شود):
+   SHA-256 از «میزبان + مسیر» (حروف کوچک، بدون www.، بدون / آخر، بدون query و fragment)، ۱۲ نویسهٔ اول هگز. آدرس‌ها در فایل عمومی دیده نمی‌شوند. */
+function sigOf(u) {
+  try {
+    const x = new URL(String(u).trim()); if (x.protocol !== 'https:' && x.protocol !== 'http:') return '';
+    let p = x.pathname; try { p = decodeURIComponent(p); } catch (e) {}
+    const n = x.hostname.toLowerCase().replace(/^www\./, '') + p.toLowerCase().replace(/\/+$/, '');
+    return Array.from(sha256(new TextEncoder().encode(n)).slice(0, 6), b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) { return ''; }
+}
 function buildRegions() {
-  const R = S.regions, iss = [], regions = [], owners = {};
-  if (!R.enabled) iss.push(W('خاموش است: برنامه‌ها هیچ کاری نمی‌کنند (enabled=false). برای فعال‌شدن روشنش کنید و منتشر کنید.'));
+  const R = S.regions, iss = [], regions = [];
+  if (!R.enabled) iss.push({ l: 'ok', m: 'خاموش است: برنامه‌ها هیچ کاری نمی‌کنند (enabled=false). برای فعال‌شدن روشنش کنید و منتشر کنید.' });
   S.sites.filter(x => x.key !== '_public').forEach(x => {
-    const key = x.key, t = (S.data[key] || {}).tiles, hosts = new Set();
+    const key = x.key, t = (S.data[key] || {}).tiles, hosts = new Set(), sigs = new Set();
     if (!KEY_RE.test(key)) { iss.push(E(`شناسهٔ محل «${key}» معتبر نیست`)); return; }
-    if (t && t.sites) t.sites.forEach(y => { const hh = hostOf((y.url || '').trim()); if (hh && hh.includes('.')) hosts.add(hh); });
-    String(R.extra[key] || '').split(/[\s,،;]+/).map(v => v.trim().toLowerCase()).filter(Boolean).forEach(v => {
-      if (!v.includes('.') || !HOST_OK.test(v)) iss.push(E(`${x.name}: میزبان «${v}» معتبر نیست (مثل my.example.ir)`)); else hosts.add(v);
+    const addUrl = u => { u = (u || '').trim(); const hh = hostOf(u), sg = sigOf(u); if (hh && hh.includes('.') && sg) { hosts.add(hh); sigs.add(sg); } };
+    if (t && t.sites) t.sites.forEach(y => addUrl(y.url));
+    // ورودی دستی: آدرس کامل (مثلاً سامانهٔ قدیمی‌ای که از فایل کاشی‌ها برداشته شده) یا فقط میزبان
+    String(R.extra[key] || '').split(/[\s,،;]+/).map(v => v.trim()).filter(Boolean).forEach(v => {
+      if (/^https?:\/\//i.test(v)) { if (hostOf(v)) addUrl(v); else iss.push(E(`${x.name}: آدرس «${v}» معتبر نیست`)); }
+      else { v = v.toLowerCase(); if (!v.includes('.') || !HOST_OK.test(v)) iss.push(E(`${x.name}: میزبان «${v}» معتبر نیست (مثل my.example.ir یا آدرس کامل https://…)`)); else hosts.add(v); }
     });
-    if (!t) iss.push(W(`${x.name}: برگهٔ «فایل کاشی‌ها» این محل هنوز پر نشده؛ میزبان‌ها فقط از ورودی دستی می‌آیند.`));
-    if (!hosts.size) iss.push(W(`${x.name}: میزبانی ندارد؛ فقط فایل‌های جدید (با برچسب region) وصلش می‌کنند.`));
-    hosts.forEach(v => (owners[v] = owners[v] || []).push(x.name));
-    const o = { id: key, hosts: [...hosts].sort(), configFeed: rawUrl(S.gh.adsRepo, pathOf('config.json', key)),
+    const o = { id: key, hosts: [...hosts].sort(), sigs: [...sigs].sort(), configFeed: rawUrl(S.gh.adsRepo, pathOf('config.json', key)),
       adsFeed: rawUrl(S.gh.adsRepo, pathOf('ad.json', key)), noticeFeed: rawUrl(S.gh.adsRepo, pathOf('notice.json', key)) };
     if (t && t.publicAds) o.publicAds = true; if (t && t.publicNotices === false) o.publicNotices = false;
     [o.configFeed, o.adsFeed, o.noticeFeed].forEach(u => { if (!ghOk(u)) iss.push(E(`${x.name}: آدرس خوراک باید https و روی گیت‌هاب باشد`)); });
+    if (o.sigs.length > 300) iss.push(E(`${x.name}: بیش از ۳۰۰ آدرس`));
     regions.push(o);
   });
-  Object.entries(owners).filter(([, n]) => n.length > 1).forEach(([v, n]) => iss.push(W(`میزبان ${v} در چند منطقه مشترک است (${n.join('، ')}): به‌تنهایی چیزی را مشخص نمی‌کند؛ باید کاربر میزبان دیگری از همان محل هم داشته باشد (بیشترین میزبان مشترک می‌برد؛ مساوی = هیچ) یا فایلش برچسب region داشته باشد.`)));
   if (regions.length > 40) iss.push(E('حداکثر ۴۰ منطقه پذیرفته می‌شود'));
   if (!regions.length) iss.push(E('حداقل یک محل لازم است'));
-  iss.push(W('فقط وقتی اعمال می‌شود که گوشی configFeed نداشته باشد؛ آدرسی که از قبل هست عوض نمی‌شود. فایل در ریشهٔ ریپو (عمومی) ذخیره می‌شود.'));
-  return { obj: { enabled: !!R.enabled, regions: regions.slice(0, 40) }, iss };
+  if (!iss.some(z => z.l === 'err')) iss.push({ l: 'ok', m: regions.map(r => `${r.id}: ${r.sigs.length} آدرس`).join('، ') + ' (فایل در ریشهٔ ریپوی عمومی ذخیره می‌شود)' });
+  return { obj: { enabled: !!R.enabled, regions: regions.slice(0, 40).map(r => { r.sigs = r.sigs.slice(0, 300); return r; }) }, iss };
 }
 function tabRegions() {
   const R = S.regions, file = 'regions.json', repo = S.gh.adsRepo;
@@ -727,9 +737,9 @@ function tabRegions() {
     pub.disabled = iss.some(x => x.l === 'err');
   };
   refreshOut = update;
-  const rows = S.sites.filter(x => x.key !== '_public').map(x => field(`میزبان‌های اضافه برای ${x.name} (${x.key})`, R.extra, x.key, { ltr: true, ph: 'my.example.ir, other.example.ir', hint: 'میزبان سامانه‌های برگهٔ «فایل کاشی‌ها» همین محل خودکار می‌آید؛ اینجا فقط موارد اضافه را بنویسید.' }));
+  const rows = S.sites.filter(x => x.key !== '_public').map(x => field(`میزبان‌های اضافه برای ${x.name} (${x.key})`, R.extra, x.key, { ltr: true, ph: 'https://my.example.ir/old-portal, other.example.ir', hint: 'سامانه‌های برگهٔ «فایل کاشی‌ها»ی همین محل خودکار می‌آیند؛ اینجا فقط موارد اضافه (مثلاً سامانه‌ای که از فایل‌های قدیمی مانده) را بنویسید.' }));
   const editor = h('div', {}, toggle('تطبیق خودکار منطقه فعال باشد (خاموش = برنامه‌ها هیچ کاری نمی‌کنند)', R, 'enabled'), h('div', { style: 'height:10px' }), ...rows,
-    h('p', { class: 'sub', style: 'margin-top:10px' }, 'برنامه این فایل را بدون هیچ پیامی بررسی می‌کند: اگر گوشی کاربر configFeed ندارد و میزبان سامانه‌هایش (یا برچسب region فایلش) یک منطقه را روشن مشخص کند، آدرس‌های همان منطقه را اضافه می‌کند. مساوی یا نامشخص = هیچ.'));
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'برنامه این فایل را بدون هیچ پیامی بررسی می‌کند: اگر گوشی کاربر configFeed ندارد و میزبان سامانه‌هایش (یا برچسب region فایلش) یک منطقه را روشن مشخص کند (آدرس کامل سامانه‌ها، بعد میزبان‌ها)، آدرس‌های همان منطقه را اضافه می‌کند.'));
   update();
   const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'مسیر در ریپو: ', h('code', { class: 'path' }, `${repo}/${file}`), h('br'), link), issues, ta,
     h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'), h('button', { class: 'btn', onclick: () => download(file, ta.value + '\n') }, 'دانلود'), pub));
@@ -838,7 +848,7 @@ function render() {
   save();
 }
 drawGh(); render();
-window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
+window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, sigOf, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
 </script>
 </body>
 </html>
