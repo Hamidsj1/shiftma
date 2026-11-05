@@ -32,8 +32,10 @@
         <package android:name="ir.eitaa.messenger" />
         <package android:name="ir.nasim" />
         <package android:name="net.telewebion" />
+        <package android:name="com.farsitel.bazaar" />
     </queries>
     <application
+        android:name="ir.shiftapp.ShiftApp"
         android:usesCleartextTraffic="true"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -123,6 +125,7 @@
         <receiver android:name="ir.shiftapp.system.ReminderReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="ir.shiftapp.action.REMINDER_FIRE" />
+                <action android:name="ir.shiftapp.action.PLANNER_FIRE" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />
@@ -149,6 +152,13 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/shift_widget_info" />
+        </receiver>
+
+        <receiver android:name="ir.shiftapp.system.ShiftStripWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/shift_strip_widget_info" />
         </receiver>
 
         <receiver android:name="ir.shiftapp.system.EnglishWidget" android:exported="true">

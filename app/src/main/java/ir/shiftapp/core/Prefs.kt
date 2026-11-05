@@ -46,6 +46,7 @@ object PrefKeys {
     const val PORTAL_EXTERNAL = "pref_portal_external"   // کلید سامانه‌هایی که در مرورگر بیرونی باز شوند: "nicico,nowavaran"
     const val DHIKR = "pref_dhikr"                 // ذکرشمار و قضا (رشتهٔ فشردهٔ DhikrCodec)
     const val SPORT = "pref_sport"                 // حالت بخش ورزش (JSON)
+    const val PLANNER = "pref_planner"             // برنامهٔ روزانه (JSON)
     const val READING = "pref_reading"             // حالت بخش مطالعه (JSON)
     const val INCOME = "pref_income"               // دریافتی‌های ماهانه (JSON)
     const val ENGLISH = "pref_english"             // پیشرفت یادگیری انگلیسی (EnglishProgress.encode)
@@ -116,6 +117,7 @@ data class Prefs(
     val sportRaw: String = "",
     val dhikrRaw: String = "",
     val readingRaw: String = "",
+    val plannerRaw: String = "",
     val incomeRaw: String = "",
     val subOutMin: Int = SubNight.DEFAULT_OUT,
     val subInMin: Int = SubNight.DEFAULT_IN,
@@ -164,7 +166,7 @@ data class Prefs(
         val m = linkedMapOf(
             PrefKeys.THEME to theme,
             PrefKeys.REM_ON to reminderEnabled.toString(), PrefKeys.REM_LEAD to reminderLeadMin.toString(),
-            PrefKeys.ALARMS to SingleAlarm.encode(alarms), PrefKeys.NOTES to Note.encode(notes), PrefKeys.ENGLISH to english.encode(), PrefKeys.PORTAL_EXTERNAL to externalPortals.sorted().joinToString(","), PrefKeys.SPORT to sportRaw, PrefKeys.READING to readingRaw, PrefKeys.INCOME to incomeRaw, PrefKeys.SUB_OUT to subOutMin.toString(), PrefKeys.SUB_IN to subInMin.toString(),
+            PrefKeys.ALARMS to SingleAlarm.encode(alarms), PrefKeys.NOTES to Note.encode(notes), PrefKeys.ENGLISH to english.encode(), PrefKeys.PORTAL_EXTERNAL to externalPortals.sorted().joinToString(","), PrefKeys.SPORT to sportRaw, PrefKeys.READING to readingRaw, PrefKeys.PLANNER to plannerRaw, PrefKeys.INCOME to incomeRaw, PrefKeys.SUB_OUT to subOutMin.toString(), PrefKeys.SUB_IN to subInMin.toString(),
             PrefKeys.REM_ALARM to reminderAlarm.toString(), PrefKeys.REM_CODES to reminderCodes.sorted().joinToString(","),
             PrefKeys.LEAVE_CAP to leaveCapDays.toString(), PrefKeys.LEAVE_REST to leaveCountsRestDays.toString(),
             PrefKeys.FRIDAY_OFF to fridayOff.toString(), PrefKeys.AUTO_BACKUP to autoBackup.toString(),
@@ -224,6 +226,7 @@ data class Prefs(
                 sportRaw = m[PrefKeys.SPORT].orEmpty(),
                 dhikrRaw = m[PrefKeys.DHIKR]?.take(60_000).orEmpty(),
                 readingRaw = m[PrefKeys.READING].orEmpty(),
+                plannerRaw = m[PrefKeys.PLANNER]?.take(400_000).orEmpty(),
                 incomeRaw = m[PrefKeys.INCOME].orEmpty(),
                 subOutMin = int(PrefKeys.SUB_OUT, d.subOutMin, 0..1439),
                 subInMin = int(PrefKeys.SUB_IN, d.subInMin, 0..1439),

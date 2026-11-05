@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import ir.shiftapp.core.TilesPackFile
 import ir.shiftapp.data.PatternFile
 import ir.shiftapp.phonebook.Contact
 import ir.shiftapp.phonebook.PhonebookVm
@@ -19,7 +20,9 @@ import java.io.File
  * [only] = null یعنی همهٔ مخاطبین.
  */
 suspend fun shareContactsFile(ctx: Context, vm: PhonebookVm, only: List<Contact>?, withPhotos: Boolean, tiles: org.json.JSONObject? = null) {
-    val export = vm.buildContactsExport(only, withPhotos, tiles)
+    // آدرس‌های منطقهٔ این گوشی (بنر، اعلان، تنظیمات) همراه فایل می‌رود؛ نداشتن آدرس چیزی عوض نمی‌کند
+    val feeds = ir.shiftapp.system.RegionLoader.currentFeeds(ctx)
+    val export = vm.buildContactsExport(only, withPhotos, if (feeds == null) tiles else TilesPackFile.withFeeds(tiles, feeds))
     if (export == null) {
         Toast.makeText(ctx, "ساخت فایل مخاطبین ممکن نشد یا مخاطبی وجود ندارد", Toast.LENGTH_LONG).show()
         return

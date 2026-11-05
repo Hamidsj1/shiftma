@@ -69,7 +69,10 @@ fun GraphicScreen(vm: MainVm) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     strips.forEach { (name, list) ->
                         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(groupTitle(name), style = MaterialTheme.typography.labelLarge)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                GroupBadge(name)
+                                Text(groupTitle(name), style = MaterialTheme.typography.labelLarge)
+                            }
                             Row(Modifier.fillMaxWidth().height(30.dp).clip(RoundedCornerShape(9.dp))) {
                                 list.forEachIndexed { i, e ->
                                     val date = JalaliDate(month.year, month.month, i + 1)

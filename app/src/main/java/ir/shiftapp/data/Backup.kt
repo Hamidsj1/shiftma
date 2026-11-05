@@ -13,7 +13,7 @@ object Backup {
         put("patterns", JSONArray().also { a -> s.patterns.forEach { p -> a.put(JSONObject()
             .put("id", p.id).put("name", p.name).put("company", p.company)
             .put("baseYear", p.baseYear).put("baseMonth", p.baseMonth).put("baseDay", p.baseDay).put("pattern", p.pattern)
-            .put("supervisor", p.supervisor).put("headSupervisor", p.headSupervisor).put("section", p.section)) } })
+            .put("supervisor", p.supervisor).put("headSupervisor", p.headSupervisor).put("section", p.section).put("setName", p.setName)) } })
         put("entries", JSONArray().also { a -> s.entries.forEach { e -> a.put(JSONObject()
             .put("id", e.id).put("patternId", e.patternId).put("dateKey", e.dateKey).put("type", e.type)
             .put("shiftCode", e.shiftCode ?: JSONObject.NULL).put("minutes", e.minutes ?: JSONObject.NULL)
@@ -35,7 +35,7 @@ object Backup {
         val patterns = arr("patterns") {
             val p = PatternEntity(it.getLong("id"), it.getString("name"), it.getString("company"),
                 it.getInt("baseYear"), it.getInt("baseMonth"), it.getInt("baseDay"), it.getString("pattern"),
-                it.optString("supervisor", ""), it.optString("headSupervisor", ""), it.optString("section", ""))
+                it.optString("supervisor", ""), it.optString("headSupervisor", ""), it.optString("section", ""), it.optString("setName", "").take(60))
             require(JalaliDate(p.baseYear, p.baseMonth, p.baseDay).isValid) { "تاریخ مبنای نامعتبر در پشتیبان" }
             ShiftPattern.parse(p.pattern); p
         }

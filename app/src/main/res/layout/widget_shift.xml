@@ -18,7 +18,29 @@
         android:layout_height="20dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
-        <ImageView
+        <FrameLayout
+        android:id="@+id/w_grp_box"
+        android:layout_width="15dp"
+        android:layout_height="15dp"
+        android:layout_marginEnd="5dp"
+        android:visibility="gone">
+            <ImageView
+                android:id="@+id/w_grp_bg"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="fitXY"
+                android:src="@drawable/widget_dot" />
+            <TextView
+                android:id="@+id/w_grp"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:textColor="#FFFFFFFF"
+                android:textSize="9sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+            <ImageView
             android:id="@+id/w_dot"
             android:layout_width="8dp"
             android:layout_height="8dp"
@@ -33,20 +55,15 @@
             android:textColor="@color/widget_text"
             android:textSize="13sp"
             android:textStyle="bold" />
-        <ProgressBar
+        <ImageView
             android:id="@+id/w_bar"
-            style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="0dp"
             android:layout_height="5dp"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:indeterminate="false"
-            android:max="100"
-            android:maxHeight="5dp"
-            android:minHeight="5dp"
-            android:progress="60"
-            android:progressDrawable="@drawable/widget_progress" />
+            android:scaleType="fitXY"
+            android:src="@drawable/widget_progress_static" />
         <TextView
             android:id="@+id/w_remain"
             android:layout_width="wrap_content"
@@ -61,13 +78,12 @@
     <!-- ردیف ۲: یک هفته از شنبه تا جمعه -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="3dp"
-        android:layout_weight="1"
         android:orientation="horizontal">
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -82,9 +98,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d0_bg"
                     android:layout_width="match_parent"
@@ -111,7 +127,7 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -126,9 +142,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d1_bg"
                     android:layout_width="match_parent"
@@ -155,7 +171,7 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -170,9 +186,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d2_bg"
                     android:layout_width="match_parent"
@@ -199,7 +215,7 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -214,9 +230,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d3_bg"
                     android:layout_width="match_parent"
@@ -243,7 +259,7 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -258,9 +274,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d4_bg"
                     android:layout_width="match_parent"
@@ -287,7 +303,7 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -302,9 +318,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d5_bg"
                     android:layout_width="match_parent"
@@ -331,7 +347,7 @@
         </LinearLayout>
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginStart="2dp"
             android:layout_marginEnd="2dp"
             android:layout_weight="1"
@@ -346,9 +362,9 @@
                 android:textSize="11sp" />
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="30dp"
                 android:layout_marginTop="1dp"
-                android:layout_weight="1">
+                >
                 <ImageView
                     android:id="@+id/w_d6_bg"
                     android:layout_width="match_parent"
@@ -450,5 +466,142 @@
             android:textColor="@color/widget_sub"
             android:textSize="12sp"
             android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- ردیف پایین: تلفن ثابت، سپس سامانه‌ها با ورق‌زدن (بخش‌های پنهان در اپ، اینجا هم پنهان) -->
+    <LinearLayout
+        android:id="@+id/w_icons"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="4dp"
+        android:orientation="horizontal">
+        <LinearLayout
+            android:id="@+id/w_ph"
+            android:layout_width="62dp"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_ph_i"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="تلفن"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <ImageView
+            android:id="@+id/w_sep"
+            android:layout_width="1dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp"
+            android:src="@drawable/widget_sep" />
+        <TextView
+            android:id="@+id/w_prev"
+            android:layout_width="20dp"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:text="›"
+            android:textColor="@color/widget_sub"
+            android:textSize="22sp" />
+        <LinearLayout
+            android:id="@+id/w_s0"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s0_i"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s0_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="64dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/w_s1"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s1_i"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s1_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="64dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/w_s2"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s2_i"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s2_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="64dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/w_s3"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+            <ImageView
+                android:id="@+id/w_s3_i"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:scaleType="fitCenter" />
+            <TextView
+                android:id="@+id/w_s3_t"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:maxWidth="64dp"
+                android:singleLine="true"
+                android:textColor="@color/widget_text"
+                android:textSize="10sp" />
+        </LinearLayout>
+        <TextView
+            android:id="@+id/w_next"
+            android:layout_width="20dp"
+            android:layout_height="44dp"
+            android:gravity="center"
+            android:text="‹"
+            android:textColor="@color/widget_sub"
+            android:textSize="22sp" />
     </LinearLayout>
 </LinearLayout>

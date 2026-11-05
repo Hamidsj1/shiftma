@@ -64,13 +64,13 @@ internal fun AlarmVolumeControl() {
 
 /** کارت قرمز بالای صفحهٔ اول تا وقتی آلارم زنگ می‌زند: راه همیشه‌در‌دسترس قطع آلارم، حتی اگر اعلان دیده نشود. */
 @Composable
-internal fun RingingBanner() {
+internal fun RingingBanner(modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
     var ringing by remember { mutableStateOf(AlarmRingService.ringing) }
     LaunchedEffect(Unit) { while (true) { ringing = AlarmRingService.ringing; delay(700) } }
     if (!ringing) return
     val info = AlarmRingService.current
-    AppCard(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.errorContainer) {
+    AppCard(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.errorContainer) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Ico(R.drawable.ic_alarm, size = 24.dp, tint = MaterialTheme.colorScheme.onErrorContainer)

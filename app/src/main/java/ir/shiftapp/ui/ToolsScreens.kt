@@ -314,7 +314,7 @@ fun DateConvertSection(vm: MainVm, onHome: () -> Unit) {
 
 /** پوستهٔ مشترک نوارهای افقی صفحهٔ اول (سایت‌های ضروری، تلویزیون): پس‌زمینهٔ نیلیِ در حال تغییر و حرکت خودکار تا اولین لمس. */
 @Composable
-private fun StripShell(content: @Composable RowScope.() -> Unit) {
+internal fun StripShell(content: @Composable RowScope.() -> Unit) {
     val dark = androidx.compose.foundation.isSystemInDarkTheme()
     // همان رنگ‌های کارت بالای صفحه (Pal.heroBrush)؛ بین دو سایهٔ نیلی به‌آرامی می‌رود‌وبرمی‌گردد
     val base = if (dark) Color(0xFF3A34B8) else Color(0xFF5348E0)
@@ -342,7 +342,7 @@ private fun StripShell(content: @Composable RowScope.() -> Unit) {
     }
     Box(
         Modifier.fillMaxWidth().clip(shape)
-            .background(Brush.horizontalGradient(listOf(lerp(base, blue, t), lerp(blue, base, t)))).padding(vertical = 10.dp, horizontal = 8.dp)
+            .background(Brush.horizontalGradient(listOf(lerp(base, blue, t), lerp(blue, base, t)))).padding(vertical = 7.dp, horizontal = 8.dp)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -362,7 +362,7 @@ private fun StripShell(content: @Composable RowScope.() -> Unit) {
 
 /** کاشی دایره‌ای/گرد «افزودن» یا «همه» در انتهای نوارها. */
 @Composable
-private fun StripAction(label: String, icon: Int, outlined: Boolean, onClick: () -> Unit) {
+internal fun StripAction(label: String, icon: Int, outlined: Boolean, onClick: () -> Unit) {
     Column(
         Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = label, onClick = onClick).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -439,7 +439,7 @@ private fun EssentialSiteItem(title: String, url: String, key: String, onClick: 
             if (bmp != null) Image(bmp, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)))
             else Text(title.firstOrNull()?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4338CA))
         }
-        Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 

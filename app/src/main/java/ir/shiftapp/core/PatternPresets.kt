@@ -8,8 +8,6 @@ package ir.shiftapp.core
 data class PatternPreset(
     val title: String, val description: String, val codes: List<Int>,
     val crews: Int = 1, val offsetDays: Int = 0,
-    /** اگر مقدار داشته باشد، تاریخ پیش‌فرض شروع دوره (گروه A) همین روزِ ماه جاری است. */
-    val defaultStartDay: Int? = null,
     /** اگر مقدار داشته باشد، crewOrder[i] = «نوبت شروع» گروه i (۰ = اولین). مثلاً [0,2,1,3] یعنی گروه‌های B و C جابه‌جا شروع می‌شوند. */
     val crewOrder: List<Int>? = null
 ) {
@@ -17,15 +15,32 @@ data class PatternPreset(
     fun slotOf(i: Int): Int = crewOrder?.get(i) ?: i
     /** حروف گروه‌ها به ترتیب شروع، مثلاً A، C، B، D */
     fun startSequence(): List<Char> = (0 until crews).sortedBy { slotOf(it) }.map { 'A' + it }
+
+    /**
+     * روز شروع پیش‌فرض دوره (گروه A): نزدیک‌ترین روز تا [today] (خودِ امروز هم ممکن است) که فاصله‌اش از [PatternPresets.ANCHOR]
+     * مضرب طول چرخه باشد. چون فقط به فاصله‌ی روزها بستگی دارد، با عوض شدن ماه (۳۰/۳۱ روزه) جابه‌جا نمی‌شود.
+     */
+    /** تاریخ شروع دورهٔ گروه [crew] (۰ = A) وقتی گروه A از [aStart] شروع می‌کند. */
+    fun startOf(crew: Int, aStart: JalaliDate): JalaliDate = aStart.plusDays(slotOf(crew) * offsetDays)
+
+    /** برعکس [startOf]: اگر «گروه من» ([crew]) از [mineStart] شروع می‌کند، گروه A از چه روزی شروع می‌کند. */
+    fun aStartFromMine(crew: Int, mineStart: JalaliDate): JalaliDate = mineStart.plusDays(-slotOf(crew) * offsetDays)
+
+    fun defaultStart(today: JalaliDate = JalaliDate.today()): JalaliDate {
+        val len = codes.size.coerceAtLeast(1)
+        return today.plusDays(-Math.floorMod(today.toJdn() - PatternPresets.ANCHOR.toJdn(), len))
+    }
 }
 
 object PatternPresets {
+    /** تاریخ لنگر: روز اول چرخهٔ گروه A در همهٔ الگوهای آماده (۱۹ مهر ۱۴۰۵). روز شروع پیش‌فرض هر ماه از روی همین حساب می‌شود. */
+    val ANCHOR = JalaliDate(1405, 7, 19)
     private fun rep(code: Int, n: Int) = List(n) { code }
     private const val H24 = "ساعت شیفت را در تنظیمات وارد کنید (۰۸:۰۰ تا ۰۸:۰۰ یعنی ۲۴ ساعت)."
 
     val ALL: List<PatternPreset> = listOf(
         PatternPreset("۲ روز – ۱ استراحت – ۲ شب – ۳ استراحت", "چرخهٔ ۸ روزه: روز، روز، استراحت، شب، شب، سه روز استراحت",
-            listOf(1, 1, 4, 3, 3, 4, 4, 4), crews = 4, offsetDays = 2, defaultStartDay = 19, crewOrder = listOf(0, 2, 1, 3)),
+            listOf(1, 1, 4, 3, 3, 4, 4, 4), crews = 4, offsetDays = 2, crewOrder = listOf(0, 2, 1, 3)),
         PatternPreset("۲۴ ساعت کار – ۴۸ ساعت استراحت", "چرخهٔ ۳ روزه برای ۳ گروه. $H24",
             listOf(5, 4, 4), crews = 3, offsetDays = 1),
         PatternPreset("۲۴ ساعت کار – ۷۲ ساعت استراحت", "چرخهٔ ۴ روزه برای ۴ گروه. $H24",

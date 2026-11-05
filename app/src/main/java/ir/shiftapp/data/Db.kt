@@ -66,7 +66,7 @@ data class Snapshot(
     val holidays: List<Holiday> = emptyList()
 )
 
-@Database(entities = [PatternEntity::class, DayEntry::class, Employee::class, Setting::class, Holiday::class], version = 3, exportSchema = false)
+@Database(entities = [PatternEntity::class, DayEntry::class, Employee::class, Setting::class, Holiday::class], version = 4, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun dao(): AppDao
     companion object {
@@ -84,9 +84,14 @@ abstract class AppDb : RoomDatabase() {
                 db.execSQL("ALTER TABLE `shift_patterns` ADD COLUMN `section` TEXT NOT NULL DEFAULT ''")
             }
         }
+        /** نسخهٔ ۴: ستون اختیاری مجموعهٔ الگو (setName)؛ همهٔ داده‌های قبلی دست‌نخورده می‌مانند و مقدار پیش‌فرض خالی است. */
+        const val SQL_3_4 = "ALTER TABLE `shift_patterns` ADD COLUMN `setName` TEXT NOT NULL DEFAULT ''"
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) { db.execSQL(SQL_3_4) }
+        }
         @Volatile private var inst: AppDb? = null
         fun get(ctx: Context): AppDb = inst ?: synchronized(this) {
-            inst ?: Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "shiftma.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { inst = it }
+            inst ?: Room.databaseBuilder(ctx.applicationContext, AppDb::class.java, "shiftma.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { inst = it }
         }
     }
 }

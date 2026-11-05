@@ -128,7 +128,7 @@ fun BarIconButton(
 @Composable
 fun AppTopBar(
     title: String, leadingIcon: Int, leadingDesc: String, onLeading: () -> Unit,
-    modifier: Modifier = Modifier, subtitle: String? = null, subtitleDot: Color? = null, onTitleClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier, subtitle: String? = null, subtitleDot: Color? = null, subtitleLead: (@Composable () -> Unit)? = null, onTitleClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     Row(
@@ -147,6 +147,7 @@ fun AppTopBar(
                     Dot(subtitleDot, 8.dp)
                     Spacer(Modifier.width(6.dp))
                 }
+                if (subtitleLead != null) { subtitleLead(); Spacer(Modifier.width(5.dp)) }
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, color = Pal.muted)
             }
         }

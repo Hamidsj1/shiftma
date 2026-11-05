@@ -81,6 +81,7 @@ object ReminderScheduler {
         val app = context.applicationContext
         val am = app.getSystemService(AlarmManager::class.java) ?: return@withContext
         am.cancel(fireIntent(app, null, null))
+        runCatching { PlannerAlarms.schedule(app) }      // برنامهٔ روزانه: آلارم مستقل خودش
         val dao = AppDb.get(app).dao()
         val zone = ZoneId.systemDefault()
         val now = System.currentTimeMillis()
@@ -235,6 +236,10 @@ class ReminderReceiver : BroadcastReceiver() {
                             dao.put(Setting(PrefKeys.NOTES, Note.encode(notes)))
                         }
                     }
+                    PlannerAlarms.ACTION_FIRE -> ReminderScheduler.show(
+                        context, intent.getStringExtra(PlannerAlarms.EXTRA_TITLE) ?: "برنامهٔ روزانه",
+                        intent.getStringExtra(PlannerAlarms.EXTRA_BODY) ?: "", alarm = true, single = true
+                    )
                     ReminderScheduler.ACTION_DONE -> ReminderScheduler.dismiss(context)
                     ReminderScheduler.ACTION_SNOOZE -> {
                         ReminderScheduler.dismiss(context)

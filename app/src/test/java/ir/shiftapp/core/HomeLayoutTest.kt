@@ -50,36 +50,42 @@ class HomeLayoutTest {
     @Test fun reorderVisibleKeepsHiddenSlots() {
         val full = listOf("a", "h", "b", "c")
         assertEquals(listOf("c", "h", "a", "b"), HomeLayout.reorderVisible(full, listOf("c", "a", "b")))
-        // مجموعهٔ ناهمخوان: بدون تغییر
-        assertEquals(full, HomeLayout.reorderVisible(full, listOf("c", "a")))
+        // زیرمجموعه: فقط جای همان عنصرها عوض می‌شود (بقیه سر جایشان)
+        assertEquals(listOf("c", "h", "b", "a"), HomeLayout.reorderVisible(full, listOf("c", "a")))
+        // عنصر ناشناس: بدون تغییر
         assertEquals(full, HomeLayout.reorderVisible(full, listOf("c", "a", "z")))
     }
 
-    @Test fun defaultBlocksAreLinksEssentialTvSectionsWidget() {
+    @Test fun defaultBlocksAreLinksSectionsEssentialTvWidget() {
         // سامانه‌ها اولین گروه بعد از تقویم؛ سایت‌های ضروری درست زیر آن، بعد تلویزیون؛ بعد بخش‌ها؛ «ابزارها» دیگر گروه صفحهٔ اول نیست
-        assertEquals(listOf("links", "essential", "tv", "sections", "widget"), HomeLayout.BLOCKS)
+        assertEquals(listOf("links", "sections", "essential", "tv", "widget"), HomeLayout.BLOCKS)
         assertEquals(HomeLayout.BLOCKS, HomeLayout.order(HomeLayout.BLOCKS, listOf("tools")))
     }
 
     @Test fun migrateDropsOldBlockAndSectionOrderOnceButKeepsLinks() {
         val old = mapOf("blocks" to listOf("sections", "tools", "links"), "sections" to listOf("notes", "shift"), "tools" to listOf("tv"), "links" to listOf("b", "a"))
         val m = HomeLayout.migrate(old)
-        assertEquals(mapOf("links" to listOf("b", "a"), "v" to listOf("4")), m)
+        assertEquals(mapOf("links" to listOf("b", "a"), "v" to listOf("5")), m)
         // بار دوم دست نمی‌زند: چیدمان تازهٔ کاربر حفظ می‌شود
         val again = m + ("blocks" to listOf("sections", "links"))
         assertEquals(again, HomeLayout.migrate(again))
         // چیدمان خالی (نصب تازه یا بازنشانی) فقط نسخه می‌گیرد
-        assertEquals(mapOf("v" to listOf("4")), HomeLayout.migrate(emptyMap()))
+        assertEquals(mapOf("v" to listOf("5")), HomeLayout.migrate(emptyMap()))
         assertEquals(HomeLayout.BLOCKS, HomeLayout.order(HomeLayout.BLOCKS, HomeLayout.migrate(old)["blocks"]))
     }
 
     @Test fun migrateFromV2DropsOnlyBlockOrder() {
         val v2 = mapOf("blocks" to listOf("sections", "links"), "sections" to listOf("notes", "shift"), "links" to listOf("b", "a"), "v" to listOf("2"))
-        assertEquals(mapOf("sections" to listOf("notes", "shift"), "links" to listOf("b", "a"), "v" to listOf("4")), HomeLayout.migrate(v2))
+        assertEquals(mapOf("sections" to listOf("notes", "shift"), "links" to listOf("b", "a"), "v" to listOf("5")), HomeLayout.migrate(v2))
+    }
+
+    @Test fun migrateFromV4DropsOnlyBlockOrder() {
+        val v4 = mapOf("blocks" to listOf("links", "essential", "tv", "sections"), "sections" to listOf("notes"), "links" to listOf("b", "a"), "v" to listOf("4"))
+        assertEquals(mapOf("sections" to listOf("notes"), "links" to listOf("b", "a"), "v" to listOf("5")), HomeLayout.migrate(v4))
     }
 
     @Test fun migrateFromV3DropsOnlyBlockOrder() {
         val v3 = mapOf("blocks" to listOf("links", "sections", "essential"), "links" to listOf("b", "a"), "v" to listOf("3"))
-        assertEquals(mapOf("links" to listOf("b", "a"), "v" to listOf("4")), HomeLayout.migrate(v3))
+        assertEquals(mapOf("links" to listOf("b", "a"), "v" to listOf("5")), HomeLayout.migrate(v3))
     }
 }

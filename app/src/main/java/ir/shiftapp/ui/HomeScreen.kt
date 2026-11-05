@@ -9,6 +9,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,12 +24,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
@@ -78,6 +83,12 @@ internal fun openUrl(ctx: Context, url: String) {
 
 private const val ADD_SITE_ID = "__add_site__"
 
+/** رنگ گرم دکمهٔ تماس (نارنجی)، جدا از آبی/بنفش شیفت و روز امروز. */
+private val CALL_WARM = Color(0xFFE8743B)
+
+/** فاصلهٔ استاندارد زیر هر بخش دیدنی صفحهٔ اول. */
+private val GAP = 10.dp
+
 /** وقتی DocsVm نیست (مثلاً پیش‌نمایش): فهرست خالی مجتمع‌های برنامه غذایی. */
 private val NO_MEALS = MutableStateFlow<List<MealComplex>>(emptyList())
 
@@ -89,11 +100,11 @@ private val NO_MEALS = MutableStateFlow<List<MealComplex>>(emptyList())
 internal fun AddSiteDialog(
     onAdd: (title: String, url: String, subtitle: String) -> String?, onDismiss: () -> Unit,
     heading: String = "افزودن سایت", confirmLabel: String = "افزودن",
-    initialTitle: String = "", initialUrl: String = "", showSubtitle: Boolean = true
+    initialTitle: String = "", initialUrl: String = "", showSubtitle: Boolean = true, initialSubtitle: String = ""
 ) {
     var title by rememberSaveable { mutableStateOf(initialTitle) }
     var url by rememberSaveable { mutableStateOf(initialUrl) }
-    var sub by rememberSaveable { mutableStateOf("") }
+    var sub by rememberSaveable { mutableStateOf(initialSubtitle) }
     var error by rememberSaveable { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -139,6 +150,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             HomeSection("payslips", "فیش‌های من", "مشاهده و مقایسهٔ فیش‌های دانلودشده", R.drawable.ic_home_slip, true),
             HomeSection("shift", "جدول شیفت", "تقویم، گروه‌ها، گزارش و مرخصی", R.drawable.ic_tab_calendar, true),
             HomeSection("notes", "یادداشت‌ها", notesSub, R.drawable.ic_home_notes, true),
+            HomeSection("planner", "برنامهٔ روزانه", "اولویت‌ها، برنامهٔ ساعتی و آلارم", R.drawable.ic_home_planner, true),
             HomeSection("files", "فایل‌های من", "عکس، PDF و فایل نمایشی", R.drawable.ic_home_files, true),
             HomeSection("income", "دریافتی‌های ماهانه", "ثبت حقوق، پاداش و سایر دریافتی‌ها", R.drawable.ic_home_income, true),
             HomeSection("prayer", "اوقات شرعی و قبله", prayerSub ?: "اذان، قبله و هشدار", R.drawable.ic_qibla, true),
@@ -247,11 +259,48 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     StripDialogs(vm, Strip.ESSENTIAL, essSites, essUi)
     StripDialogs(vm, Strip.TV, tvSites, tvUi)
     if (addSiteOpen) AddSiteDialog(onAdd = { t, u, sub -> vm.addSite(t, u, sub) }, onDismiss = { addSiteOpen = false })
+    // لمس طولانی روی کاشی سامانه/بخش: ویرایش، حذف (فقط سامانه‌های کاربر) و جابه‌جایی راست/چپ
+    var manage by remember { mutableStateOf<Pair<String, HomeSection>?>(null) }      // ("links"|"sections", کاشی)
+    var editKey by remember { mutableStateOf<String?>(null) }
+    var deleteKey by remember { mutableStateOf<String?>(null) }
+    fun moveTile(group: String, all: List<HomeSection>, visible: List<HomeSection>, id: String, delta: Int) {
+        val full = HomeLayout.order(all.map { it.id }, layout[group])
+        saveLayout(layout + (group to HomeLayout.moveVisible(full, visible.map { it.id }, id, delta)))
+    }
+    manage?.let { (group, t) ->
+        val isSite = group == "links" && t.logo && !t.secret && t.iconKey != null
+        val visible = if (group == "links") linkList else sections
+        val all = if (group == "links") links else sectionsAll
+        AppDialog(t.title, { manage = null }, dismissText = "بستن") {
+            if (isSite) {
+                TextButton({ editKey = t.iconKey; manage = null }, Modifier.fillMaxWidth()) { Text("ویرایش (نام، آدرس، توضیح)") }
+                TextButton({ deleteKey = t.iconKey; manage = null }, Modifier.fillMaxWidth()) { Text("حذف از صفحهٔ اول", color = MaterialTheme.colorScheme.error) }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // در چیدمان راست‌به‌چپ، اولین کاشی سمت راست است
+                TextButton({ moveTile(group, all, visible, t.id, -1); manage = null }, Modifier.weight(1f), enabled = visible.firstOrNull()?.id != t.id) { Text("انتقال به راست ›") }
+                TextButton({ moveTile(group, all, visible, t.id, 1); manage = null }, Modifier.weight(1f), enabled = visible.lastOrNull()?.id != t.id) { Text("‹ انتقال به چپ") }
+            }
+        }
+    }
+    editKey?.let { k ->
+        val cur = TilesPackFile.decodeSites(prefs.sitesRaw).firstOrNull { it.key == k }
+        if (cur == null) editKey = null else AddSiteDialog(
+            onAdd = { t, u, sb -> vm.editSite(k, t, u, sb) }, onDismiss = { editKey = null },
+            heading = "ویرایش سامانه", confirmLabel = "ذخیره", initialTitle = cur.title, initialUrl = cur.url, initialSubtitle = cur.subtitle
+        )
+    }
+    deleteKey?.let { k ->
+        val cur = TilesPackFile.decodeSites(prefs.sitesRaw).firstOrNull { it.key == k }
+        ConfirmDialog("سامانهٔ «${cur?.title.orEmpty()}» از صفحهٔ اول حذف شود؟", "حذف", { vm.removeSite(k); deleteKey = null }, { deleteKey = null }, danger = true)
+    }
+
     if (searchOpen) AppSearchDialog(
         searchItems,
         onPick = { r -> searchOpen = false; if (r.id.startsWith("http")) onLink(r.id) else onOpen(r.id) },
         onDismiss = { searchOpen = false }
     )
+    RatePromptHost(hasData = vm.patterns.collectAsState().value.isNotEmpty())
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val drawerScope = rememberCoroutineScope()
     val importShiftma = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(vm::openPatternFile) }
@@ -305,53 +354,70 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             }
         }
     ) {
+    val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    val callBtn = remember { UiFlags.callButton(ctx) }
     Column(Modifier.fillMaxSize()) {
-    Column(
-        Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().offset(y = (-6).dp), verticalAlignment = Alignment.CenterVertically) {
+    Box(Modifier.weight(1f).fillMaxWidth()) {
+    val patterns by vm.patterns.collectAsState()
+    val patternsLoaded by vm.patternsLoaded.collectAsState()
+    val partA: @Composable ColumnScope.() -> Unit = {
+        Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
             SmallIconButton(R.drawable.ic_menu, "بخش‌های دیگر", { drawerScope.launch { drawer.open() } })
             Text("بخش‌های دیگر", style = MaterialTheme.typography.labelLarge, color = Pal.muted,
                 modifier = Modifier.clip(MaterialTheme.shapes.small).clickable { drawerScope.launch { drawer.open() } }.padding(horizontal = 6.dp, vertical = 8.dp))
             Spacer(Modifier.weight(1f))
             SmallIconButton(R.drawable.ic_search, "جست‌وجو", { searchOpen = true })
         }
-        RingingBanner()      // فقط وقتی آلارمی زنگ می‌زند: دکمهٔ بزرگ قطع، حتی اگر اعلان دیده نشود
-        val patterns by vm.patterns.collectAsState()
-        val patternsLoaded by vm.patternsLoaded.collectAsState()
+        RingingBanner(Modifier.padding(bottom = GAP))      // فقط وقتی آلارمی زنگ می‌زند: دکمهٔ بزرگ قطع، حتی اگر اعلان دیده نشود
         // کارت بالا + نوار باریک شیفت در جریان (فقط وقتی شیفتی در جریان است؛ وگرنه هیچ فضایی نمی‌گیرد)
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(bottom = GAP)) {
             HomeHero(vm) { onOpen("shift") }
-            ShiftProgressStrip(vm)
+            ShiftProgressStrip(vm, Modifier.padding(top = 6.dp))
         }
-        // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
-        if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs)
-        // نصب تازه: به‌جای تقویم خالی، الگوهای پیشنهادی را همین‌جا نشان بده
-        if (patternsLoaded && patterns.isEmpty()) QuickStartCard(vm) else {
-            // تقویم + نوار باریک آلارم/یادآوری‌ها درست زیرش
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                HomeMonthCard(vm) { onOpen("shift") }
-                ReminderStrip(vm)
+        // سامانه‌ها: نوار روشن افقی درست زیر کارت بالا و بالای تقویم (در حالت «چیدمان» همان گروه پایین برای جابه‌جایی دیده می‌شود)
+        if (!editing && remote.visible("links")) Column(Modifier.padding(bottom = GAP)) {
+            if (linkList.isEmpty()) {
+                // سامانه‌ای نیست: فقط یک سطر باریک، نه کاشی بزرگ «افزودن»
+                Row(Modifier.fillMaxWidth().height(36.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("سامانه‌ها", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                    TextButton({ addSiteOpen = true }, contentPadding = PaddingValues(horizontal = 10.dp)) { Text("+ افزودن سامانه", style = MaterialTheme.typography.labelLarge) }
+                }
+            } else {
+                LinksStrip(linkList, onAdd = { addSiteOpen = true }, onLong = { manage = "links" to it }) { s -> if (s.secret) onOpen(s.id) else onLink(s.id) }
             }
         }
-        UpcomingNotes(prefs) { onOpen("notes") }
+        // راهنمای فعال‌سازی مجوزها (اعلان، باتری، قفل‌صفحه): کارت کوچک تا وقتی موردی مانده؛ یک‌بار هم خودکار باز می‌شود
+        if (patternsLoaded && patterns.isNotEmpty()) PermissionGuideEntry(vm, prefs, Modifier.padding(bottom = GAP))
+    }
+    val partB: @Composable ColumnScope.() -> Unit = {
+        // نصب تازه: به‌جای تقویم خالی، الگوهای پیشنهادی را همین‌جا نشان بده
+        if (patternsLoaded && patterns.isEmpty()) QuickStartCard(vm, Modifier.padding(bottom = GAP)) else {
+            // تقویم + نوار باریک آلارم/یادآوری‌ها درست زیرش
+            Column(Modifier.padding(bottom = GAP)) {
+                HomeMonthCard(vm) { onOpen("shift") }
+                ReminderStrip(vm, Modifier.padding(top = 6.dp))
+            }
+        }
+    }
+    val partC: @Composable ColumnScope.() -> Unit = {
+        UpcomingNotes(prefs, Modifier.padding(bottom = GAP)) { onOpen("notes") }
+    }
+    val partD: @Composable ColumnScope.() -> Unit = {
         LayoutBar(editing, { editing = true }, { saveLayout(emptyMap()) }, { editing = false })
-        ReorderLayout(columns = 1, spacing = 22.dp, dr = blockDrag) {
-            shownBlocks.forEach { id ->
+        ReorderLayout(columns = 1, spacing = 4.dp, dr = blockDrag) {
+            shownBlocks.filter { editing || it != "links" }.forEach { id ->
                 key(id) {
                     val bi = shownBlocks.indexOf(id)
                     val up = bi > 0
                     val down = bi < shownBlocks.size - 1
                     // کشیدن گروه: لمس طولانی روی عنوانش
                     val handle = if (editing) Modifier.dragHandle(blockDrag, id, { blocks }) { o -> rememberBlockDrop(o); reorderBlocks(o) } else Modifier
-                    Column(Modifier.reorderItem(blockDrag, id), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Column(Modifier.reorderItem(blockDrag, id), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         when (id) {
                             "sections" -> {
                                 BlockHeader("بخش‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
-                                TileGrid(sections, compact = false, editing = editing, scroll = scroll, onReorder = { reorderTiles("sections", sectionsAll, it) }) { s ->
-                                    if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show()
-                                }
+                                if (editing) TileGrid(sections, compact = false, editing = true, scroll = scroll, onReorder = { reorderTiles("sections", sectionsAll, it) }) { }
+                                else SectionsStrip(sections, onLong = { manage = "sections" to it }) { s -> if (s.ready) onOpen(s.id) else Toast.makeText(ctx, "این بخش به‌زودی اضافه می‌شود", Toast.LENGTH_SHORT).show() }
                                 if (!editing && !prefs.prayerOn && !prefs.prayerHintHidden) {
                                     // پیشنهاد اختیاری: فقط تا وقتی کاربر فعالش نکرده یا پنهانش نکرده دیده می‌شود
                                     AppCard(Modifier.fillMaxWidth()) {
@@ -375,13 +441,10 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                                 BlockHeader("تلویزیون", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 TvStrip(tvSites, tvUi, onAll = { onOpen("tv") })
                             }
-                            "links" -> {
+                            "links" -> if (editing) {
                                 BlockHeader("سامانه‌ها", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
                                 // کاشی «افزودن سایت» آخر فهرست است و موقع چیدن (جابه‌جایی) دیده نمی‌شود
-                                val addTile = HomeSection(ADD_SITE_ID, "افزودن سایت", "", R.drawable.ic_add, true)
-                                TileGrid(if (editing) linkList else linkList + addTile, compact = true, editing = editing, scroll = scroll, onReorder = { reorderTiles("links", links, it) }) { s ->
-                                    when { s.id == ADD_SITE_ID -> addSiteOpen = true; s.secret -> onOpen(s.id); else -> onLink(s.id) }
-                                }
+                                TileGrid(linkList, compact = true, editing = true, scroll = scroll, onReorder = { reorderTiles("links", links, it) }) { }
                             }
                             "widget" -> {
                                 BlockHeader("ویجت صفحهٔ اصلی گوشی", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
@@ -394,7 +457,31 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
         }
         Spacer(Modifier.height(4.dp))
     }
-    AdPanel(prefs.adFeed, prefs.adPublic)      // پنل تبلیغاتی ثابت پایین صفحه (ui/AdPanel.kt)؛ بدون تبلیغ چیزی نشان نمی‌دهد
+    val paneMod = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+    if (landscape) {
+        // افقی: دو پنل کنار هم؛ راست/اول = هدر، سامانه‌ها و یادآورها، چپ/دوم = تقویم و بخش‌ها. هرکدام اسکرول خودش را دارد.
+        Row(Modifier.fillMaxSize()) {
+            val leftScroll = rememberScrollState()
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(leftScroll).then(paneMod)) { partA(); partC() }
+            Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(scroll).then(paneMod)) { partB(); partD() }
+        }
+    } else {
+        Column(Modifier.fillMaxSize().verticalScroll(scroll).then(paneMod)) { partA(); partB(); partC(); partD() }
+    }
+    // دکمهٔ دم‌دستِ دفترچه تلفن: پایین-چپ صفحه، فقط وقتی بخش در دسترس است (رمز ویژه یا فایل کاشی‌ها)
+    if (callBtn && !editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
+        val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
+        androidx.compose.material3.FloatingActionButton(
+            onClick = { onOpen("phonebook") },
+            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(start = 10.dp, end = 10.dp, bottom = 26.dp).size(64.dp)
+                .semantics { contentDescription = "تماس و دفترچه تلفن" },
+            shape = CircleShape,
+            containerColor = CALL_WARM,
+            contentColor = Color.White
+        ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
+    }
+    }
+    AdPanel(prefs.adFeed, prefs.adPublic, compact = landscape)      // پنل ثابت پایین؛ در حالت افقی باریک می‌شود (حذف نمی‌شود)
     }
     }
 }
@@ -423,7 +510,7 @@ private fun DrawerSectionItem(s: HomeSection, onClick: () -> Unit) {
 private fun LayoutBar(editing: Boolean, onStart: () -> Unit, onReset: () -> Unit, onDone: () -> Unit) {
     if (!editing) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            TextButton(onStart) {
+            TextButton(onStart, modifier = Modifier.height(32.dp), contentPadding = PaddingValues(horizontal = 10.dp)) {
                 Ico(R.drawable.ic_edit, size = 18.dp)
                 Spacer(Modifier.width(6.dp))
                 Text("چیدمان صفحه")
@@ -499,13 +586,13 @@ private fun HomeHero(vm: MainVm, onOpen: () -> Unit) {
     val onHero = Color.White
     Box(
         Modifier.fillMaxWidth().clip(MaterialTheme.shapes.extraLarge).background(Pal.heroBrush)
-            .clickable(role = Role.Button, onClick = onOpen).padding(14.dp)
+            .clickable(role = Role.Button, onClick = onOpen).padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Image(
                     painterResource(R.drawable.app_logo), contentDescription = null,
-                    modifier = Modifier.size(46.dp).clip(RoundedCornerShape(14.dp)).clickable(onClick = onOpen)
+                    modifier = Modifier.size(38.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpen)
                 )
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -522,6 +609,7 @@ private fun HomeHero(vm: MainVm, onOpen: () -> Unit) {
                                         .padding(horizontal = 10.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
+                                    GroupBadge(cur.name)
                                     Text(groupTitle(cur.name), style = MaterialTheme.typography.labelLarge, color = onHero, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     if (all.size > 1) Ico(R.drawable.ic_expand_more, size = 16.dp, tint = onHero)
                                 }
@@ -661,6 +749,69 @@ private fun SectionTile(s: HomeSection, onClick: () -> Unit) {
     }
 }
 
+/** سامانه‌ها: نوار افقی اسکرول‌شونده، کاشی سفید با آرم/آیکن و نام زیرش (سبک روشن)؛ «افزودن» آخر نوار است. */
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun LinksStrip(items: List<HomeSection>, onAdd: () -> Unit, onLong: (HomeSection) -> Unit, onClick: (HomeSection) -> Unit) {
+    StripBg { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { s ->
+            key(s.id) {
+                Column(
+                    Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).combinedClickable(role = Role.Button, onClick = { onClick(s) }, onLongClick = { onLong(s) }, onLongClickLabel = "ویرایش و جابه‌جایی"),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Box(
+                        Modifier.size(54.dp).clip(RoundedCornerShape(15.dp)).background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(15.dp)),
+                        contentAlignment = Alignment.Center
+                    ) { SiteLogo(s, 40.dp, 10.dp) }
+                    Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+            }
+        }
+        Column(
+            Modifier.width(68.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = "افزودن سایت", onClick = onAdd),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Box(Modifier.size(54.dp).clip(RoundedCornerShape(15.dp)).border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
+                Ico(R.drawable.ic_add, size = 24.dp, tint = MaterialTheme.colorScheme.primary)
+            }
+            Text("افزودن", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+        }
+    }
+    }
+}
+
+/** پس‌زمینهٔ ملایم برای نوارهای «سامانه‌ها» و «بخش‌ها» تا کاشی‌های سفید از زمینه جدا دیده شوند. */
+@Composable
+private fun StripBg(content: @Composable () -> Unit) {
+    Box(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.09f))
+            .padding(horizontal = 8.dp, vertical = 8.dp)
+    ) { content() }
+}
+
+/** بخش‌ها: نوار افقی اسکرول‌شونده با آیکن و نام (تصمیم مورد ۷: هر گروه یک نوار افقی)؛ کم‌ارتفاع و بدون کارت‌های بلند. */
+@Composable
+@OptIn(ExperimentalFoundationApi::class)
+private fun SectionsStrip(items: List<HomeSection>, onLong: (HomeSection) -> Unit, onClick: (HomeSection) -> Unit) {
+    StripBg { Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { s ->
+            key(s.id) {
+                Column(
+                    Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).alpha(if (s.ready) 1f else 0.6f).combinedClickable(role = Role.Button, onClick = { onClick(s) }, onLongClick = { onLong(s) }, onLongClickLabel = "جابه‌جایی"),
+                    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    IconBadge(s.icon, size = 54.dp, iconSize = 28.dp, modifier = Modifier)
+                    Text(s.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, minLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                }
+            }
+        }
+    }
+    }
+}
+
 /** آرم کاشی سامانه (تصویر داخل فایل کاشی‌ها)؛ اگر آرم نبود یا خراب بود، آیکن عمومی. */
 @Composable
 private fun SiteLogo(s: HomeSection, size: Dp, radius: Dp) {
@@ -720,8 +871,8 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
     val prefsNow by vm.prefs.collectAsState()
     alarmDay?.let { d -> NewAlarmDialog(vm, p, prefsNow, d) { alarmDay = null } }
     AppCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.padding(horizontal = 10.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.height(38.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton({ ym -= 1 }) { Ico(R.drawable.ic_chevron_right, desc = "ماه قبل") }
                 Text(
                     "${MONTHS[mon - 1]} ${year.fa()}", Modifier.weight(1f).clickable { ym = today.year * 12 + today.month - 1 },
@@ -773,14 +924,15 @@ private fun HomeMonthCard(vm: MainVm, onOpen: () -> Unit) {
 private fun MiniDay(day: Int, code: Int?, holiday: Boolean, isToday: Boolean, modifier: Modifier, onClick: () -> Unit) {
     val shape = RoundedCornerShape(9.dp)
     Box(
-        modifier.height(34.dp).clip(shape).background(if (code != null) shiftColor(code) else Color.Transparent)
-            .clickable(role = Role.Button, onClickLabel = "ساخت آلارم برای این روز", onClick = onClick)
-            .then(if (isToday) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, shape) else Modifier),
+        modifier.height(34.dp).then(if (isToday) Modifier.shadow(4.dp, shape) else Modifier).clip(shape)
+            .background(if (isToday) TODAY_BG else if (code != null) shiftColor(code) else Color.Transparent)
+            .clickable(role = Role.Button, onClickLabel = "ساخت آلارم برای این روز", onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            day.fa(), style = MaterialTheme.typography.labelLarge,
-            color = if (holiday) Color(0xFFB71C1C) else if (code != null) Color(0xFF1B1D2A) else MaterialTheme.colorScheme.onSurface
+            day.fa(), style = MaterialTheme.typography.labelLarge.let { if (isToday) it.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold) else it },
+            color = if (isToday) Color.White else if (holiday) Color(0xFFB71C1C) else if (code != null) Color(0xFF1B1D2A) else MaterialTheme.colorScheme.onSurface
         )
+        if (isToday && code != null) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 2.dp).width(14.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(shiftColor(code)))
     }
 }

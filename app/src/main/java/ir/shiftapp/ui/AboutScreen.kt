@@ -7,12 +7,16 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.FileProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -120,7 +124,11 @@ fun AboutScreen() {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Image(painterResource(R.drawable.app_logo), contentDescription = null, modifier = Modifier.size(88.dp).clip(RoundedCornerShape(24.dp)))
             Text(AppInfo.APP_NAME, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-            if (ver.isNotBlank()) Text("نسخهٔ ${ver.map { if (it in '0'..'9') '۰' + (it - '0') else it }.joinToString("")}", style = MaterialTheme.typography.bodySmall, color = Pal.muted)
+            var diagOpen by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+            if (diagOpen) DiagDialog { diagOpen = false }
+            // لمس طولانیِ نسخه = گزارش عملکرد (با رمز روزانه)
+            if (ver.isNotBlank()) Text("نسخهٔ ${ver.map { if (it in '0'..'9') '۰' + (it - '0') else it }.joinToString("")}", style = MaterialTheme.typography.bodySmall, color = Pal.muted,
+                modifier = Modifier.androidx_combinedLong { diagOpen = true })
             Text(
                 "برنامهٔ مدیریت شیفت کاری برای کارکنان شیفتی؛ جدول شیفت ماهانه را به‌صورت خودکار از روی الگوی چرخشی شما می‌سازد.",
                 style = MaterialTheme.typography.bodyMedium, color = Pal.muted, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 12.dp)
@@ -152,10 +160,8 @@ fun AboutScreen() {
                 SettingRow("ارسال خود برنامه (فایل APK)", subtitle = "با بلوتوث، تلگرام، ایتا یا هر برنامهٔ دیگر برای دوستان", icon = R.drawable.ic_share, onClick = { scope.launch { shareApk(ctx) } })
                 RowDivider()
                 SettingRow("اشتراک‌گذاری متن معرفی", icon = R.drawable.ic_note, onClick = { shareLink(ctx) })
-                if (AppInfo.STORE_URL.isNotBlank()) {
-                    RowDivider()
-                    SettingRow("امتیاز دادن در فروشگاه", icon = R.drawable.ic_star, onClick = { openStore(ctx) })
-                }
+                RowDivider()
+                SettingRow("امتیاز به برنامه", subtitle = "ثبت ستاره و نظر در کافه‌بازار", icon = R.drawable.ic_star, onClick = { RatePrompt.openBazaar(ctx) })
                 if (AppInfo.TELEGRAM_ID.isNotBlank()) {
                     RowDivider()
                     SettingRow("ارتباط با توسعه‌دهنده در تلگرام", subtitle = "نظر، پیشنهاد یا گزارش مشکل", icon = R.drawable.ic_telegram, onClick = { openTelegram(ctx) })
@@ -172,3 +178,8 @@ fun AboutScreen() {
         }
     }
 }
+
+
+/** لمس طولانی بدون افکت/پیام برای کلید مخفی. */
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.androidx_combinedLong(onLong: () -> Unit): Modifier = this.combinedClickable(onClick = {}, onLongClick = onLong)

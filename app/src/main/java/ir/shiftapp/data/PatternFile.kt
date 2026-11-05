@@ -21,7 +21,7 @@ object PatternFile {
         list.forEach { p ->
             a.put(JSONObject().put("name", p.name).put("company", p.company)
                 .put("baseYear", p.baseYear).put("baseMonth", p.baseMonth).put("baseDay", p.baseDay).put("pattern", p.pattern)
-                .put("supervisor", p.supervisor).put("headSupervisor", p.headSupervisor).put("section", p.section))
+                .put("supervisor", p.supervisor).put("headSupervisor", p.headSupervisor).put("section", p.section).put("setName", p.setName))
         }
     }
 
@@ -46,7 +46,7 @@ object PatternFile {
             val p = PatternEntity(
                 0, j.getString("name").trim(), j.optString("company", "").trim(),
                 j.getInt("baseYear"), j.getInt("baseMonth"), j.getInt("baseDay"), j.getString("pattern"),
-                j.optString("supervisor", "").trim(), j.optString("headSupervisor", "").trim(), j.optString("section", "").trim()
+                j.optString("supervisor", "").trim(), j.optString("headSupervisor", "").trim(), j.optString("section", "").trim(), j.optString("setName", "").trim().take(60)
             )
             require(p.name.isNotBlank()) { "نام الگو خالی است" }
             require(listOf(p.name, p.company, p.supervisor, p.headSupervisor, p.section).all { it.length <= MAX_TEXT }) { "متن بیش از حد طولانی در فایل" }

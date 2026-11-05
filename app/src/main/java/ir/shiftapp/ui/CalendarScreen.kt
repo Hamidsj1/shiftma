@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
@@ -106,18 +107,19 @@ fun CalendarScreen(vm: MainVm) {
 private fun DayCell(day: Int, r: EffectiveDay, holiday: Boolean, isToday: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Box(
-        Modifier.height(60.dp).clip(shape).background(shiftColor(r.effectiveCode))
-            .then(if (isToday) Modifier.border(2.5.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
+        Modifier.height(if (androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 44.dp else 60.dp).then(if (isToday) Modifier.shadow(6.dp, shape) else Modifier).clip(shape)
+            .background(if (isToday) TODAY_BG else shiftColor(r.effectiveCode))
             .clickable(role = Role.Button, onClick = onClick)
     ) {
         Column(Modifier.fillMaxSize().padding(top = 5.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(day.fa(), style = MaterialTheme.typography.titleSmall, color = if (holiday) Color(0xFFB71C1C) else INK)
+            Text(day.fa(), style = MaterialTheme.typography.titleSmall.let { if (isToday) it.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.ExtraBold) else it }, color = if (isToday) Color.White else if (holiday) Color(0xFFB71C1C) else INK)
             Text(
-                shiftName(r.effectiveCode), style = MaterialTheme.typography.labelSmall, color = INK.copy(alpha = 0.78f),
+                shiftName(r.effectiveCode), style = MaterialTheme.typography.labelSmall, color = if (isToday) Color.White.copy(alpha = 0.9f) else INK.copy(alpha = 0.78f),
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Clip
             )
         }
-        Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 5.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        if (isToday) Box(Modifier.align(Alignment.BottomCenter).padding(bottom = 3.dp).width(22.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(shiftColor(r.effectiveCode)))
+        Row(Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
             if (r.overridden) Dot(Pal.markOverride, 5.dp)
             if (r.onLeave) Dot(Pal.markLeave, 5.dp)
             if (r.overtimeMinutes > 0) Dot(Pal.markOvertime, 5.dp)

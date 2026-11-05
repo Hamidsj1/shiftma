@@ -404,7 +404,7 @@ fun HolidaysScreen(vm: MainVm) {
         }
         SettingsGroup("افزودن تعطیلی", icon = R.drawable.ic_add) {
             HintText("تعطیلات قمری (تاسوعا، عاشورا، اعیاد و ...) هر سال جابه‌جا می‌شوند؛ طبق تقویم رسمی همان سال اینجا وارد کنید.")
-            AppField(date, { date = it }, "تاریخ (مثال: ۱۴۰۵/۰۷/۲۰)", keyboard = KeyboardType.Number, ltr = true)
+            AppField(date, { date = DateText.typing(it) }, "تاریخ (مثال: ۱۴۰۵/۰۷/۲۰)", keyboard = KeyboardType.Number, ltr = true)
             AppField(title, { title = it }, "عنوان")
             err?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error) }
             AppButton("افزودن", { err = vm.addHoliday(date, title); if (err == null) { date = ""; title = "" } }, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)

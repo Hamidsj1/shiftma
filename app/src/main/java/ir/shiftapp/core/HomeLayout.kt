@@ -6,14 +6,14 @@ package ir.shiftapp.core
  */
 object HomeLayout {
     /**
-     * گروه‌های صفحهٔ اول به ترتیب پیش‌فرض (زیر تقویم): سامانه‌ها، سایت‌های ضروری (درست زیر سامانه‌ها)، تلویزیون (زیر سایت‌های ضروری)، بخش‌ها، ویجت.
+     * گروه‌های صفحهٔ اول به ترتیب پیش‌فرض (زیر تقویم): سامانه‌ها (نوار افقی)، بخش‌ها، سایت‌های ضروری، تلویزیون، ویجت.
      * «ابزارها» دیگر گروه صفحهٔ اول نیست و داخل کشوی «بخش‌های دیگر» است.
      */
-    val BLOCKS = listOf("links", "essential", "tv", "sections", "widget")
+    val BLOCKS = listOf("links", "sections", "essential", "tv", "widget")
 
     /** شمارهٔ نسخهٔ چیدمان؛ با عوض شدنِ ترتیب پیش‌فرض بالا می‌رود تا چیدمان قدیمیِ ذخیره‌شده یک‌بار کنار برود. */
     const val VERSION_KEY = "v"
-    const val VERSION = "4"
+    const val VERSION = "5"
 
     /**
      * نسخهٔ ۲: ترتیب گروه‌ها و بخش‌ها عوض شد (سامانه‌ها اول، تلفن و فیش‌های من ردیف اول بخش‌ها) و گروه «ابزارها» حذف شد.
@@ -23,7 +23,8 @@ object HomeLayout {
         val v = m[VERSION_KEY]?.firstOrNull()
         if (v == VERSION) return m
         // نسخهٔ ۳ و ۴: «سایت‌های ضروری» زیر «سامانه‌ها» و «تلویزیون» زیر آن آمد؛ فقط ترتیب گروه‌ها یک‌بار پاک می‌شود و ترتیب کاشی‌ها و بخش‌ها می‌ماند
-        if (v == "2" || v == "3") return m.filterKeys { it != "blocks" && it != VERSION_KEY } + (VERSION_KEY to listOf(VERSION))
+        // نسخهٔ ۵: بخش‌ها بالاتر از «سایت‌های ضروری» و «تلویزیون» آمدند؛ باز هم فقط ترتیب گروه‌ها یک‌بار پاک می‌شود
+        if (v == "2" || v == "3" || v == "4") return m.filterKeys { it != "blocks" && it != VERSION_KEY } + (VERSION_KEY to listOf(VERSION))
         return m.filterKeys { it != "blocks" && it != "sections" && it != "tools" && it != VERSION_KEY } + (VERSION_KEY to listOf(VERSION))
     }
 

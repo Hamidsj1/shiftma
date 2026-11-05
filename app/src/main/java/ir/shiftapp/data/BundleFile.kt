@@ -1,5 +1,6 @@
 package ir.shiftapp.data
 
+import ir.shiftapp.core.Feeds
 import ir.shiftapp.core.SiteTile
 import ir.shiftapp.core.TilesPack
 import ir.shiftapp.core.TilesPackFile
@@ -26,7 +27,7 @@ object BundleFile {
     fun toJson(
         patterns: List<PatternEntity>, sites: List<SiteTile>,
         contacts: List<Contact> = emptyList(), photoOf: (Contact) -> ByteArray? = { null },
-        meals: List<MealPackItem> = emptyList(), prefix: String = ""
+        meals: List<MealPackItem> = emptyList(), prefix: String = "", feeds: Feeds = Feeds.NONE
     ): String {
         require(patterns.isNotEmpty() || sites.isNotEmpty() || contacts.isNotEmpty() || meals.isNotEmpty()) { "چیزی برای ارسال انتخاب نشده است" }
         // کاشی «دفترچه تلفن» و «برنامه غذایی» روی گوشی گیرنده فقط با کلید sections فایل کاشی‌ها نمایان می‌شود؛
@@ -35,7 +36,8 @@ object BundleFile {
         return JSONObject().apply {
             put("app", "shiftma"); put("type", TYPE); put("version", if (meals.isNotEmpty()) VERSION else 1)
             if (patterns.isNotEmpty()) put("patterns", PatternFile.toArray(patterns))
-            if (sites.isNotEmpty() || sections.isNotEmpty()) put("tiles", TilesPackFile.toJsonObject(sites, sections))
+            // خوراک‌های منطقه (بنر، اعلان، تنظیمات) همراه هر فایل می‌روند تا گیرنده هم به همان منطقه وصل شود؛ خوراک به‌تنهایی فایل را معتبر نمی‌کند
+            if (sites.isNotEmpty() || sections.isNotEmpty() || !feeds.isEmpty) put("tiles", TilesPackFile.toJsonObject(sites, sections, feeds))
             if (contacts.isNotEmpty()) put("contacts", ContactsFile.toArray(contacts, photoOf))
             if (meals.isNotEmpty()) put("meals", MealPackFile.toArray(meals))
             // پیش‌شمارهٔ داخلی فرستنده فقط وقتی مخاطبین هست؛ برنامه‌های قدیمی کلید ناشناخته را نادیده می‌گیرند (نسخه عوض نمی‌شود)

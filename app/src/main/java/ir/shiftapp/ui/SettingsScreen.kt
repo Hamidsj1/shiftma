@@ -113,6 +113,9 @@ fun SettingsScreen(vm: MainVm) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 4.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
         SettingsGroup("ظاهر برنامه", icon = R.drawable.ic_palette) {
             Segmented(listOf("مثل سیستم", "روشن", "تاریک"), themeKeys.indexOf(prefs.theme).coerceAtLeast(0)) { vm.setPref(PrefKeys.THEME, themeKeys[it]) }
+            val appCtx = LocalContext.current
+            var callOn by remember { mutableStateOf(UiFlags.callButton(appCtx)) }
+            GroupSwitch("دکمهٔ تماس روی صفحهٔ اول", callOn, "دکمهٔ گرد دفترچه تلفن؛ با خاموش کردن (از نوبت بعدی باز شدن صفحهٔ اول) پنهان می‌شود.") { callOn = it; UiFlags.setCallButton(appCtx, it) }
         }
 
         SettingsGroup("ساعت شروع و پایان شیفت‌ها", icon = R.drawable.ic_schedule) {
@@ -227,19 +230,28 @@ fun SettingsScreen(vm: MainVm) {
             val scope = rememberCoroutineScope()
             val tilesPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.openPatternFile(uri) }
             var del by remember { mutableStateOf<SiteTile?>(null) }
+            var edit by remember { mutableStateOf<SiteTile?>(null) }
             Text(if (sites.isEmpty()) "هنوز سامانه‌ای اضافه نشده" else "${sites.size.fa()} سامانه", style = MaterialTheme.typography.bodyMedium)
             sites.forEach { s ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(s.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    TextButton({ scope.launch { shareTilesFile(ctx, listOf(s), emptySet()) } }) { Text("ارسال") }
+                    TextButton({ scope.launch { shareTilesFile(ctx, listOf(s), emptySet(), prefs.mealFeed, prefs.adFeed, prefs.adPublic, prefs.noticeFeed, prefs.noticePublic, prefs.configFeed) } }) { Text("ارسال") }
+                    TextButton({ edit = s }) { Text("ویرایش") }
                     TextButton({ del = s }) { Text("حذف") }
                 }
             }
+            SiteUpdateBox(prefs.configFeed, sites)
             AppButton("وارد کردن فایل کاشی‌ها", { tilesPicker.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), icon = R.drawable.ic_download)
             if (sites.isNotEmpty() || usable.isNotEmpty()) {
                 AppButton("ارسال فایل کاشی‌ها", { scope.launch { shareTilesFile(ctx, sites, usable, prefs.mealFeed, prefs.adFeed, prefs.adPublic, prefs.noticeFeed, prefs.noticePublic, prefs.configFeed) } }, Modifier.fillMaxWidth(), style = BtnStyle.Outline)
             }
             HintText("برنامه هیچ سامانه‌ای به‌صورت پیش‌فرض ندارد؛ دفترچه تلفن و برنامه غذایی هم پنهان‌اند. سامانه‌ها و بخش‌های مخفی فقط با وارد کردن فایل کاشی‌ها (.shiftma) اضافه یا نمایان می‌شوند. فایل کاشی‌های دیگر را هم می‌شود وارد کرد یا با زدن روی خود فایل باز کرد. نام کاربری و رمز هرگز داخل فایل نمی‌آید.")
+            edit?.let { e ->
+                AddSiteDialog(
+                    onAdd = { t, u, sb -> vm.editSite(e.key, t, u, sb) }, onDismiss = { edit = null },
+                    heading = "ویرایش سامانه", confirmLabel = "ذخیره", initialTitle = e.title, initialUrl = e.url, initialSubtitle = e.subtitle
+                )
+            }
             del?.let { d ->
                 ConfirmDialog("سامانهٔ «${d.title}» از صفحهٔ اول حذف شود؟", "حذف", { vm.removeSite(d.key); del = null }, { del = null }, danger = true)
             }
@@ -299,4 +311,43 @@ internal fun WidgetButtons() {
     AppButton("افزودن ویجت شیفت (نوار شیفت، هفته و آلارم‌ها)", { add(ShiftWidget::class.java) }, Modifier.fillMaxWidth(), icon = R.drawable.ic_add, style = BtnStyle.Tonal)
     AppButton("افزودن ویجت لغت روز انگلیسی", { add(EnglishWidget::class.java) }, Modifier.fillMaxWidth(), icon = R.drawable.ic_add, style = BtnStyle.Tonal)
     HintText("در شیائومی اگر پنجرهٔ تأیید نیامد: تنظیمات ← برنامه‌ها ← مدیریت برنامه‌ها ← شیفت ما ← مجوزهای دیگر ← «میانبرهای صفحهٔ اصلی» را روی مجاز بگذارید و دوباره امتحان کنید.")
+}
+
+
+private fun fmtStamp(ts: Long): String {
+    if (ts <= 0L) return "هنوز انجام نشده"
+    val dt = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(ts), java.time.ZoneId.systemDefault())
+    val j = JalaliCalendar.fromLocalDate(dt.toLocalDate())
+    return Fa.digits("${j.year}/${"%02d".format(j.month)}/${"%02d".format(j.day)}  ${"%02d".format(dt.hour)}:${"%02d".format(dt.minute)}")
+}
+
+/** وضعیت به‌روزرسانی راه‌دور سامانه‌ها: آخرین بررسی، دکمهٔ بررسی دستی، آخرین تغییرها و علت اعمال‌نشدن. فقط در تنظیمات (جلوی چشم نیست). */
+@Composable
+private fun SiteUpdateBox(configFeed: String, sites: List<SiteTile>) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val tick by ir.shiftapp.system.ConfigLoader.tick.collectAsState()
+    val remote by ir.shiftapp.system.ConfigLoader.config.collectAsState()
+    var busy by remember { mutableStateOf(false) }
+    var msg by remember { mutableStateOf("") }
+    val hasFeed = ir.shiftapp.system.ConfigLoader.feedUrl(ctx).isNotEmpty()
+    val log = remember(tick, msg) { ir.shiftapp.system.UpdateLog.entries(ctx) }
+    val skipped = remember(remote, sites) { SiteUpdates.skippedEdited(sites, remote.siteUpdates) }
+    // کاربرِ بدون منطقه چیزی از این قابلیت نمی‌بیند (نه کادر، نه توضیحی دربارهٔ آدرس)
+    if (hasFeed) {
+        Text("به‌روزرسانی آنلاین سامانه‌ها", style = MaterialTheme.typography.titleSmall)
+        val ok = remember(tick, msg) { ir.shiftapp.system.UpdateLog.lastOk(ctx) }
+        Text("آخرین بررسی: ${fmtStamp(remember(tick, msg) { ir.shiftapp.system.UpdateLog.lastCheck(ctx) })}" + if (ok) "" else " (ناموفق)", style = MaterialTheme.typography.bodySmall)
+        if (!ok) HintText(ir.shiftapp.system.UpdateLog.lastError(ctx).ifEmpty { "بررسی ناموفق بود" })
+        Text("تغییر راه‌دور شناخته‌شده: ${remote.siteUpdates.size.fa()} سامانه", style = MaterialTheme.typography.bodySmall)
+        AppButton(if (busy) "در حال بررسی…" else "بررسی و به‌روزرسانی الان", {
+            if (!busy) { busy = true; scope.launch { val r = ir.shiftapp.system.ConfigLoader.refreshNow(ctx); msg = if (r) "بررسی انجام شد" else "بررسی ناموفق بود"; busy = false } }
+        }, Modifier.fillMaxWidth(), icon = R.drawable.ic_download, enabled = !busy)
+        if (msg.isNotEmpty()) HintText(msg)
+    }
+    if (skipped.isNotEmpty()) HintText("چون خودتان ویرایش کرده‌اید اعمال نشد: " + skipped.joinToString("، ") { it.title } + ". برای دریافت آدرس آنلاین، سامانه را حذف و دوباره از فایل کاشی‌ها وارد کنید.")
+    if (log.isNotEmpty()) {
+        Text("آخرین تغییرها", style = MaterialTheme.typography.bodySmall)
+        log.take(5).forEach { Text("${fmtStamp(it.ts)} — ${it.text}", style = MaterialTheme.typography.bodySmall) }
+    } else if (hasFeed) HintText("هنوز تغییری اعمال نشده است. بررسی خودکار هر ۳ ساعت و هنگام باز شدن برنامه انجام می‌شود.")
 }

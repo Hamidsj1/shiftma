@@ -73,9 +73,6 @@ fun ImportTilesDialog(pack: TilesPack, onAdd: (Set<String>) -> Unit, onReplace: 
         if (pack.noticeFeed.isNotEmpty()) {
             Text(if (pack.publicNotices) "اعلان‌های محل کار شما و اعلان‌های عمومی برنامه به‌صورت اعلان گوشی می‌رسد." else "فقط اعلان‌های مخصوص محل کار شما به‌صورت اعلان گوشی می‌رسد.", style = MaterialTheme.typography.bodyMedium)
         }
-        if (pack.configFeed.isNotEmpty()) {
-            Text("تنظیم بخش‌های برنامه (نمایان، پنهان یا ویژه) مخصوص محل کار شما از اینترنت (گیت‌هاب) دریافت می‌شود.", style = MaterialTheme.typography.bodyMedium)
-        }
         if (pack.mealsFeed.isNotEmpty()) {
             Text("برنامهٔ غذایی مجتمع‌ها از اینترنت (گیت‌هاب) خودکار دریافت می‌شود.", style = MaterialTheme.typography.bodyMedium)
         }
@@ -93,7 +90,7 @@ suspend fun shareTilesFile(ctx: Context, sites: List<SiteTile>, sections: Set<St
         try {
             val dir = File(ctx.cacheDir, "share").apply { mkdirs() }
             val f = File(dir, "ShiftMa-tiles.${PatternFile.EXT}")
-            f.writeText(TilesPackFile.toJson(sites, sections, mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed), Charsets.UTF_8)
+            f.writeText(TilesPackFile.toJson(sites, sections, mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed, ir.shiftapp.system.RegionLoader.regionTag(ctx)), Charsets.UTF_8)
             FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", f)
         } catch (e: Exception) { null }
     }

@@ -39,6 +39,33 @@ internal fun shiftColor(code: Int) = Color(ShiftType.byCode(code)?.color ?: 0xFF
 /** «شیفت A»؛ اگر نام از قبل با «شیفت» شروع شود تکرار نمی‌شود. */
 internal fun groupTitle(name: String) = if (name.startsWith("شیفت")) name else "شیفت $name"
 
+/** روز جاری: پر با نیلی تیره، عدد سفید و نوار کوچک رنگ شیفت زیر عدد؛ در تقویم، تقویم صفحهٔ اول و ویجت یکسان. */
+internal val TODAY_BG = androidx.compose.ui.graphics.Color(0xFF3F36C9)
+
+/** حرف گروه (A..D) از نام الگو، مثل «A» یا «شیفت D»؛ برای نشان رنگی. null اگر نام این شکل نباشد. */
+internal fun groupLetter(name: String): Char? {
+    val t = name.trim().removePrefix("شیفت").trim()
+    return if (t.length == 1 && t[0] in 'A'..'H') t[0] else null
+}
+
+/** رنگ ثابت هر گروه تا گروه‌ها در فهرست و عنوان با یک نگاه تشخیص داده شوند. */
+internal fun groupColor(letter: Char): androidx.compose.ui.graphics.Color = when (letter) {
+    'A' -> androidx.compose.ui.graphics.Color(0xFF4FB3E8)
+    'B' -> androidx.compose.ui.graphics.Color(0xFF2E9E6B)
+    'C' -> androidx.compose.ui.graphics.Color(0xFF8E5BD0)
+    'D' -> androidx.compose.ui.graphics.Color(0xFFE05C9A)
+    else -> androidx.compose.ui.graphics.Color(0xFF5F6B7A)
+}
+
+/** نشان گردِ رنگیِ حرف گروه (A..D)؛ اگر نام الگو شکل «گروه + حرف» نباشد چیزی نشان نمی‌دهد. */
+@androidx.compose.runtime.Composable
+internal fun GroupBadge(name: String, size: androidx.compose.ui.unit.Dp = 20.dp) {
+    val gl = groupLetter(name) ?: return
+    Box(Modifier.size(size).clip(CircleShape).background(groupColor(gl)), contentAlignment = Alignment.Center) {
+        Text(gl.toString(), style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color.White)
+    }
+}
+
 /** آیکن و رنگ هر نوع ثبت؛ در کاردکس، تقویم و پنجرهٔ روز یکسان استفاده می‌شود. */
 internal fun entryIcon(type: String): Int = when (type) {
     EntryType.NOTE -> R.drawable.ic_note
@@ -154,6 +181,7 @@ fun FourShiftScreen(vm: MainVm) {
                             ) { Ico(R.drawable.ic_add, size = 20.dp, tint = MaterialTheme.colorScheme.primary, desc = "افزودن شیفت") }
                         } else {
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 2.dp)) {
+                                if (groupLetter(c.title) != null) { GroupBadge(c.title, 18.dp); Spacer(Modifier.height(2.dp)) }
                                 Text(c.title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface, maxLines = 2, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
                                 if (c.subtitle.isNotBlank()) Text(c.subtitle, style = MaterialTheme.typography.labelSmall, color = Pal.muted, maxLines = 1, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis)
                             }
@@ -279,6 +307,7 @@ fun CardexScreen(vm: MainVm) {
                             .clickable(role = Role.Button) { picking = true }.padding(start = 10.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        p?.let { GroupBadge(it.name, 18.dp); Spacer(Modifier.width(4.dp)) }
                         Text(p?.let { groupTitle(it.name) } ?: "انتخاب شیفت", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.onPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 60.dp))
                         Ico(R.drawable.ic_expand_more, size = 18.dp, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }

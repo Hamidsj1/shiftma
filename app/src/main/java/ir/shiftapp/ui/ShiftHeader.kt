@@ -48,6 +48,7 @@ fun ShiftTopBar(
     AppTopBar(
         title = title, leadingIcon = leadingIcon, leadingDesc = leadingDesc, onLeading = onLeading,
         subtitle = subtitle, subtitleDot = if (showTools && code != null) shiftColor(code) else null,
+        subtitleLead = if (showTools && p != null && groupLetter(p!!.name) != null) { { GroupBadge(p!!.name, 16.dp) } } else null,
         onTitleClick = if (showTools) { { open = true } } else null
     ) {
         // آلارم: روشن = دایرهٔ پر با رنگ اصلی، خاموش = دایرهٔ کم‌رنگ؛ در همهٔ صفحه‌ها (حتی صفحهٔ انتخاب الگو) دیده می‌شود

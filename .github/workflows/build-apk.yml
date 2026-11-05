@@ -1,0 +1,78 @@
+name: Build APK
+
+# هر push روی هر شاخه + اجرای دستی. خروجی: فایل APK قابل نصب (امضا با کلید debug چون keystore.properties در مخزن نیست).
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+
+      - name: Unit tests
+        run: gradle :app:testDebugUnitTest --no-daemon --continue
+        continue-on-error: true      # نتیجه را در لاگ ببینید؛ بیلد APK را متوقف نمی‌کند
+
+      - name: Build APK
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Inspect widget resources in the release APK (diagnostic)
+        continue-on-error: true
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          AAPT2=$(ls $ANDROID_HOME/build-tools/*/aapt2 | tail -1)
+          echo "aapt2=$AAPT2"
+          $AAPT2 dump resources $APK > res.txt
+          echo "=== widget resources present:"; grep -E "(layout|drawable|color|xml|id)/(widget_|w_)" res.txt | head -120
+          for name in widget_shift widget_shift_strip widget_english widget_fallback; do
+            f=$(awk -v n="layout/$name" '$0 ~ n {f=1} f && /\(file\)/ {print $3; exit}' res.txt)
+            echo "=== layout $name -> $f"
+            [ -n "$f" ] && $AAPT2 dump xmltree --file "$f" $APK | head -150
+          done
+          for name in shift_widget_info shift_strip_widget_info english_widget_info; do
+            f=$(awk -v n="xml/$name" '$0 ~ n {f=1} f && /\(file\)/ {print $3; exit}' res.txt)
+            echo "=== xml $name -> $f"
+            [ -n "$f" ] && $AAPT2 dump xmltree --file "$f" $APK
+          done
+          echo "=== manifest receivers"; $AAPT2 dump xmltree --file AndroidManifest.xml $APK | grep -n -A12 -i "ShiftWidget\|ShiftStripWidget\|EnglishWidget" | head -120
+
+      - name: Show APK signing fingerprint (must be identical between builds)
+        # فقط اطلاع‌رسانی است و هرگز ساخت را نمی‌شکند (keytool امضای v2/v3 را نمی‌خواند؛ apksigner می‌خواند)
+        run: |
+          APKSIGNER=$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          if [ -n "$APKSIGNER" ]; then "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -i "SHA-256\|DN:" || true
+          else echo "apksigner پیدا نشد"; fi
+
+      - name: Name the APK
+        run: |
+          V=$(grep -m1 versionName app/build.gradle.kts | sed 's/.*"\(.*\)".*/\1/')
+          C=$(grep -m1 versionCode app/build.gradle.kts | sed 's/[^0-9]*\([0-9]*\).*/\1/')
+          cp app/build/outputs/apk/release/app-release.apk "shiftma-v${V}-code${C}-${GITHUB_REF_NAME//\//-}.apk"
+          echo "APK=shiftma-v${V}-code${C}-${GITHUB_REF_NAME//\//-}.apk" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shiftma-apk
+          path: shiftma-*.apk
+
+      - name: Publish as pre-release (download from phone)
+        if: github.ref_type == 'branch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="test-${GITHUB_REF_NAME//\//-}"
+          gh release delete "$TAG" -y --cleanup-tag || true
+          gh release create "$TAG" "$APK" --prerelease --target "$GITHUB_SHA" \
+            --title "نسخهٔ آزمایشی ($GITHUB_REF_NAME)" --notes "بیلد خودکار؛ فقط برای آزمایش. امضا با کلید آزمایشی ثابت است (روی نسخهٔ آزمایشی قبلی نصب می‌شود)."

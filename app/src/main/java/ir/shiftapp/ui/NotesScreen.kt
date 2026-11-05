@@ -183,12 +183,12 @@ fun NotesSection(vm: MainVm, onHome: () -> Unit) {
 
 /** «یادآورهای نزدیک» برای صفحهٔ اول: حداکثر دو یادداشتِ دارای یادآور آینده. */
 @Composable
-internal fun UpcomingNotes(prefs: Prefs, onOpen: () -> Unit) {
+internal fun UpcomingNotes(prefs: Prefs, modifier: Modifier = Modifier, onOpen: () -> Unit) {
     val zone = remember { ZoneId.systemDefault() }
     val now = System.currentTimeMillis()
     val next = prefs.notes.filter { (it.reminderAt ?: 0L) > now }.sortedBy { it.reminderAt }.take(2)
     if (next.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SectionLabel("یادآورهای نزدیک")
         next.forEach { n ->
             val shape = MaterialTheme.shapes.large

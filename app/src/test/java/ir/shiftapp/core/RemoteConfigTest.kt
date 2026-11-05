@@ -69,9 +69,11 @@ class RemoteConfigTest {
 
     // ---- کد بخش پولی: باید با tools/shiftma_paid_code.py (کلید پیش‌فرض) یکی باشد ----
     @Test fun codeMatchesPythonTool() {
-        assertEquals("83492854", PaidAccess.codeFor("AB12CD34", "reading"))
-        assertEquals("32335686", PaidAccess.codeFor("AB12CD34", "sport"))
-        assertEquals("24992737", PaidAccess.codeFor("ZZZZ2222", "english"))
+        // با کلید آزمایشی (نه کلید واقعی)؛ مقدارها را همان الگوریتم tools/shiftma_paid_code.py با همین کلید می‌دهد
+        val k = "test-key-not-secret"
+        assertEquals("81314765", PaidAccess.codeFor("AB12CD34", "reading", k))
+        assertEquals("30291507", PaidAccess.codeFor("AB12CD34", "sport", k))
+        assertEquals("65409290", PaidAccess.codeFor("ZZZZ2222", "english", k))
     }
 
     @Test fun codeIsBoundToPhoneAndSection() {

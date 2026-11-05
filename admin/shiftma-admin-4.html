@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>پنل ادمین شیفت ما</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#3f51b5">
+<link rel="icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -92,9 +95,10 @@ details.gh .gridg{display:grid;grid-template-columns:repeat(auto-fit,minmax(180p
 <body>
 <header>
   <div class="wrap">
-    <h1>پنل ادمین شیفت ما</h1>
+    <h1>پنل ادمین شیفت ما <button class="btn sm" id="verBtn" type="button" style="vertical-align:middle;margin-inline-start:8px"></button></h1>
     <p>اعلان‌ها، تبلیغ‌ها، قفل بخش‌ها، برنامهٔ غذایی، فایل کاشی و کدهای باز شدن؛ همه در یک‌جا</p>
     <div class="bar" id="siteBar" role="group" aria-label="محل"></div>
+    <button class="btn sm" id="installBtn" hidden style="margin-top:8px">نصب پنل روی این دستگاه</button>
     <details class="gh" id="gh"></details>
   </div>
 </header>
@@ -111,14 +115,15 @@ const SITES0 = [['_public', 'عمومی (همهٔ کاربران)'], ['sungun', 
 const SECTIONS = [['payslips', 'فیش‌های من'], ['notes', 'یادداشت‌ها'], ['files', 'فایل‌های من'], ['income', 'دریافتی‌های ماهانه'], ['prayer', 'اوقات شرعی و قبله'], ['english', 'یادگیری انگلیسی'], ['pay', 'حقوق و اضافه‌کار'], ['sport', 'ورزش و تغذیه'], ['reading', 'مطالعه و کتابخوانی'], ['dhikr', 'ذکر، قضا و رمضان'], ['convert', 'تبدیل واحد'], ['age', 'محاسبهٔ سن'], ['datecv', 'مبدل تاریخ'], ['span', 'محاسبهٔ مدت'], ['imgcompress', 'کاهش حجم عکس'], ['phonebook', 'دفترچه تلفن'], ['meals', 'برنامه غذایی']];
 const PROTECTED = [['shift', 'جدول شیفت'], ['settings', 'تنظیمات'], ['about', 'درباره و اشتراک‌گذاری']];
 const STORE_LINK = 'https://cafebazaar.ir/app/ir.shiftapp.shiftma';
-const FILES = { notice: ['notice.json', 'adsRepo'], ad: ['ad.json', 'adsRepo'], config: ['config.json', 'adsRepo'], meals: ['meals.json', 'mealsRepo'] };
-const TABS = [['notice', 'اعلان‌ها'], ['ad', 'تبلیغ‌ها'], ['config', 'قفل و پنهان‌سازی بخش‌ها'], ['meals', 'برنامه غذایی'], ['tiles', 'فایل کاشی‌ها'], ['codes', 'کدها']];
+const FILES = { notice: ['notice.json', 'adsRepo'], ad: ['ad.json', 'adsRepo'], config: ['config.json', 'adsRepo'], meals: ['meals.json', 'mealsRepo'], regions: ['regions.json', 'adsRepo'] };
+const TABS = [['notice', 'اعلان‌ها'], ['ad', 'تبلیغ‌ها'], ['config', 'قفل و پنهان‌سازی بخش‌ها'], ['meals', 'برنامه غذایی'], ['tiles', 'فایل کاشی‌ها'], ['regions', 'منطقه‌ها'], ['codes', 'کدها']];
 
 /* ───────────── حالت برنامه ───────────── */
 const def = () => ({ gh: { user: 'Hamidsj1', adsRepo: 'shiftma-ads', mealsRepo: 'shiftma-meals', branch: 'main' },
-  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {} });
+  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {}, regions: { enabled: false, extra: {}, phones: {} } });
 let S; try { S = Object.assign(def(), JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { S = def(); }
 S.gh = Object.assign(def().gh, S.gh || {});
+S.regions = Object.assign({ enabled: false, extra: {}, phones: {} }, S.regions || {}); S.regions.extra = S.regions.extra || {}; S.regions.phones = S.regions.phones || {};
 let SEC = { special: '', paid: '', token: '' }, remember = false;
 try { const t = JSON.parse(localStorage.getItem(LSS) || 'null'); if (t) { SEC = Object.assign(SEC, t); remember = true; } } catch (e) {}
 function save() {
@@ -132,7 +137,7 @@ let refreshOut = () => {};
 const BLANK = {
   notice: () => ({ enabled: true, items: [] }),
   ad: () => ({ enabled: true, items: [] }),
-  config: () => ({ enabled: true, payLink: '', sections: {} }),
+  config: () => ({ enabled: true, payLink: '', sections: {}, sites: [] }),
   meals: () => ({ enabled: true, complexes: [] }),
   tiles: () => ({ sites: [], sections: { phonebook: false, meals: false }, publicAds: false, publicNotices: true, mealsFeed: '', adsFeed: '', noticeFeed: '', configFeed: '' }),
 };
@@ -252,7 +257,33 @@ function buildConfig() {
   if (sections.imgcompress === 'paid') iss.push(W('«کاهش حجم عکس» خودش خرید درون‌برنامه‌ای بازار دارد؛ قفل دوم از این پنل لازم نیست.'));
   if (paid.length) iss.push(W('قبل از انتشار قانون بازار دربارهٔ فروش با لینک پرداخت بیرونی را بررسی کنید.'));
   if (S.site === '_public') iss.push(W('config.json فقط از «فایل کاشی‌های» هر محل خوانده می‌شود؛ برای محل مشخص بسازید.'));
-  const obj = { enabled: d.enabled }; if (pl) obj.payLink = pl; obj.sections = sections;
+  // کانال به‌روزرسانی آدرس سایت‌ها: قواعد همان core/SiteUpdates.kt (https، بدون @ و IP، فقط سایتِ موجود با همان key)
+  const upd = [], ukeys = new Set();
+  (d.sites || []).forEach((u, i) => {
+    const n = `سایت ${i + 1}`, key = (u.key || '').trim().toLowerCase(), url = (u.url || '').trim(), title = (u.title || '').trim(), sub = (u.subtitle || '').trim();
+    if (!key && !url && !title && !sub) return;
+    if (!/^[a-z0-9_]{1,30}$/.test(key)) { iss.push(E(`${n}: شناسهٔ سایت (key) باید لاتین و حداکثر ۳۰ حرف باشد`)); return; }
+    let host = ''; try { host = new URL(url).hostname; } catch (e) {}
+    if (!url.startsWith('https://') || url.includes('@') || url.length > 600 || !host.includes('.') || /^[0-9.]+$/.test(host) || host.startsWith('[')) { iss.push(E(`${n}: آدرس باید https و بدون @ و IP باشد`)); return; }
+    if (title.length > 40 || sub.length > 60) { iss.push(E(`${n}: عنوان حداکثر ۴۰ و توضیح حداکثر ۶۰ حرف`)); return; }
+    if (ukeys.has(key)) { iss.push(E(`${n}: شناسهٔ تکراری`)); return; } ukeys.add(key);
+    const o = { key, url }; if (title) o.title = title; if (sub) o.subtitle = sub; upd.push(o);
+  });
+  // هم‌گام‌سازی خودکار با برگهٔ «کاشی‌ها»: آدرس/عنوان هر سامانهٔ دارای شناسه (key) همان محل، خودش به sites می‌رود
+  // (ورودی دستی همین برگه اولویت دارد). فایل کاشی‌ها فقط با «ورود فایل» به گوشی می‌رسد؛ تغییر آدرس بدون ورود فایل از همین کانال است.
+  const tdata = (S.data[S.site] || {}).tiles, auto = [];
+  if (tdata && tdata.sites) tdata.sites.forEach(t => {
+    const key = (t.key || '').trim().toLowerCase(), url = (t.url || '').trim(), title = (t.title || '').trim(), sub = (t.subtitle || '').trim();
+    if (!/^[a-z0-9_]{1,30}$/.test(key) || ukeys.has(key)) return;
+    let host = ''; try { host = new URL(url).hostname; } catch (e) {}
+    if (!url.startsWith('https://') || url.includes('@') || url.length > 600 || !host.includes('.') || /^[0-9.]+$/.test(host) || host.startsWith('[')) return;
+    if (title.length > 40 || sub.length > 60) return;
+    const o = { key, url }; if (title) o.title = title; if (sub) o.subtitle = sub; auto.push(o); ukeys.add(key);
+  });
+  if (auto.length) { upd.push(...auto); iss.push(W(`${auto.length} سامانه از برگهٔ «کاشی‌ها» خودکار در sites آمد (آدرس و عنوان همان‌ها)؛ اگر نمی‌خواهید عوض شوند، شناسه‌شان را از برگهٔ کاشی‌ها بردارید.`)); }
+  if (upd.length > 30) iss.push(E('حداکثر ۳۰ به‌روزرسانی سایت پذیرفته می‌شود'));
+  if (upd.length) iss.push(W('فقط سایت‌هایی عوض می‌شوند که از قبل در گوشی هستند و کاربر خودش ویرایششان نکرده؛ سایت تازه اضافه نمی‌شود.'));
+  const obj = { enabled: d.enabled }; if (pl) obj.payLink = pl; obj.sections = sections; if (upd.length) obj.sites = upd.slice(0, 30);
   return { obj, iss };
 }
 function buildMeals() {
@@ -277,7 +308,7 @@ function importInto(kind, text) {
   const j = JSON.parse(text), d = D(kind), s = v => (v == null ? '' : String(v));
   if (kind === 'notice') { d.enabled = j.enabled !== false; d.items = (j.items || []).map(o => ({ id: s(o.id), title: s(o.title), body: s(o.body), link: s(o.link), expires: s(o.expires) })); }
   if (kind === 'ad') { d.enabled = j.enabled !== false; d.items = (j.items || []).map(o => ({ id: s(o.id), image: s(o.image), link: s(o.link), title: s(o.title), tile: s(o.tile) })); }
-  if (kind === 'config') { d.enabled = j.enabled !== false; d.payLink = s(j.payLink); d.sections = {}; Object.entries(j.sections || {}).forEach(([k, v]) => { v = s(v).toLowerCase(); if (v === 'hide' || v === 'paid') d.sections[k.trim().toLowerCase()] = v; }); }
+  if (kind === 'config') { d.enabled = j.enabled !== false; d.payLink = s(j.payLink); d.sites = (j.sites || []).map(o => ({ key: s(o.key), url: s(o.url), title: s(o.title), subtitle: s(o.subtitle) })); d.sections = {}; Object.entries(j.sections || {}).forEach(([k, v]) => { v = s(v).toLowerCase(); if (v === 'hide' || v === 'paid') d.sections[k.trim().toLowerCase()] = v; }); }
   if (kind === 'meals') { d.enabled = j.enabled !== false; d.complexes = (j.complexes || []).map(o => ({ name: s(o.name), label: s(o.label), file: s(o.file) })); }
   if (kind === 'tiles') {
     if (j.type !== 'tiles') throw new Error('این فایل کاشی‌ها نیست');
@@ -331,14 +362,14 @@ async function ghRead(kind) {
   if (!r.ok) throw new Error('خطا در دریافت (' + r.status + ')');
   return r.text();
 }
-async function ghWrite(kind, text) {
+async function ghWrite(kind, text, site = S.site) {
   if (!SEC.token) throw new Error('توکن گیت‌هاب را در بخش «اتصال به گیت‌هاب» (بالای صفحه) وارد کنید');
-  const [file, repoKey] = FILES[kind], repo = S.gh[repoKey], path = pathOf(file);
+  const [file, repoKey] = FILES[kind], repo = S.gh[repoKey], path = pathOf(file, site);
   const api = `https://api.github.com/repos/${S.gh.user}/${repo}/contents/${path}`;
   const hd = { Authorization: 'Bearer ' + SEC.token, Accept: 'application/vnd.github+json' };
   let sha; const g = await fetch(api + '?ref=' + encodeURIComponent(S.gh.branch), { headers: hd, cache: 'no-store' });
   if (g.ok) sha = (await g.json()).sha; else if (g.status !== 404) throw new Error('خواندن فایل ناموفق بود (' + g.status + ')؛ توکن یا نام ریپو را بررسی کنید');
-  const r = await fetch(api, { method: 'PUT', headers: hd, body: JSON.stringify({ message: `پنل ادمین: ${file} ${siteName()}`, content: b64utf8(text), branch: S.gh.branch, sha }) });
+  const r = await fetch(api, { method: 'PUT', headers: hd, body: JSON.stringify({ message: `پنل ادمین: ${file} ${site === '_public' ? 'عمومی' : siteName()}`, content: b64utf8(text), branch: S.gh.branch, sha }) });
   if (!r.ok) { let m = ''; try { m = (await r.json()).message; } catch (e) {} throw new Error('ذخیره نشد (' + r.status + ') ' + (m || '')); }
 }
 
@@ -417,6 +448,55 @@ function tabNotice() {
   return shell('notice', 'اعلان‌ها (پنل نوتیفیکیشن)', `فایل ${siteName()}؛ برنامه هر ۳ ساعت و هنگام باز شدن آن را می‌گیرد.`, editor, h('div', { class: 'card' }, prev));
 }
 
+
+/* ───────────── نصب پنل (PWA) ───────────── */
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstall = e; const b = document.getElementById('installBtn'); b.hidden = false; b.onclick = async () => { deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall = null; b.hidden = true; }; });
+window.addEventListener('appinstalled', () => { document.getElementById('installBtn').hidden = true; });
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+/* ───────────── بنرساز (اندازهٔ استاندارد برنامه ۱۲۸۰×۲۰۰) ───────────── */
+const BANNER_W = 1280, BANNER_H = 200;
+function bannerMaker(onDone) {
+  const st = { title: '', sub: '', c1: '#3f51b5', c2: '#7e57c2', ink: '#ffffff', size: 64, align: 'right', bg: null, logo: null };
+  const cv = h('canvas', { width: BANNER_W, height: BANNER_H, style: 'width:100%;border-radius:10px;border:1px solid var(--line);aspect-ratio:6.4/1;background:#fff' });
+  const loadImg = f => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = URL.createObjectURL(f); });
+  const draw = async () => {
+    try { await document.fonts.load('800 48px Vazirmatn'); await document.fonts.load('400 30px Vazirmatn'); } catch (e) {}
+    const c = cv.getContext('2d'); c.clearRect(0, 0, BANNER_W, BANNER_H);
+    const g = c.createLinearGradient(0, 0, BANNER_W, 0); g.addColorStop(0, st.c1); g.addColorStop(1, st.c2); c.fillStyle = g; c.fillRect(0, 0, BANNER_W, BANNER_H);
+    if (st.bg) { const r = Math.max(BANNER_W / st.bg.width, BANNER_H / st.bg.height), w = st.bg.width * r, hh = st.bg.height * r; c.globalAlpha = .55; c.drawImage(st.bg, (BANNER_W - w) / 2, (BANNER_H - hh) / 2, w, hh); c.globalAlpha = 1; }
+    const PAD = 56, LOGO = 140; let left = PAD, right = BANNER_W - PAD;     // حاشیهٔ امن: برنامه در حالت باریک لبه‌ها را می‌برد
+    if (st.logo) { const r = Math.min(LOGO / st.logo.width, LOGO / st.logo.height), w = st.logo.width * r, hh = st.logo.height * r; const x = st.align === 'left' ? BANNER_W - PAD - w : PAD; c.drawImage(st.logo, x, (BANNER_H - hh) / 2, w, hh); if (st.align === 'left') right = x - 24; else left = x + w + 24; }
+    c.fillStyle = st.ink; c.direction = 'rtl'; c.textBaseline = 'middle';
+    const fam = 'Vazirmatn, Tahoma, sans-serif', hasSub = !!st.sub.trim();
+    const fit = (txt, wt, sz, maxW) => { let s = sz; c.font = `${wt} ${s}px ${fam}`; while (s > 18 && c.measureText(txt).width > maxW) { s -= 2; c.font = `${wt} ${s}px ${fam}`; } };
+    const mw = right - left, x = st.align === 'center' ? (left + right) / 2 : st.align === 'left' ? left : right;
+    c.textAlign = st.align === 'center' ? 'center' : st.align === 'left' ? 'left' : 'right';
+    if (st.title.trim()) { fit(st.title, 800, st.size, mw); c.fillText(st.title, x, hasSub ? BANNER_H * .38 : BANNER_H / 2); }
+    if (hasSub) { fit(st.sub, 400, Math.round(st.size * .5), mw); c.globalAlpha = .92; c.fillText(st.sub, x, BANNER_H * .72); c.globalAlpha = 1; }
+  };
+  const bind = (label, key, o = {}) => { const l = field(label, st, key, { ...o, onchange: () => draw() }); return l; };
+  const color = (label, key) => { const i = h('input', { type: 'color', value: st[key], style: 'height:38px;padding:2px;width:100%;cursor:pointer' }); i.addEventListener('input', () => { st[key] = i.value; draw(); }); return h('label', { class: 'f' }, h('span', { class: 'lb' }, label), i); };
+  const pick = (label, key) => { const fi = h('input', { type: 'file', accept: 'image/*', hidden: true }); fi.addEventListener('change', async () => { const f = fi.files[0]; fi.value = ''; if (f) { st[key] = await loadImg(f); draw(); } }); return h('span', {}, h('button', { class: 'btn sm', type: 'button', onclick: () => fi.click() }, label), ' ', h('button', { class: 'btn sm', type: 'button', onclick: () => { st[key] = null; draw(); } }, 'حذف'), fi); };
+  const align = h('select', {}, ...[['right', 'راست‌چین'], ['center', 'وسط'], ['left', 'چپ‌چین']].map(([v, t]) => h('option', { value: v }, t)));
+  align.addEventListener('change', () => { st.align = align.value; draw(); });
+  const toBlob = (type, q) => new Promise(r => cv.toBlob(r, type, q));
+  const makeFile = async () => { let b = await toBlob('image/png'); let ext = 'png'; if (b.size > 1400000) { b = await toBlob('image/jpeg', .9); ext = 'jpg'; } return new File([b], `banner.${ext}`, { type: b.type }); };
+  const dlg = $('#dlg');
+  const close = () => dlg.close();
+  dlg.replaceChildren(h('h3', {}, 'ساخت بنر (۱۲۸۰×۲۰۰)'), h('p', { class: 'sub' }, 'اندازهٔ دقیق بنر برنامه است. متن در حاشیهٔ امن می‌ماند تا در حالت افقی (باریک) بریده نشود.'), cv,
+    h('div', { class: 'two' }, bind('عنوان', 'title'), bind('زیرعنوان (اختیاری)', 'sub')),
+    h('div', { class: 'two' }, color('رنگ ابتدا', 'c1'), color('رنگ انتها', 'c2')),
+    h('div', { class: 'two' }, color('رنگ متن', 'ink'), h('label', { class: 'f' }, h('span', { class: 'lb' }, 'چینش'), align)),
+    h('div', { class: 'row', style: 'margin:6px 0 10px' }, pick('تصویر پس‌زمینه', 'bg'), pick('لوگو', 'logo')),
+    h('div', { class: 'row', style: 'justify-content:flex-end;gap:8px' },
+      h('button', { class: 'btn', onclick: close }, 'بستن'),
+      h('button', { class: 'btn', onclick: async () => { const f = await makeFile(); const a = h('a', { href: URL.createObjectURL(f), download: f.name }); document.body.append(a); a.click(); a.remove(); } }, 'دانلود تصویر'),
+      h('button', { class: 'btn pri', onclick: async e => { const b = e.target; b.disabled = true; try { const f = await makeFile(); const url = await ghUpload('adsRepo', f, { exts: ['png', 'jpg'], maxBytes: 1500000, prefix: 'banner' }); close(); onDone(url); toast('بنر ساخته و آپلود شد؛ آدرس در فیلد گذاشته شد.'); } catch (er) { toast(er.message, true); } finally { b.disabled = false; } } }, 'آپلود و استفاده')));
+  draw(); dlg.showModal();
+}
+
 /* ───────────── برگهٔ تبلیغ‌ها ───────────── */
 function tabAd() {
   const d = D('ad'), list = h('div');
@@ -432,7 +512,7 @@ function tabAd() {
           h('button', { class: 'btn sm del', onclick: () => { d.items.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف'))),
         box,
         field('نشانی تصویر بنر (https، ۱۲۸۰×۲۰۰، حداکثر ۱٫۵ مگابایت)', it, 'image', { ltr: true, ph: 'https://raw.githubusercontent.com/…/ad1.png', onchange: loadImg, hint: 'برای عوض کردن تصویر، نام فایل را هم عوض کنید؛ برنامه تصویرها را با نشانی کش می‌کند.' }),
-        h('div', { class: 'row', style: 'margin:-4px 0 10px' }, uploadBtn('آپلود تصویر از دستگاه', 'image/png,image/jpeg,image/webp,image/gif', 'adsRepo',
+        h('div', { class: 'row', style: 'margin:-4px 0 10px' }, h('button', { class: 'btn sm pri', type: 'button', onclick: () => bannerMaker(url => { it.image = url; draw(); refreshOut(); }) }, 'ساخت بنر'), uploadBtn('آپلود تصویر از دستگاه', 'image/png,image/jpeg,image/webp,image/gif', 'adsRepo',
           { exts: ['png', 'jpg', 'jpeg', 'webp', 'gif'], maxBytes: 1500000, prefix: 'banner' },
           url => { it.image = url; draw(); refreshOut(); },
           async f => { const z = await imgSize(f); if (z && (z[0] > 4000 || z[1] > 1500)) { toast(`ابعاد تصویر ${z[0]}×${z[1]} است؛ برنامه تصویر بزرگ‌تر از ۴۰۰۰×۱۵۰۰ را رد می‌کند`, true); return false; } if (z && Math.abs(z[0] / z[1] - 6.4) / 6.4 > 0.05) return confirm(`اندازهٔ تصویر ${z[0]}×${z[1]} است؛ اندازهٔ پیشنهادی ۱۲۸۰×۲۰۰ است و ممکن است بریده یا کشیده دیده شود. با این حال آپلود شود؟`); return true; }),
@@ -447,6 +527,36 @@ function tabAd() {
     h('button', { class: 'btn pri', onclick: () => { d.items.push({ id: '', image: '', link: '', title: '', tile: '' }); save(); draw(); refreshOut(); } }, '+ تبلیغ تازه'),
     h('p', { class: 'sub', style: 'margin-top:10px' }, 'حداکثر ۱۰ تبلیغ؛ در پنل صفحهٔ اول هر ۱۰ ثانیه جابه‌جا می‌شوند و برچسب «تبلیغ» دارند.'));
   return shell('ad', 'تبلیغ‌ها (پنل پایین صفحهٔ اول)', `فایل ${siteName()}${S.site === '_public' ? '؛ برای کاربر عمومی بازار' : '؛ فقط برای کاربرانی که فایل کاشی همین محل را وارد کرده‌اند'}.`, editor);
+}
+
+/* ───────────── به‌روزرسانی آدرس سایت‌ها (بدون وارد کردن فایل) ───────────── */
+/* کلیدهای موجود در برگهٔ «کاشی‌ها»؛ شناسهٔ به‌روزرسانی باید دقیقاً یکی از همین‌ها باشد وگرنه در گوشی اعمال نمی‌شود */
+function tileKeys() { return ((D('tiles').sites) || []).filter(t => t && t.key).map(t => ({ key: String(t.key).trim().toLowerCase(), title: t.title || '' })); }
+function keyField(u) {
+  const keys = tileKeys();
+  const warn = h('small', { style: 'color:#b3261e' });
+  const check = () => { const k = String(u.key || '').trim().toLowerCase(); warn.textContent = k && !keys.some(x => x.key === k) ? '⚠ این شناسه در برگهٔ «کاشی‌ها» نیست؛ در گوشی‌ها اعمال نمی‌شود.' : ''; };
+  const f = field('شناسهٔ سایت (key) — یکی از فهرست را انتخاب کنید', u, 'key', { ltr: true, ph: keys.length ? keys[0].key : 'ابتدا در برگهٔ کاشی‌ها key بدهید', onchange: check });
+  const id = 'dl' + Math.random().toString(36).slice(2, 8);
+  f.input.setAttribute('list', id);
+  f.append(h('datalist', { id }, ...keys.map(x => h('option', { value: x.key }, x.title))),
+    h('small', {}, keys.length ? 'موجود: ' + keys.map(x => `${x.key} (${x.title})`).join('، ') : 'هنوز سامانه‌ای با key در برگهٔ «کاشی‌ها» نیست.'), warn);
+  check();
+  return f;
+}
+function siteUpdatesEditor(d) {
+  if (!d.sites) d.sites = [];
+  const list = h('div');
+  const draw = () => list.replaceChildren(...d.sites.map((u, i) => h('div', { class: 'item' },
+    h('div', { class: 'row sp' }, h('span', {}, `سایت ${i + 1}`), h('button', { class: 'btn sm del', onclick: () => { d.sites.splice(i, 1); save(); draw(); refreshOut(); } }, 'حذف')),
+    keyField(u),
+    field('آدرس تازه (https)', u, 'url', { ltr: true, ph: 'https://' }),
+    field('عنوان تازه (اختیاری)', u, 'title', {}),
+    field('توضیح تازه (اختیاری)', u, 'subtitle', {}))));
+  draw();
+  return h('div', { style: 'margin-top:14px' }, h('h3', {}, 'به‌روزرسانی آدرس سایت‌ها'),
+    h('p', { class: 'sub' }, 'وقتی آدرس یک سامانه عوض شد، اینجا بنویسید تا در گوشی‌ها اصلاح شود. فقط سایت‌های موجود با همان شناسه؛ سایتی که کاربر خودش ویرایش کرده دست‌نخورده می‌ماند.'),
+    list, h('button', { class: 'btn', onclick: () => { d.sites.push({ key: '', url: '', title: '', subtitle: '' }); save(); draw(); refreshOut(); } }, '+ سایت'));
 }
 
 /* ───────────── برگهٔ قفل و پنهان‌سازی بخش‌ها ───────────── */
@@ -466,6 +576,7 @@ function tabConfig() {
   const editor = h('div', {}, toggle('قاعده‌ها اعمال شوند (خاموش = همه‌چیز نمایان و رایگان)', d, 'enabled'), h('div', { style: 'height:10px' }),
     field('لینک پرداخت برای بخش‌های پولی (https)', d, 'payLink', { ltr: true, ph: 'https://' }),
     h('table', {}, h('tbody', {}, rows)),
+    siteUpdatesEditor(d),
     h('p', { class: 'sub', style: 'margin-top:10px' }, 'تغییر تا حدود ۳ ساعت دیرتر به گوشی‌ها می‌رسد. برای باز کردن یک بخش پولی برای کاربر، از برگهٔ «کدها» کد بسازید.'));
   return shell('config', 'قفل و پنهان‌سازی بخش‌ها', `فایل config.json ${siteName()}`, editor);
 }
@@ -520,6 +631,8 @@ function buildTiles() {
   if (feeds.adsFeed) { obj.adsFeed = feeds.adsFeed; if (d.publicAds) obj.publicAds = true; }
   if (feeds.noticeFeed) { obj.noticeFeed = feeds.noticeFeed; if (!d.publicNotices) obj.publicNotices = false; }
   if (feeds.configFeed) obj.configFeed = feeds.configFeed;
+  // برچسب منطقه: فایل‌های بدون آدرس هم که دست‌به‌دست شوند، با این شناسه به منطقه‌شان وصل می‌شوند (برگهٔ «منطقه‌ها»)
+  if (S.site !== '_public' && KEY_RE.test(S.site)) obj.region = S.site;
   return { obj, iss };
 }
 function resizeLogo(file) {
@@ -569,6 +682,93 @@ function tabTiles() {
   const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'نام فایل: ', path, h('br'), 'این فایل را برای کاربران همان محل در تلگرام/ایتا بفرستید؛ با لمس آن در «شیفت ما» باز می‌شود.'), issues, ta,
     h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'), dl, h('button', { class: 'btn', onclick: () => openImport('tiles') }, 'وارد کردن فایل')));
   return h('div', { class: 'grid' }, h('div', { class: 'card' }, h('h2', {}, 'فایل کاشی‌ها'), h('p', { class: 'sub' }, `ساخت فایل .shiftma برای محل ${siteName()}: سامانه‌ها، بخش‌های مخفی و آدرس خوراک‌ها. نام کاربری و رمز هرگز داخل فایل نمی‌آید.`), editor), out);
+}
+
+/* ───────────── برگهٔ منطقه‌ها (regions.json عمومی) ───────────── */
+const HOST_OK = /^[a-z0-9]([a-z0-9.-]{0,98}[a-z0-9])?$/;
+/* اثرانگشت آدرس سامانه (همان الگوریتم RegionAssign.sig در برنامه؛ هر تغییر باید در هر دو انجام شود):
+   SHA-256 از «میزبان + مسیر» (حروف کوچک، بدون www.، بدون / آخر، بدون query و fragment)، ۱۲ نویسهٔ اول هگز. آدرس‌ها در فایل عمومی دیده نمی‌شوند. */
+function sigOf(u) {
+  try {
+    const x = new URL(String(u).trim()); if (x.protocol !== 'https:' && x.protocol !== 'http:') return '';
+    let p = x.pathname; try { p = decodeURIComponent(p); } catch (e) {}
+    const n = x.hostname.toLowerCase().replace(/^www\./, '') + p.toLowerCase().replace(/\/+$/, '');
+    return Array.from(sha256(new TextEncoder().encode(n)).slice(0, 6), b => b.toString(16).padStart(2, '0')).join('');
+  } catch (e) { return ''; }
+}
+/* اثرانگشت شماره‌ها (همان الگوریتم RegionAssign.phoneSigs در برنامه؛ هر تغییر باید در هر دو انجام شود): ورودی روی , ، ; / | شکسته می‌شود،
+   ارقام فارسی/عربی به لاتین، فقط رقم‌ها، اگر ≥۱۰ رقم ۱۰ رقم آخر، کمتر از ۳ رقم نادیده؛ SHA-256 و ۶ نویسهٔ اول هگز. خود شماره‌ها هرگز ذخیره نمی‌شوند. */
+function phoneSigs(list) {
+  const out = new Set();
+  list.forEach(raw => String(raw == null ? '' : raw).split(/[,،;\/|]+/).forEach(part => {
+    let d = part.replace(/[۰-۹]/g, c => c.charCodeAt(0) - 0x06F0).replace(/[٠-٩]/g, c => c.charCodeAt(0) - 0x0660).replace(/\D/g, '');
+    if (d.length >= 10) d = d.slice(-10);
+    if (d.length >= 3) out.add(Array.from(sha256(new TextEncoder().encode(d)).slice(0, 3), b => b.toString(16).padStart(2, '0')).join(''));
+  }));
+  return out;
+}
+function buildRegions() {
+  const R = S.regions, iss = [], regions = [];
+  // شماره‌های فقط‌متعلق‌به‌یک‌منطقه (مشترک‌ها حذف می‌شوند)
+  const seen = {}; Object.entries(R.phones).forEach(([k, a]) => (a || []).forEach(v => { (seen[v] = seen[v] || new Set()).add(k); }));
+  const uniquePhones = k => (R.phones[k] || []).filter(v => seen[v] && seen[v].size === 1).sort().slice(0, 2000);
+  if (!R.enabled) iss.push({ l: 'ok', m: 'خاموش است: برنامه‌ها هیچ کاری نمی‌کنند (enabled=false). برای فعال‌شدن روشنش کنید و منتشر کنید.' });
+  S.sites.filter(x => x.key !== '_public').forEach(x => {
+    const key = x.key, t = (S.data[key] || {}).tiles, hosts = new Set(), sigs = new Set();
+    if (!KEY_RE.test(key)) { iss.push(E(`شناسهٔ محل «${key}» معتبر نیست`)); return; }
+    const addUrl = u => { u = (u || '').trim(); const hh = hostOf(u), sg = sigOf(u); if (hh && hh.includes('.') && sg) { hosts.add(hh); sigs.add(sg); } };
+    if (t && t.sites) t.sites.forEach(y => addUrl(y.url));
+    // ورودی دستی: آدرس کامل (مثلاً سامانهٔ قدیمی‌ای که از فایل کاشی‌ها برداشته شده) یا فقط میزبان
+    String(R.extra[key] || '').split(/[\s,،;]+/).map(v => v.trim()).filter(Boolean).forEach(v => {
+      if (/^https?:\/\//i.test(v)) { if (hostOf(v)) addUrl(v); else iss.push(E(`${x.name}: آدرس «${v}» معتبر نیست`)); }
+      else { v = v.toLowerCase(); if (!v.includes('.') || !HOST_OK.test(v)) iss.push(E(`${x.name}: میزبان «${v}» معتبر نیست (مثل my.example.ir یا آدرس کامل https://…)`)); else hosts.add(v); }
+    });
+    const o = { id: key, hosts: [...hosts].sort(), sigs: [...sigs].sort(), phones: uniquePhones(key), configFeed: rawUrl(S.gh.adsRepo, pathOf('config.json', key)),
+      adsFeed: rawUrl(S.gh.adsRepo, pathOf('ad.json', key)), noticeFeed: rawUrl(S.gh.adsRepo, pathOf('notice.json', key)) };
+    if (t && t.publicAds) o.publicAds = true; if (t && t.publicNotices === false) o.publicNotices = false;
+    [o.configFeed, o.adsFeed, o.noticeFeed].forEach(u => { if (!ghOk(u)) iss.push(E(`${x.name}: آدرس خوراک باید https و روی گیت‌هاب باشد`)); });
+    if (o.sigs.length > 300) iss.push(E(`${x.name}: بیش از ۳۰۰ آدرس`));
+    regions.push(o);
+  });
+  if (regions.length > 40) iss.push(E('حداکثر ۴۰ منطقه پذیرفته می‌شود'));
+  if (!regions.length) iss.push(E('حداقل یک محل لازم است'));
+  if (!iss.some(z => z.l === 'err')) iss.push({ l: 'ok', m: regions.map(r => `${r.id}: ${r.sigs.length} آدرس، ${r.phones.length} شمارهٔ یکتا`).join('، ') + ' (فایل در ریشهٔ ریپوی عمومی ذخیره می‌شود)' });
+  return { obj: { enabled: !!R.enabled, regions: regions.slice(0, 40).map(r => { r.sigs = r.sigs.slice(0, 300); if (!r.phones.length) delete r.phones; return r; }) }, iss };
+}
+function tabRegions() {
+  const R = S.regions, file = 'regions.json', repo = S.gh.adsRepo;
+  const issues = h('ul', { class: 'issues' }), ta = h('textarea', { class: 'json', readonly: true, dir: 'ltr', rows: 16 });
+  const link = h('a', { target: '_blank', rel: 'noopener', style: 'font-size:12px;direction:ltr;display:inline-block;word-break:break-all', href: rawUrl(repo, file) }, rawUrl(repo, file));
+  const pub = h('button', { class: 'btn pri', onclick: async () => {
+    if (!confirm(`«${file}» عمومی روی گیت‌هاب ذخیره شود؟\n${S.gh.user}/${repo}/${file}\n(روی همهٔ گوشی‌ها اثر می‌گذارد)`)) return;
+    pub.disabled = true;
+    try { await ghWrite('regions', ta.value + '\n', '_public'); toast('در گیت‌هاب ذخیره شد. تا ۶ ساعت دیگر به گوشی‌ها می‌رسد.'); }
+    catch (e) { toast(e.message, true); } finally { update(); }
+  } }, 'انتشار در گیت‌هاب');
+  const update = () => {
+    const { obj, iss } = buildRegions(); ta.value = JSON.stringify(obj, null, 2);
+    issues.replaceChildren(...iss.map(x => h('li', { class: x.l }, x.m)));
+    pub.disabled = iss.some(x => x.l === 'err');
+  };
+  refreshOut = update;
+  const phoneRows = S.sites.filter(x => x.key !== '_public').map(x => {
+    const n = (R.phones[x.key] || []).length, info = h('small', {}, n ? `${n} اثرانگشت شماره ذخیره شده` : 'هنوز فایل مخاطبینی وارد نشده');
+    const fi = h('input', { type: 'file', accept: '.shiftma,.json,application/json', onchange: async () => {
+      try {
+        const f = fi.files[0]; if (!f) return; const j = JSON.parse(await f.text()); let list = [];
+        if (j.type === 'contacts') list = j.contacts || []; else if (j.type === 'bundle') list = j.contacts || []; else throw new Error('فایل مخاطبین نیست');
+        R.phones[x.key] = [...phoneSigs(list.flatMap(c => [c.mobile, c.landline]))].sort(); save(); render(); toast(`${R.phones[x.key].length} اثرانگشت ساخته شد (خود شماره‌ها ذخیره نمی‌شوند)`);
+      } catch (e) { toast('فایل خوانده نشد: ' + e.message, true); }
+    } });
+    return h('div', { class: 'f' }, h('span', { class: 'lb' }, `فایل مخاطبین ${x.name} (شاخص کمکی)`), h('div', { class: 'row' }, fi, n ? h('button', { class: 'btn sm del', onclick: () => { delete R.phones[x.key]; save(); render(); } }, 'حذف') : null), info);
+  });
+  const rows = S.sites.filter(x => x.key !== '_public').map(x => field(`میزبان‌های اضافه برای ${x.name} (${x.key})`, R.extra, x.key, { ltr: true, ph: 'https://my.example.ir/old-portal, other.example.ir', hint: 'سامانه‌های برگهٔ «فایل کاشی‌ها»ی همین محل خودکار می‌آیند؛ اینجا فقط موارد اضافه (مثلاً سامانه‌ای که از فایل‌های قدیمی مانده) را بنویسید.' }));
+  const editor = h('div', {}, toggle('تطبیق خودکار منطقه فعال باشد (خاموش = برنامه‌ها هیچ کاری نمی‌کنند)', R, 'enabled'), h('div', { style: 'height:10px' }), ...rows, h('h3', { style: 'margin-top:14px' }, 'شاخص کمکی: دفترچه تلفن'), h('p', { class: 'sub' }, 'فایل مخاطبین هر محل را وارد کنید؛ فقط شماره‌هایی که در یک منطقه هست (نه مشترک‌ها) به‌صورت اثرانگشت کوتاه در فایل عمومی می‌رود. برنامه فقط با ۳ شمارهٔ یکتا یا بیشتر حساب می‌کند و هرگز بر آدرس سامانه‌ها غلبه نمی‌کند.'), ...phoneRows,
+    h('p', { class: 'sub', style: 'margin-top:10px' }, 'برنامه این فایل را بدون هیچ پیامی بررسی می‌کند: اگر گوشی کاربر configFeed ندارد و میزبان سامانه‌هایش (یا برچسب region فایلش) یک منطقه را روشن مشخص کند (آدرس کامل سامانه‌ها، بعد میزبان‌ها)، آدرس‌های همان منطقه را اضافه می‌کند.'));
+  update();
+  const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'مسیر در ریپو: ', h('code', { class: 'path' }, `${repo}/${file}`), h('br'), link), issues, ta,
+    h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn', onclick: () => copyText(ta.value, 'JSON') }, 'کپی'), h('button', { class: 'btn', onclick: () => download(file, ta.value + '\n') }, 'دانلود'), pub));
+  return h('div', { class: 'grid' }, h('div', { class: 'card' }, h('h2', {}, 'منطقه‌ها'), h('p', { class: 'sub' }, 'فایل عمومی regions.json: وصل‌کردن خودکار گوشی‌هایی که فایل کاشی‌شان بدون configFeed دست‌به‌دست شده.'), editor), out);
 }
 
 /* ───────────── کدها (HMAC-SHA256) ───────────── */
@@ -664,7 +864,7 @@ function drawSites() {
 }
 
 /* ───────────── رندر اصلی ───────────── */
-const VIEWS = { notice: tabNotice, ad: tabAd, config: tabConfig, meals: tabMeals, tiles: tabTiles, codes: tabCodes };
+const VIEWS = { notice: tabNotice, ad: tabAd, config: tabConfig, meals: tabMeals, tiles: tabTiles, regions: tabRegions, codes: tabCodes };
 function render() {
   drawSites();
   $('#tabs').replaceChildren(...TABS.map(([k, n]) => h('button', { role: 'tab', 'aria-selected': String(S.tab === k), onclick: () => { S.tab = k; save(); render(); } }, n)));
@@ -672,8 +872,22 @@ function render() {
   $('#view').replaceChildren(VIEWS[S.tab]());
   save();
 }
+/* نسخهٔ پنل: با هر تغییر پنل عدد و فهرست زیر را به‌روز کنید تا روشن باشد کاربر نسخهٔ تازه را دارد */
+const PANEL_VERSION = '1.0.30 · 1405/08/14';
+const PANEL_CHANGES = [
+  ['1.0.30', ['برگهٔ «منطقه‌ها»: ساخت regions.json عمومی برای وصل‌کردن خودکار گوشی‌های بدون configFeed', 'اثرانگشت آدرس کامل سامانه‌ها (نه فقط میزبان) و شماره‌های یکتای دفترچه به‌عنوان شاخص کمکی', 'فایل کاشی‌ها کلید region (شناسهٔ محل) را می‌گذارد']],
+  ['قبل از 1.0.30', ['فهرست کلیدها و انتخاب کلید سامانه', 'سازندهٔ بنر با اندازهٔ مناسب برنامه', 'قابل نصب به‌صورت PWA (نیاز به HTTPS)']]
+];
+$('#verBtn').textContent = 'نسخه ' + PANEL_VERSION.split(' ')[0];
+$('#verBtn').title = PANEL_VERSION;
+$('#verBtn').addEventListener('click', () => {
+  const dlg = $('#dlg');
+  dlg.replaceChildren(h('h3', {}, 'نسخهٔ پنل ' + PANEL_VERSION), ...PANEL_CHANGES.flatMap(([v, l]) => [h('h4', { style: 'margin:10px 0 4px' }, v), h('ul', {}, ...l.map(x => h('li', {}, x)))]),
+    h('div', { class: 'row', style: 'margin-top:12px' }, h('button', { class: 'btn pri', onclick: () => dlg.close() }, 'بستن')));
+  dlg.showModal();
+});
 drawGh(); render();
-window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
+window.__admin = { PANEL_VERSION, S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, sigOf, phoneSigs, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
 </script>
 </body>
 </html>

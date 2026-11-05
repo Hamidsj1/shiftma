@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 
     private fun handleIncoming(i: Intent?) {
         i?.getStringExtra(EXTRA_SECTION)?.takeIf { it in SECTION_IDS }?.let { launchSection = it }
+        i?.getStringExtra(EXTRA_SITE_URL)?.takeIf { it.startsWith("https://") }?.let { launchSection = "site:$it" }
         val uri = when (i?.action) {
             Intent.ACTION_VIEW -> i.data
             // «اشتراک‌گذاری ← شیفت ما»: فایل در clipData یا EXTRA_STREAM می‌آید
@@ -107,7 +108,9 @@ class MainActivity : ComponentActivity() {
 }
 
 const val EXTRA_SECTION = "section"
-private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income")
+/** آدرس سامانه‌ای که ویجت خواسته باز شود؛ فقط اگر در سامانه‌های کاربر باشد باز می‌شود. */
+const val EXTRA_SITE_URL = "site_url"
+private val SECTION_IDS = setOf("shift", "phonebook", "notes", "english", "prayer", "pay", "sport", "reading", "payslips", "books", "income", "planner", "home")
 /** بخش‌هایی که فقط با دسترسی ویژه (رمز روزانه) باز می‌شوند. */
 private val SPECIAL_SECTIONS = setOf("phonebook", "meals")
 
@@ -122,7 +125,16 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
     val ctx = LocalContext.current
     val special by vm.specialOn.collectAsState()
     val prefs by vm.prefs.collectAsState()
-    LaunchedEffect(launch) { if (launch != null) { section = launch; onLaunchConsumed() } }
+    LaunchedEffect(launch, prefs.sitesRaw) {
+        if (launch != null) {
+            if (launch.startsWith("site:")) {
+                val u = launch.removePrefix("site:")
+                if (TilesPackFile.decodeSites(prefs.sitesRaw).any { it.url == u }) { section = null; portal = u }
+                else if (prefs.sitesRaw.isEmpty()) return@LaunchedEffect      // تنظیمات هنوز بارگذاری نشده؛ صبر کن
+            } else section = if (launch == "home") null else launch
+            onLaunchConsumed()
+        }
+    }
     // بخش‌های مخفی تا وقتی دسترسی ویژه فعال نشده باز نمی‌شوند (مثلاً از میانبر ویجت)
     val enabledSections by vm.enabledSections.collectAsState()
     val sites = remember(prefs.sitesRaw) { TilesPackFile.decodeSites(prefs.sitesRaw) }
@@ -130,6 +142,8 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
     LaunchedEffect(prefs.noticeFeed, prefs.noticePublic) { NoticeLoader.setLocal(ctx, prefs.noticeFeed, prefs.noticePublic) }
     // آدرس تنظیمات بخش‌ها (نمایش/پنهان/پولی) را هم برای کارگر پس‌زمینه نگه دار
     LaunchedEffect(prefs.configFeed) { ConfigLoader.setFeed(ctx, prefs.configFeed) }
+    // فایل کاشی‌های دست‌به‌دست‌شده بدون آدرس: اگر منطقه‌اش از قاعده‌های عمومی معلوم است، بی‌صدا وصل شود (فقط وقتی configFeed خالی است)
+    LaunchedEffect(prefs.sitesRaw, prefs.configFeed) { ir.shiftapp.system.RegionLoader.check(ctx) }
     val remote by ConfigLoader.config.collectAsState()
     var paidTick by remember { mutableIntStateOf(0) }      // بعد از باز شدن قفل، وضعیت دوباره خوانده شود
     // برنامه غذایی شرکت: فقط وقتی آدرس خوراک از فایل کاشی‌ها ذخیره شده و بخش در دسترس است؛ کاربر عمومی هیچ درخواستی نمی‌فرستد
@@ -157,6 +171,7 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
             "files" -> FilesSection(docsVm) { section = null }
             "books" -> ReadingSection(vm, initialTab = 1, initialLibFiles = true) { section = null }   // کاشی کتاب‌ها با مطالعه یکی شد؛ شناسهٔ قدیمی (میانبر) هنوز کار می‌کند
             "notes" -> NotesSection(vm) { section = null }
+            "planner" -> PlannerSection(vm) { section = null }
             "english" -> EnglishSection(vm) { section = null }
             "prayer" -> PrayerSection(vm) { section = null }
             "dhikr" -> DhikrSection(vm) { section = null }
@@ -247,6 +262,7 @@ fun ShiftSection(vm: MainVm, onHome: () -> Unit) {
     val drawerScope = rememberCoroutineScope()
     LaunchedEffect(msg) { msg?.let { snack.showSnackbar(it); vm.message.value = null } }
     val inSub = more != null
+    val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     BackHandler { if (inSub) more = null else onHome() }
     BackHandler(enabled = drawer.isOpen) { drawerScope.launch { drawer.close() } }
     ModalNavigationDrawer(
@@ -273,9 +289,11 @@ fun ShiftSection(vm: MainVm, onHome: () -> Unit) {
                     onMenu = { drawerScope.launch { drawer.open() } }
                 )
             },
-            bottomBar = { ShiftNavBar(if (inSub) -1 else tab) { i -> tab = i; more = null } }
+            bottomBar = { if (!landscape) ShiftNavBar(if (inSub) -1 else tab) { i -> tab = i; more = null } }
         ) { pad ->
-            Box(Modifier.padding(pad).fillMaxSize().padding(horizontal = 16.dp)) {
+            Row(Modifier.padding(pad).fillMaxSize()) {
+            if (landscape) ShiftNavRail(if (inSub) -1 else tab) { i -> tab = i; more = null }      // افقی: ستون کناری به‌جای نوار پایین تا ارتفاع نخورد
+            Box(Modifier.weight(1f).fillMaxHeight().padding(horizontal = 16.dp)) {
                 when {
                     !loaded -> Unit
                     inSub -> MoreScreen(vm, more) { more = it }
@@ -288,7 +306,24 @@ fun ShiftSection(vm: MainVm, onHome: () -> Unit) {
                     }
                 }
             }
+            }
         }
+    }
+}
+
+@Composable
+private fun ShiftNavRail(selected: Int, onSelect: (Int) -> Unit) {
+    NavigationRail(containerColor = MaterialTheme.colorScheme.surface) {
+        Spacer(Modifier.weight(1f))
+        TABS.forEachIndexed { i, t ->
+            NavigationRailItem(
+                selected = selected == i, onClick = { onSelect(i) },
+                icon = { Icon(painterResource(TAB_ICONS[i]), contentDescription = null) },
+                label = { Text(t, style = MaterialTheme.typography.labelMedium, maxLines = 1) },
+                alwaysShowLabel = true
+            )
+        }
+        Spacer(Modifier.weight(1f))
     }
 }
 

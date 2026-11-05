@@ -20,10 +20,19 @@ android {
         applicationId = "ir.shiftapp.shiftma"   // قبل از اولین انتشار به شناسهٔ دلخواه خودتان تغییر دهید؛ بعد از انتشار قابل تغییر نیست
         minSdk = 26            // java.time بدون desugaring
         targetSdk = 34
-        versionCode = 1           // با هر انتشار جدید یکی زیاد شود
-        versionName = "1.0.0"
+        versionCode = 31           // با هر انتشار جدید یکی زیاد شود
+        versionName = "1.0.30"
     }
     signingConfigs {
+        // کلید آزمایشیِ ثابت (فقط برای ساخت‌های CI/debug؛ هرگز برای انتشار بازار): بدون آن هر ساخت CI کلید debug تازه می‌ساخت و
+        // نصب روی نسخهٔ قبلی ممکن نبود. جزئیات: docs/TEST_SIGNING.md
+        getByName("debug") {
+            val f = rootProject.file("ci/test-signing.p12")
+            if (f.isFile) {
+                storeFile = f; storeType = "pkcs12"
+                storePassword = "shiftma-test"; keyAlias = "shiftma-test"; keyPassword = "shiftma-test"
+            }
+        }
         create("release") {
             if (keystoreProps.isNotEmpty()) {
                 storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
@@ -44,6 +53,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     buildFeatures { compose = true }
+    testOptions { unitTests { isIncludeAndroidResources = true } }      // Robolectric: ساخت واقعی لایهٔ ویجت‌ها در تست
 }
 
 dependencies {
@@ -64,4 +74,5 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
+    testImplementation("org.robolectric:robolectric:4.12.2")
 }

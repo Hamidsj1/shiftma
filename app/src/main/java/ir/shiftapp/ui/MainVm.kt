@@ -106,6 +106,19 @@ class MainVm(app: Application) : AndroidViewModel(app) {
         DefaultTiles.markSeeded(app)
     }
     init { viewModelScope.launch { seedDefaultTiles() } }
+    // به‌روزرسانی آدرس سایت‌ها از config.json (فقط سایت‌های موجود و ویرایش‌نشدهٔ کاربر)؛ بدون تغییر = بدون نوشتن
+    init {
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(ir.shiftapp.system.ConfigLoader.config, prefs.map { it.sitesRaw }.distinctUntilChanged()) { c, raw -> c.siteUpdates to raw }
+                .collect { (updates, raw) ->
+                    val old = TilesPackFile.decodeSites(raw)
+                    val fresh = SiteUpdates.apply(old, updates) ?: return@collect
+                    fresh.filter { n -> old.firstOrNull { it.key == n.key }?.url != n.url }.forEach { SiteIcon.forget(getApplication<Application>(), it.key) }
+                    ir.shiftapp.system.UpdateLog.addChanges(getApplication<Application>(), SiteUpdates.changes(old, fresh))
+                    setPref(PrefKeys.SITES, TilesPackFile.encodeSites(fresh))
+                }
+        }
+    }
     val pendingTiles = MutableStateFlow<TilesPack?>(null)
 
     /** مخاطبینِ یک فایل «مخاطبین + سامانه‌ها» که تا تمام شدن پنجرهٔ کاشی‌ها منتظر می‌مانند. */
@@ -161,6 +174,29 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             SpecialAccess.addSections(getApplication<Application>(), pack.sections)
             enabledSections.value = currentSections()
         }
+        applyFeeds(pack)
+        val parts = ArrayList<String>()
+        if (sites.isNotEmpty()) parts.add("${Fa.num(sites.size)} سامانه")
+        if (pack.sections.isNotEmpty()) parts.add("${Fa.num(pack.sections.size)} بخش")
+        if (pack.mealsFeed.isNotEmpty()) parts.add("دریافت خودکار برنامه غذایی")
+        if (pack.noticeFeed.isNotEmpty()) parts.add("اعلان‌های محل کار")
+        if (parts.isNotEmpty()) message.value = parts.joinToString(" و ") + " اضافه شد"
+        releaseHeldMeals()
+    }
+
+    /**
+     * بستهٔ «فقط‌خوراک» (بدون سامانه و بخش؛ مثلاً آدرس‌های منطقه که همراه فایل الگو/مخاطبین می‌آید) پنجرهٔ تأیید ندارد:
+     * بی‌صدا اعمال می‌شود و کاربر چیزی از آن نمی‌بیند. برای بستهٔ دارای سامانه/بخش خودش را برمی‌گرداند تا پنجرهٔ تأیید بیاید.
+     */
+    private fun silentFeedsOnly(t: TilesPack?): TilesPack? {
+        if (t == null || t.sites.isNotEmpty() || t.sections.isNotEmpty()) return t
+        applyFeeds(t)
+        return null
+    }
+
+    /** آدرس‌های خوراک (غذا، تبلیغ، اعلان، تنظیمات) را ذخیره می‌کند؛ فقط غیرخالی‌ها؛ نبودن کلید یعنی دست نزن. */
+    private fun applyFeeds(pack: TilesPack) {
+        if (pack.region.isNotEmpty()) ir.shiftapp.system.RegionLoader.setRegionTag(getApplication<Application>(), pack.region)      // برچسب منطقهٔ فرستنده
         // آدرس خوراک برنامه غذایی شرکت: فقط با تأیید همین فایل کاشی‌ها ذخیره می‌شود؛ بدونش هیچ درخواستی به اینترنت نمی‌رود
         if (pack.mealsFeed.isNotEmpty()) setPref(PrefKeys.MEAL_FEED, pack.mealsFeed)
         if (pack.adsFeed.isNotEmpty()) {      // تبلیغ همین محل؛ تبلیغ عمومی فقط اگر فایل بخواهد کنارش بماند
@@ -176,14 +212,6 @@ class MainVm(app: Application) : AndroidViewModel(app) {
             setPref(PrefKeys.CONFIG_FEED, pack.configFeed)
             ConfigLoader.setFeed(getApplication<Application>(), pack.configFeed)
         }
-        val parts = ArrayList<String>()
-        if (sites.isNotEmpty()) parts.add("${Fa.num(sites.size)} سامانه")
-        if (pack.sections.isNotEmpty()) parts.add("${Fa.num(pack.sections.size)} بخش")
-        if (pack.mealsFeed.isNotEmpty()) parts.add("دریافت خودکار برنامه غذایی")
-        if (pack.noticeFeed.isNotEmpty()) parts.add("اعلان‌های محل کار")
-        if (pack.configFeed.isNotEmpty()) parts.add("تنظیمات بخش‌های محل کار")
-        if (parts.isNotEmpty()) message.value = parts.joinToString(" و ") + " اضافه شد"
-        releaseHeldMeals()
     }
 
     /**
@@ -253,6 +281,25 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun resetStrip(strip: Strip) {
         setPref(strip.listKey, "")
         if (strip == Strip.ESSENTIAL) setPref(PrefKeys.ESS_SITES, "")
+    }
+
+    /** ویرایش عنوان/آدرس/توضیح یک سایت (کلید و پس‌نشان و رمز ذخیره‌شده می‌مانند). بعدش به‌روزرسانی راه‌دور به آن دست نمی‌زند. */
+    fun editSite(key: String, title: String, url: String, subtitle: String): String? {
+        val t = title.trim(); val sub = subtitle.trim()
+        var u = url.trim()
+        if (u.isNotEmpty() && !u.contains("://")) u = "https://$u"
+        if (t.isEmpty()) return "عنوان را بنویس"
+        if (t.length > TilesPackFile.MAX_TITLE) return "عنوان حداکثر ${Fa.num(TilesPackFile.MAX_TITLE)} حرف باشد"
+        if (sub.length > TilesPackFile.MAX_SUB) return "توضیح حداکثر ${Fa.num(TilesPackFile.MAX_SUB)} حرف باشد"
+        if (u.startsWith("http://")) return "فقط آدرس امن (https) پذیرفته می‌شود"
+        if (!u.startsWith("https://") || TilesPackFile.hostOf(u).isEmpty() || u.length > TilesPackFile.MAX_URL) return "آدرس درست نیست (مثل example.com)"
+        val old = TilesPackFile.decodeSites(prefs.value.sitesRaw)
+        val cur = old.firstOrNull { it.key == key } ?: return "این سایت دیگر نیست"
+        if (old.any { it.key != key && it.url.equals(u, ignoreCase = true) }) return "این آدرس قبلاً اضافه شده"
+        if (!cur.url.equals(u, ignoreCase = true)) SiteIcon.forget(getApplication<Application>(), key)
+        setPref(PrefKeys.SITES, TilesPackFile.encodeSites(old.map { if (it.key == key) SiteTile(key, t, sub, u, cur.pdf, cur.logo, edited = true) else it }))
+        message.value = "«$t» ویرایش شد"
+        return null
     }
 
     fun removeSite(key: String) {
@@ -357,13 +404,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     fun goToday() { JalaliDate.today().let { month.value = JalaliDate(it.year, it.month, 1) } }
 
     fun savePattern(id: Long, name: String, company: String, y: Int, m: Int, d: Int, codes: List<Int>, assignSlot: Int? = null, selectNew: Boolean = false,
-                    supervisor: String = "", headSupervisor: String = "", section: String = ""): String? = try {
+                    supervisor: String = "", headSupervisor: String = "", section: String = "", setName: String? = null): String? = try {
         require(name.isNotBlank()) { "نام الگو را وارد کنید" }
         require(JalaliDate(y, m, d).isValid) { "تاریخ مبنا نامعتبر است" }
         val pat = ShiftPattern.of(codes).serialize()
         viewModelScope.launch {
-            if (id == 0L) { val nid = dao.insert(PatternEntity(0, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim())); if (selectNew || selected.value == null) select(nid); assignSlot?.let { setSlot(it, nid) } }
-            else dao.update(PatternEntity(id, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim()))
+            if (id == 0L) { val nid = dao.insert(PatternEntity(0, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim(), setName.orEmpty().trim())); if (selectNew || selected.value == null) select(nid); assignSlot?.let { setSlot(it, nid) } }
+            else dao.update(PatternEntity(id, name.trim(), company.trim(), y, m, d, pat, supervisor.trim(), headSupervisor.trim(), section.trim(), setName ?: patterns.value.firstOrNull { it.id == id }?.setName.orEmpty()))
         }; null
     } catch (e: IllegalArgumentException) { e.message }
 
@@ -412,7 +459,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                 when (inc) {
                     is Incoming.Patterns -> pendingImport.value = inc.list
                     is Incoming.Contacts -> {
-                        val t = inc.tiles
+                        val t = silentFeedsOnly(inc.tiles)
                         if (t != null) { heldContacts = inc.list; heldPrefix = inc.prefix; pendingTiles.value = t }      // فایل مخاطبین + سامانه‌ها: اول کاشی‌ها، بعد مخاطبین
                         else showContacts(inc.list, inc.prefix)
                     }
@@ -420,12 +467,13 @@ class MainVm(app: Application) : AndroidViewModel(app) {
                     is Incoming.Tiles -> pendingTiles.value = inc.pack
                     is Incoming.Bundle -> {
                         val b = inc.bundle
+                        val bTiles = silentFeedsOnly(b.tiles)      // آدرس‌های منطقهٔ فرستنده بی‌صدا اعمال می‌شود
                         // فایل ارسال انتخابی: اول الگوها، بعد کاشی‌ها، بعد برنامه غذایی، آخر مخاطبین
                         heldContacts = b.contacts.takeIf { it.isNotEmpty() }
                         heldPrefix = b.prefix
                         heldMeals = b.meals.takeIf { it.isNotEmpty() }
-                        if (b.patterns.isNotEmpty()) { heldTiles = b.tiles; pendingImport.value = b.patterns }
-                        else if (b.tiles != null) pendingTiles.value = b.tiles
+                        if (b.patterns.isNotEmpty()) { heldTiles = bTiles; pendingImport.value = b.patterns }
+                        else if (bTiles != null) pendingTiles.value = bTiles
                         else releaseHeldMeals()
                     }
                 }
@@ -466,11 +514,11 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
 
     /** ساخت همهٔ گروه‌های یک الگوی آماده (A, B, ...) با فاصلهٔ شروع مشخص؛ گروه‌ها در تب چهارشیفت هم قرار می‌گیرند. */
-    fun createCrews(preset: PatternPreset, company: String, start: JalaliDate, headSupervisor: String = "", section: String = ""): String? {
+    fun createCrews(preset: PatternPreset, company: String, start: JalaliDate, headSupervisor: String = "", section: String = "", mine: Int = 0): String? {
         for (i in 0 until preset.crews) {
             val d = start.plusDays(preset.slotOf(i) * preset.offsetDays)
             val err = savePattern(0L, ('A' + i).toString(), company, d.year, d.month, d.day, preset.codes,
-                if (i < FourShiftTable.SLOTS) i else null, i == 0, "", headSupervisor, section)
+                if (i < FourShiftTable.SLOTS) i else null, i == mine, "", headSupervisor, section, setName = preset.title)
             if (err != null) return err
         }
         return null

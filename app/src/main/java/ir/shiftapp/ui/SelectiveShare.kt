@@ -183,11 +183,12 @@ suspend fun shareBundleFile(
         try {
             val dir = File(ctx.cacheDir, "share").apply { mkdirs() }
             val f = File(dir, "ShiftMa-selected.${PatternFile.EXT}")
+            val feeds = ir.shiftapp.system.RegionLoader.currentFeeds(ctx) ?: ir.shiftapp.core.Feeds.NONE
             var json = if (pbVm != null && contacts.isNotEmpty())
-                BundleFile.toJson(patterns, sites, contacts, { pbVm.photoBytes(it.photo) }, meals, prefix)
-            else BundleFile.toJson(patterns, sites, contacts, meals = meals, prefix = prefix)
+                BundleFile.toJson(patterns, sites, contacts, { pbVm.photoBytes(it.photo) }, meals, prefix, feeds)
+            else BundleFile.toJson(patterns, sites, contacts, meals = meals, prefix = prefix, feeds = feeds)
             if (json.length > BundleFile.MAX_CHARS && contacts.isNotEmpty()) {      // عکس‌ها فایل را از سقف می‌برد: بدون عکس بساز
-                json = BundleFile.toJson(patterns, sites, contacts, meals = meals, prefix = prefix); photosDropped = true
+                json = BundleFile.toJson(patterns, sites, contacts, meals = meals, prefix = prefix, feeds = feeds); photosDropped = true
             }
             if (json.length > BundleFile.MAX_CHARS) { tooBig = true; null }      // گیرنده فایل بزرگ‌تر از سقف را نمی‌پذیرد
             else {
