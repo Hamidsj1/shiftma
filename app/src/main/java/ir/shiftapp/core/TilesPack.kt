@@ -14,9 +14,10 @@ class SiteTile(val key: String, val title: String, val subtitle: String, val url
  * + [mealsFeed] اختیاری: آدرس خوراک برنامه غذایی شرکت (MealFeed) و [adsFeed] اختیاری: آدرس خوراک تبلیغ همان محل (AdFeed.feeds) و [publicAds]: کاربر این محل تبلیغ عمومی را هم ببیند (پیش‌فرض نه).
  * [noticeFeed] اختیاری: خوراک اعلان‌های «محلی» همین محل (NoticeFeed، گیت‌هاب) و [publicNotices]: کنارش اعلان‌های عمومی برنامه هم برسد (پیش‌فرض بله).
  * [configFeed] اختیاری: آدرس config.json همین محل (RemoteConfigFile، گیت‌هاب) برای نمایش/پنهان/پولی کردن بخش‌ها.
+ * [region] اختیاری: شناسهٔ محل فرستنده (مثل sungun)؛ فایل‌های بدون آدرس هم با آن به منطقه‌شان وصل می‌شوند (RegionAssign).
  * خالی = دریافت خودکار ندارد / تبلیغ عمومی.
  */
-class TilesPack(val sites: List<SiteTile>, val sections: Set<String>, val mealsFeed: String = "", val adsFeed: String = "", val publicAds: Boolean = false, val noticeFeed: String = "", val publicNotices: Boolean = true, val configFeed: String = "")
+class TilesPack(val sites: List<SiteTile>, val sections: Set<String>, val mealsFeed: String = "", val adsFeed: String = "", val publicAds: Boolean = false, val noticeFeed: String = "", val publicNotices: Boolean = true, val configFeed: String = "", val region: String = "")
 
 /**
  * بستهٔ کاشی‌ها با همان پسوند `.shiftma` (type = "tiles"). پیش‌فرض‌ها از `assets/default_tiles.shiftma` می‌آیند (system/DefaultTiles.kt)؛
@@ -27,9 +28,11 @@ class TilesPack(val sites: List<SiteTile>, val sections: Set<String>, val mealsF
  * آدرس‌های خوراک «منطقه» (برنامه غذایی، بنر/تبلیغ، اعلان، تنظیمات راه‌دور). این‌ها باید همراه هر فایل ارسالی بروند
  * تا گیرنده‌ای که فایل را دست‌به‌دست گرفته هم به همان منطقه وصل شود. خالی = آن خوراک را ندارد.
  */
-class Feeds(
+data class Feeds(
     val mealsFeed: String = "", val adsFeed: String = "", val publicAds: Boolean = false,
-    val noticeFeed: String = "", val publicNotices: Boolean = true, val configFeed: String = ""
+    val noticeFeed: String = "", val publicNotices: Boolean = true, val configFeed: String = "",
+    /** برچسب منطقه (شناسهٔ محل)؛ همراه آدرس‌ها می‌رود و تنها نمی‌تواند فایل را معتبر کند. */
+    val region: String = ""
 ) {
     val isEmpty: Boolean get() = mealsFeed.isEmpty() && adsFeed.isEmpty() && noticeFeed.isEmpty() && configFeed.isEmpty()
     companion object { val NONE = Feeds() }
@@ -109,18 +112,19 @@ object TilesPackFile {
         if (f.adsFeed.isNotEmpty() && f.publicAds) put("publicAds", true)
         if (f.noticeFeed.isNotEmpty()) { put("noticeFeed", f.noticeFeed); if (!f.publicNotices) put("publicNotices", false) }
         if (f.configFeed.isNotEmpty()) put("configFeed", f.configFeed)
+        if (f.region.isNotEmpty()) put("region", f.region)
     }
 
-    fun toJsonObject(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = ""): JSONObject = JSONObject().apply {
+    fun toJsonObject(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = "", region: String = ""): JSONObject = JSONObject().apply {
         put("app", "shiftma"); put("type", TYPE); put("version", VERSION)
         put("sites", sitesToJson(sites))
         put("sections", JSONArray().also { a -> sections.sorted().forEach { a.put(it) } })
-        putFeeds(this, Feeds(mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed))
+        putFeeds(this, Feeds(mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed, region))
     }
 
     /** همان شیء کاشی‌ها با خوراک‌های [feeds]؛ برای تعبیه داخل فایل مخاطبین/ارسال انتخابی. */
     fun toJsonObject(sites: List<SiteTile>, sections: Set<String>, feeds: Feeds): JSONObject =
-        toJsonObject(sites, sections, feeds.mealsFeed, feeds.adsFeed, feeds.publicAds, feeds.noticeFeed, feeds.publicNotices, feeds.configFeed)
+        toJsonObject(sites, sections, feeds.mealsFeed, feeds.adsFeed, feeds.publicAds, feeds.noticeFeed, feeds.publicNotices, feeds.configFeed, feeds.region)
 
     /** [tiles] موجود را نگه می‌دارد و خوراک‌ها را به آن می‌افزاید؛ اگر [tiles] نبود و خوراکی هست، شیء فقط‌خوراک می‌سازد؛ وگرنه null. */
     fun withFeeds(tiles: JSONObject?, feeds: Feeds): JSONObject? = when {
@@ -129,8 +133,8 @@ object TilesPackFile {
         else -> toJsonObject(emptyList(), emptySet(), feeds)
     }
 
-    fun toJson(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = ""): String =
-        toJsonObject(sites, sections, mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed).toString()
+    fun toJson(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = "", region: String = ""): String =
+        toJsonObject(sites, sections, mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed, region).toString()
 
     fun fromJson(text: String): TilesPack = fromObject(JSONObject(text))
 
@@ -156,6 +160,6 @@ object TilesPackFile {
         val config = o.optString("configFeed", "").trim()
         require(config.isEmpty() || MealFeed.isSafeUrl(config)) { "آدرس تنظیمات باید https و روی گیت‌هاب باشد" }
         require(sites.isNotEmpty() || sections.isNotEmpty() || feed.isNotEmpty() || ads.isNotEmpty() || notice.isNotEmpty() || config.isNotEmpty()) { "فایل کاشی‌ها خالی است" }
-        return TilesPack(sites, sections, feed, ads, ads.isNotEmpty() && o.optBoolean("publicAds", false), notice, o.optBoolean("publicNotices", true), config)
+        return TilesPack(sites, sections, feed, ads, ads.isNotEmpty() && o.optBoolean("publicAds", false), notice, o.optBoolean("publicNotices", true), config, RegionAssign.cleanTag(o.optString("region", "")))
     }
 }

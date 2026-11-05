@@ -30,9 +30,6 @@ import androidx.core.content.FileProvider
 import ir.shiftapp.core.ShiftPattern
 import ir.shiftapp.core.SiteTile
 import ir.shiftapp.core.TilesPackFile
-import ir.shiftapp.core.feeds
-import ir.shiftapp.data.AppDb
-import ir.shiftapp.data.prefsOnce
 import ir.shiftapp.data.BundleFile
 import ir.shiftapp.data.PatternEntity
 import ir.shiftapp.data.PatternFile
@@ -186,7 +183,7 @@ suspend fun shareBundleFile(
         try {
             val dir = File(ctx.cacheDir, "share").apply { mkdirs() }
             val f = File(dir, "ShiftMa-selected.${PatternFile.EXT}")
-            val feeds = runCatching { AppDb.get(ctx).dao().prefsOnce().feeds() }.getOrDefault(ir.shiftapp.core.Feeds.NONE)
+            val feeds = ir.shiftapp.system.RegionLoader.currentFeeds(ctx) ?: ir.shiftapp.core.Feeds.NONE
             var json = if (pbVm != null && contacts.isNotEmpty())
                 BundleFile.toJson(patterns, sites, contacts, { pbVm.photoBytes(it.photo) }, meals, prefix, feeds)
             else BundleFile.toJson(patterns, sites, contacts, meals = meals, prefix = prefix, feeds = feeds)

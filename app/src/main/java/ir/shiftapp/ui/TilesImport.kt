@@ -90,7 +90,7 @@ suspend fun shareTilesFile(ctx: Context, sites: List<SiteTile>, sections: Set<St
         try {
             val dir = File(ctx.cacheDir, "share").apply { mkdirs() }
             val f = File(dir, "ShiftMa-tiles.${PatternFile.EXT}")
-            f.writeText(TilesPackFile.toJson(sites, sections, mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed), Charsets.UTF_8)
+            f.writeText(TilesPackFile.toJson(sites, sections, mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed, ir.shiftapp.system.RegionLoader.regionTag(ctx)), Charsets.UTF_8)
             FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", f)
         } catch (e: Exception) { null }
     }

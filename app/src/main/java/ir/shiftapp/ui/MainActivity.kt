@@ -142,6 +142,8 @@ fun App(vm: MainVm, pbVm: PhonebookVm, docsVm: DocsVm, launch: String? = null, o
     LaunchedEffect(prefs.noticeFeed, prefs.noticePublic) { NoticeLoader.setLocal(ctx, prefs.noticeFeed, prefs.noticePublic) }
     // آدرس تنظیمات بخش‌ها (نمایش/پنهان/پولی) را هم برای کارگر پس‌زمینه نگه دار
     LaunchedEffect(prefs.configFeed) { ConfigLoader.setFeed(ctx, prefs.configFeed) }
+    // فایل کاشی‌های دست‌به‌دست‌شده بدون آدرس: اگر منطقه‌اش از قاعده‌های عمومی معلوم است، بی‌صدا وصل شود (فقط وقتی configFeed خالی است)
+    LaunchedEffect(prefs.sitesRaw, prefs.configFeed) { ir.shiftapp.system.RegionLoader.check(ctx) }
     val remote by ConfigLoader.config.collectAsState()
     var paidTick by remember { mutableIntStateOf(0) }      // بعد از باز شدن قفل، وضعیت دوباره خوانده شود
     // برنامه غذایی شرکت: فقط وقتی آدرس خوراک از فایل کاشی‌ها ذخیره شده و بخش در دسترس است؛ کاربر عمومی هیچ درخواستی نمی‌فرستد

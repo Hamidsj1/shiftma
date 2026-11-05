@@ -196,6 +196,7 @@ class MainVm(app: Application) : AndroidViewModel(app) {
 
     /** آدرس‌های خوراک (غذا، تبلیغ، اعلان، تنظیمات) را ذخیره می‌کند؛ فقط غیرخالی‌ها؛ نبودن کلید یعنی دست نزن. */
     private fun applyFeeds(pack: TilesPack) {
+        if (pack.region.isNotEmpty()) ir.shiftapp.system.RegionLoader.setRegionTag(getApplication<Application>(), pack.region)      // برچسب منطقهٔ فرستنده
         // آدرس خوراک برنامه غذایی شرکت: فقط با تأیید همین فایل کاشی‌ها ذخیره می‌شود؛ بدونش هیچ درخواستی به اینترنت نمی‌رود
         if (pack.mealsFeed.isNotEmpty()) setPref(PrefKeys.MEAL_FEED, pack.mealsFeed)
         if (pack.adsFeed.isNotEmpty()) {      // تبلیغ همین محل؛ تبلیغ عمومی فقط اگر فایل بخواهد کنارش بماند
