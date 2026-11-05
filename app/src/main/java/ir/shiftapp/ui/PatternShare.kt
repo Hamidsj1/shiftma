@@ -18,8 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import ir.shiftapp.core.ShiftPattern
+import ir.shiftapp.core.feeds
+import ir.shiftapp.data.AppDb
+import ir.shiftapp.data.BundleFile
 import ir.shiftapp.data.PatternEntity
 import ir.shiftapp.data.PatternFile
+import ir.shiftapp.data.prefsOnce
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -31,7 +35,9 @@ suspend fun sharePatternFile(ctx: Context, patterns: List<PatternEntity>) {
         try {
             val dir = File(ctx.cacheDir, "share").apply { mkdirs() }
             val f = File(dir, "ShiftMa-patterns.${PatternFile.EXT}")
-            f.writeText(PatternFile.toJson(patterns), Charsets.UTF_8)
+            // اگر این گوشی به منطقه‌ای وصل است، آدرس‌هایش همراه فایل می‌رود (فایل ارسال‌انتخابی با کلید patterns)؛ وگرنه همان فایل الگوی قدیمی
+            val feeds = runCatching { AppDb.get(ctx).dao().prefsOnce().feeds() }.getOrNull()
+            f.writeText(if (feeds == null || feeds.isEmpty) PatternFile.toJson(patterns) else BundleFile.toJson(patterns, emptyList(), feeds = feeds), Charsets.UTF_8)
             FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", f)
         } catch (e: Exception) { null }
     }

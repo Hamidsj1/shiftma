@@ -235,7 +235,7 @@ fun SettingsScreen(vm: MainVm) {
             sites.forEach { s ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(s.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                    TextButton({ scope.launch { shareTilesFile(ctx, listOf(s), emptySet()) } }) { Text("ارسال") }
+                    TextButton({ scope.launch { shareTilesFile(ctx, listOf(s), emptySet(), prefs.mealFeed, prefs.adFeed, prefs.adPublic, prefs.noticeFeed, prefs.noticePublic, prefs.configFeed) } }) { Text("ارسال") }
                     TextButton({ edit = s }) { Text("ویرایش") }
                     TextButton({ del = s }) { Text("حذف") }
                 }

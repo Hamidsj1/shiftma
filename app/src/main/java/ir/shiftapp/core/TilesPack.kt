@@ -23,6 +23,26 @@ class TilesPack(val sites: List<SiteTile>, val sections: Set<String>, val mealsF
  * فایل‌های دیگر را هم کاربر با زدن روی آن (یا «وارد کردن فایل کاشی‌ها» در تنظیمات) اضافه می‌کند.
  * نام کاربری و رمز هرگز داخل فایل نمی‌آید.
  */
+/**
+ * آدرس‌های خوراک «منطقه» (برنامه غذایی، بنر/تبلیغ، اعلان، تنظیمات راه‌دور). این‌ها باید همراه هر فایل ارسالی بروند
+ * تا گیرنده‌ای که فایل را دست‌به‌دست گرفته هم به همان منطقه وصل شود. خالی = آن خوراک را ندارد.
+ */
+class Feeds(
+    val mealsFeed: String = "", val adsFeed: String = "", val publicAds: Boolean = false,
+    val noticeFeed: String = "", val publicNotices: Boolean = true, val configFeed: String = ""
+) {
+    val isEmpty: Boolean get() = mealsFeed.isEmpty() && adsFeed.isEmpty() && noticeFeed.isEmpty() && configFeed.isEmpty()
+    companion object { val NONE = Feeds() }
+}
+
+/** خوراک‌های ذخیره‌شدهٔ این گوشی؛ آدرس ناامن یا خراب نادیده گرفته می‌شود. */
+fun Prefs.feeds(): Feeds = Feeds(
+    mealFeed.takeIf { MealFeed.isSafeUrl(it) }.orEmpty(),
+    adFeed.takeIf { MealFeed.isSafeUrl(it) }.orEmpty(), adPublic,
+    noticeFeed.takeIf { MealFeed.isSafeUrl(it) }.orEmpty(), noticePublic,
+    configFeed.takeIf { MealFeed.isSafeUrl(it) }.orEmpty()
+)
+
 object TilesPackFile {
     const val TYPE = "tiles"
     const val VERSION = 1
@@ -82,15 +102,31 @@ object TilesPackFile {
     fun decodeSites(raw: String): List<SiteTile> =
         if (raw.isBlank()) emptyList() else runCatching { parseSites(JSONArray(raw), trustEdited = true) }.getOrDefault(emptyList())
 
+    /** کلیدهای خوراک را به شیء کاشی‌ها می‌افزاید (فقط خوراک‌های غیرخالی؛ نبودن کلید یعنی «دست نزن»). */
+    fun putFeeds(o: JSONObject, f: Feeds): JSONObject = o.apply {
+        if (f.mealsFeed.isNotEmpty()) put("mealsFeed", f.mealsFeed)
+        if (f.adsFeed.isNotEmpty()) put("adsFeed", f.adsFeed)
+        if (f.adsFeed.isNotEmpty() && f.publicAds) put("publicAds", true)
+        if (f.noticeFeed.isNotEmpty()) { put("noticeFeed", f.noticeFeed); if (!f.publicNotices) put("publicNotices", false) }
+        if (f.configFeed.isNotEmpty()) put("configFeed", f.configFeed)
+    }
+
     fun toJsonObject(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = ""): JSONObject = JSONObject().apply {
         put("app", "shiftma"); put("type", TYPE); put("version", VERSION)
         put("sites", sitesToJson(sites))
         put("sections", JSONArray().also { a -> sections.sorted().forEach { a.put(it) } })
-        if (mealsFeed.isNotEmpty()) put("mealsFeed", mealsFeed)
-        if (adsFeed.isNotEmpty()) put("adsFeed", adsFeed)
-        if (adsFeed.isNotEmpty() && publicAds) put("publicAds", true)
-        if (noticeFeed.isNotEmpty()) { put("noticeFeed", noticeFeed); if (!publicNotices) put("publicNotices", false) }
-        if (configFeed.isNotEmpty()) put("configFeed", configFeed)
+        putFeeds(this, Feeds(mealsFeed, adsFeed, publicAds, noticeFeed, publicNotices, configFeed))
+    }
+
+    /** همان شیء کاشی‌ها با خوراک‌های [feeds]؛ برای تعبیه داخل فایل مخاطبین/ارسال انتخابی. */
+    fun toJsonObject(sites: List<SiteTile>, sections: Set<String>, feeds: Feeds): JSONObject =
+        toJsonObject(sites, sections, feeds.mealsFeed, feeds.adsFeed, feeds.publicAds, feeds.noticeFeed, feeds.publicNotices, feeds.configFeed)
+
+    /** [tiles] موجود را نگه می‌دارد و خوراک‌ها را به آن می‌افزاید؛ اگر [tiles] نبود و خوراکی هست، شیء فقط‌خوراک می‌سازد؛ وگرنه null. */
+    fun withFeeds(tiles: JSONObject?, feeds: Feeds): JSONObject? = when {
+        tiles != null -> putFeeds(tiles, feeds)
+        feeds.isEmpty -> null
+        else -> toJsonObject(emptyList(), emptySet(), feeds)
     }
 
     fun toJson(sites: List<SiteTile>, sections: Set<String>, mealsFeed: String = "", adsFeed: String = "", publicAds: Boolean = false, noticeFeed: String = "", publicNotices: Boolean = true, configFeed: String = ""): String =

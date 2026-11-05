@@ -1,5 +1,6 @@
 package ir.shiftapp
 
+import ir.shiftapp.core.Feeds
 import ir.shiftapp.core.SiteTile
 import ir.shiftapp.core.TilesPackFile
 import ir.shiftapp.data.BundleFile
@@ -129,5 +130,52 @@ class BundleFileTest {
         assertEquals("", BundleFile.fromJson(BundleFile.toJson(listOf(pattern("A")), emptyList(), prefix = "123")).prefix)
         assertEquals("", BundleFile.fromJson(BundleFile.toJson(emptyList(), emptyList(), listOf(contact("علی")), prefix = "abc<script>")).prefix)
         assertEquals("", BundleFile.fromJson(BundleFile.toJson(emptyList(), emptyList(), listOf(contact("علی")))).prefix)
+    }
+
+    private val feeds = Feeds(
+        mealsFeed = "https://raw.githubusercontent.com/o/r/main/meals.json",
+        adsFeed = "https://raw.githubusercontent.com/o/r/main/ads.json", publicAds = true,
+        noticeFeed = "https://raw.githubusercontent.com/o/r/main/notices.json", publicNotices = false,
+        configFeed = "https://raw.githubusercontent.com/o/r/main/config.json"
+    )
+
+    @Test fun patternsOnlyBundleStillCarriesRegionFeeds() {
+        val b = BundleFile.fromJson(BundleFile.toJson(listOf(pattern("A")), emptyList(), feeds = feeds))
+        assertEquals(1, b.patterns.size)
+        val t = b.tiles!!
+        assertTrue(t.sites.isEmpty() && t.sections.isEmpty())
+        assertEquals(feeds.configFeed, t.configFeed)
+        assertEquals(feeds.adsFeed, t.adsFeed); assertTrue(t.publicAds)
+        assertEquals(feeds.noticeFeed, t.noticeFeed); assertFalse(t.publicNotices)
+        assertEquals(feeds.mealsFeed, t.mealsFeed)
+    }
+
+    @Test fun noFeedsMeansNoTilesKeyLikeBefore() {
+        val json = BundleFile.toJson(listOf(pattern("A")), emptyList())
+        assertFalse(org.json.JSONObject(json).has("tiles"))
+        assertNull(BundleFile.fromJson(json).tiles)
+    }
+
+    @Test fun feedsAloneDoNotMakeAFile() {
+        assertThrows(IllegalArgumentException::class.java) { BundleFile.toJson(emptyList(), emptyList(), feeds = feeds) }
+    }
+
+    @Test fun unsafeFeedInFileIsRejected() {
+        val bad = BundleFile.toJson(listOf(pattern("A")), emptyList(), feeds = feeds).replace("https://raw.githubusercontent.com/o/r/main/config.json", "http://evil.example.com/c.json")
+        assertThrows(IllegalArgumentException::class.java) { BundleFile.fromJson(bad) }
+    }
+
+    @Test fun withFeedsAddsToExistingTilesAndSkipsWhenNothingToAdd() {
+        assertNull(TilesPackFile.withFeeds(null, Feeds.NONE))
+        val only = TilesPackFile.fromObject(TilesPackFile.withFeeds(null, feeds)!!)
+        assertEquals(feeds.configFeed, only.configFeed); assertTrue(only.sites.isEmpty())
+        val merged = TilesPackFile.fromObject(TilesPackFile.withFeeds(TilesPackFile.toJsonObject(listOf(site("one")), setOf("phonebook")), feeds)!!)
+        assertEquals(listOf("one"), merged.sites.map { it.key }); assertEquals(setOf("phonebook"), merged.sections)
+        assertEquals(feeds.noticeFeed, merged.noticeFeed)
+    }
+
+    @Test fun oldFileWithoutFeedKeysImportsWithEmptyFeedsSoNothingIsOverwritten() {
+        val old = TilesPackFile.fromJson("""{"app":"shiftma","type":"tiles","version":1,"sites":[],"sections":["phonebook"]}""")
+        assertEquals("", old.configFeed); assertEquals("", old.adsFeed); assertEquals("", old.noticeFeed); assertEquals("", old.mealsFeed)
     }
 }
