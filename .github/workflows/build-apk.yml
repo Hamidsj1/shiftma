@@ -49,7 +49,11 @@ jobs:
           echo "=== manifest receivers"; $AAPT2 dump xmltree --file AndroidManifest.xml $APK | grep -n -A12 -i "ShiftWidget\|ShiftStripWidget\|EnglishWidget" | head -120
 
       - name: Show APK signing fingerprint (must be identical between builds)
-        run: keytool -printcert -jarfile app/build/outputs/apk/release/app-release.apk | grep -i "SHA256\|Owner"
+        # فقط اطلاع‌رسانی است و هرگز ساخت را نمی‌شکند (keytool امضای v2/v3 را نمی‌خواند؛ apksigner می‌خواند)
+        run: |
+          APKSIGNER=$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          if [ -n "$APKSIGNER" ]; then "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | grep -i "SHA-256\|DN:" || true
+          else echo "apksigner پیدا نشد"; fi
 
       - name: Name the APK
         run: |
