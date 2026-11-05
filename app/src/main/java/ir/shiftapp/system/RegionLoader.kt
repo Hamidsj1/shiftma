@@ -9,6 +9,7 @@ import ir.shiftapp.core.feeds
 import ir.shiftapp.data.AppDb
 import ir.shiftapp.data.Setting
 import ir.shiftapp.data.prefsOnce
+import ir.shiftapp.phonebook.PhoneDb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -71,7 +72,14 @@ object RegionLoader {
                 val sites = TilesPackFile.decodeSites(p.sitesRaw)
                 val hosts = sites.map { TilesPackFile.hostOf(it.url) }.filter { it.isNotEmpty() }.toSet()
                 val sigs = sites.mapNotNull { RegionAssign.sig(it.url) }.toSet()
-                val rule = RegionAssign.pick(rules, hosts, sigs, regionTag(ctx)) ?: return@withContext
+                // شاخص کمکی: شماره‌های دفترچهٔ برنامه (جدا از مخاطبین گوشی)؛ فقط اگر قاعده‌ای شمارهٔ یکتا داشته باشد خوانده می‌شود
+                val phones = if (rules.any { it.phones.isNotEmpty() })
+                    runCatching {
+                        val pdb = PhoneDb(ctx)
+                        try { RegionAssign.phoneSigs(pdb.search("").flatMap { listOf(it.mobile, it.landline) }) } finally { pdb.close() }
+                    }.getOrDefault(emptySet())
+                else emptySet()
+                val rule = RegionAssign.pick(rules, hosts, sigs, regionTag(ctx), phones) ?: return@withContext
                 dao.put(Setting(PrefKeys.CONFIG_FEED, rule.configFeed))
                 if (p.adFeed.isEmpty() && rule.adsFeed.isNotEmpty()) {
                     dao.put(Setting(PrefKeys.AD_FEED, rule.adsFeed)); dao.put(Setting(PrefKeys.AD_PUBLIC, rule.publicAds.toString()))

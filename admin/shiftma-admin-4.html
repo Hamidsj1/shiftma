@@ -120,10 +120,10 @@ const TABS = [['notice', 'اعلان‌ها'], ['ad', 'تبلیغ‌ها'], ['co
 
 /* ───────────── حالت برنامه ───────────── */
 const def = () => ({ gh: { user: 'Hamidsj1', adsRepo: 'shiftma-ads', mealsRepo: 'shiftma-meals', branch: 'main' },
-  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {}, regions: { enabled: false, extra: {} } });
+  sites: SITES0.map(([key, name]) => ({ key, name })), site: 'sungun', tab: 'notice', data: {}, regions: { enabled: false, extra: {}, phones: {} } });
 let S; try { S = Object.assign(def(), JSON.parse(localStorage.getItem(LS) || '{}')); } catch (e) { S = def(); }
 S.gh = Object.assign(def().gh, S.gh || {});
-S.regions = Object.assign({ enabled: false, extra: {} }, S.regions || {}); S.regions.extra = S.regions.extra || {};
+S.regions = Object.assign({ enabled: false, extra: {}, phones: {} }, S.regions || {}); S.regions.extra = S.regions.extra || {}; S.regions.phones = S.regions.phones || {};
 let SEC = { special: '', paid: '', token: '' }, remember = false;
 try { const t = JSON.parse(localStorage.getItem(LSS) || 'null'); if (t) { SEC = Object.assign(SEC, t); remember = true; } } catch (e) {}
 function save() {
@@ -696,8 +696,22 @@ function sigOf(u) {
     return Array.from(sha256(new TextEncoder().encode(n)).slice(0, 6), b => b.toString(16).padStart(2, '0')).join('');
   } catch (e) { return ''; }
 }
+/* اثرانگشت شماره‌ها (همان الگوریتم RegionAssign.phoneSigs در برنامه؛ هر تغییر باید در هر دو انجام شود): ورودی روی , ، ; / | شکسته می‌شود،
+   ارقام فارسی/عربی به لاتین، فقط رقم‌ها، اگر ≥۱۰ رقم ۱۰ رقم آخر، کمتر از ۳ رقم نادیده؛ SHA-256 و ۶ نویسهٔ اول هگز. خود شماره‌ها هرگز ذخیره نمی‌شوند. */
+function phoneSigs(list) {
+  const out = new Set();
+  list.forEach(raw => String(raw == null ? '' : raw).split(/[,،;\/|]+/).forEach(part => {
+    let d = part.replace(/[۰-۹]/g, c => c.charCodeAt(0) - 0x06F0).replace(/[٠-٩]/g, c => c.charCodeAt(0) - 0x0660).replace(/\D/g, '');
+    if (d.length >= 10) d = d.slice(-10);
+    if (d.length >= 3) out.add(Array.from(sha256(new TextEncoder().encode(d)).slice(0, 3), b => b.toString(16).padStart(2, '0')).join(''));
+  }));
+  return out;
+}
 function buildRegions() {
   const R = S.regions, iss = [], regions = [];
+  // شماره‌های فقط‌متعلق‌به‌یک‌منطقه (مشترک‌ها حذف می‌شوند)
+  const seen = {}; Object.entries(R.phones).forEach(([k, a]) => (a || []).forEach(v => { (seen[v] = seen[v] || new Set()).add(k); }));
+  const uniquePhones = k => (R.phones[k] || []).filter(v => seen[v] && seen[v].size === 1).sort().slice(0, 2000);
   if (!R.enabled) iss.push({ l: 'ok', m: 'خاموش است: برنامه‌ها هیچ کاری نمی‌کنند (enabled=false). برای فعال‌شدن روشنش کنید و منتشر کنید.' });
   S.sites.filter(x => x.key !== '_public').forEach(x => {
     const key = x.key, t = (S.data[key] || {}).tiles, hosts = new Set(), sigs = new Set();
@@ -709,7 +723,7 @@ function buildRegions() {
       if (/^https?:\/\//i.test(v)) { if (hostOf(v)) addUrl(v); else iss.push(E(`${x.name}: آدرس «${v}» معتبر نیست`)); }
       else { v = v.toLowerCase(); if (!v.includes('.') || !HOST_OK.test(v)) iss.push(E(`${x.name}: میزبان «${v}» معتبر نیست (مثل my.example.ir یا آدرس کامل https://…)`)); else hosts.add(v); }
     });
-    const o = { id: key, hosts: [...hosts].sort(), sigs: [...sigs].sort(), configFeed: rawUrl(S.gh.adsRepo, pathOf('config.json', key)),
+    const o = { id: key, hosts: [...hosts].sort(), sigs: [...sigs].sort(), phones: uniquePhones(key), configFeed: rawUrl(S.gh.adsRepo, pathOf('config.json', key)),
       adsFeed: rawUrl(S.gh.adsRepo, pathOf('ad.json', key)), noticeFeed: rawUrl(S.gh.adsRepo, pathOf('notice.json', key)) };
     if (t && t.publicAds) o.publicAds = true; if (t && t.publicNotices === false) o.publicNotices = false;
     [o.configFeed, o.adsFeed, o.noticeFeed].forEach(u => { if (!ghOk(u)) iss.push(E(`${x.name}: آدرس خوراک باید https و روی گیت‌هاب باشد`)); });
@@ -718,8 +732,8 @@ function buildRegions() {
   });
   if (regions.length > 40) iss.push(E('حداکثر ۴۰ منطقه پذیرفته می‌شود'));
   if (!regions.length) iss.push(E('حداقل یک محل لازم است'));
-  if (!iss.some(z => z.l === 'err')) iss.push({ l: 'ok', m: regions.map(r => `${r.id}: ${r.sigs.length} آدرس`).join('، ') + ' (فایل در ریشهٔ ریپوی عمومی ذخیره می‌شود)' });
-  return { obj: { enabled: !!R.enabled, regions: regions.slice(0, 40).map(r => { r.sigs = r.sigs.slice(0, 300); return r; }) }, iss };
+  if (!iss.some(z => z.l === 'err')) iss.push({ l: 'ok', m: regions.map(r => `${r.id}: ${r.sigs.length} آدرس، ${r.phones.length} شمارهٔ یکتا`).join('، ') + ' (فایل در ریشهٔ ریپوی عمومی ذخیره می‌شود)' });
+  return { obj: { enabled: !!R.enabled, regions: regions.slice(0, 40).map(r => { r.sigs = r.sigs.slice(0, 300); if (!r.phones.length) delete r.phones; return r; }) }, iss };
 }
 function tabRegions() {
   const R = S.regions, file = 'regions.json', repo = S.gh.adsRepo;
@@ -737,8 +751,19 @@ function tabRegions() {
     pub.disabled = iss.some(x => x.l === 'err');
   };
   refreshOut = update;
+  const phoneRows = S.sites.filter(x => x.key !== '_public').map(x => {
+    const n = (R.phones[x.key] || []).length, info = h('small', {}, n ? `${n} اثرانگشت شماره ذخیره شده` : 'هنوز فایل مخاطبینی وارد نشده');
+    const fi = h('input', { type: 'file', accept: '.shiftma,.json,application/json', onchange: async () => {
+      try {
+        const f = fi.files[0]; if (!f) return; const j = JSON.parse(await f.text()); let list = [];
+        if (j.type === 'contacts') list = j.contacts || []; else if (j.type === 'bundle') list = j.contacts || []; else throw new Error('فایل مخاطبین نیست');
+        R.phones[x.key] = [...phoneSigs(list.flatMap(c => [c.mobile, c.landline]))].sort(); save(); render(); toast(`${R.phones[x.key].length} اثرانگشت ساخته شد (خود شماره‌ها ذخیره نمی‌شوند)`);
+      } catch (e) { toast('فایل خوانده نشد: ' + e.message, true); }
+    } });
+    return h('div', { class: 'f' }, h('span', { class: 'lb' }, `فایل مخاطبین ${x.name} (شاخص کمکی)`), h('div', { class: 'row' }, fi, n ? h('button', { class: 'btn sm del', onclick: () => { delete R.phones[x.key]; save(); render(); } }, 'حذف') : null), info);
+  });
   const rows = S.sites.filter(x => x.key !== '_public').map(x => field(`میزبان‌های اضافه برای ${x.name} (${x.key})`, R.extra, x.key, { ltr: true, ph: 'https://my.example.ir/old-portal, other.example.ir', hint: 'سامانه‌های برگهٔ «فایل کاشی‌ها»ی همین محل خودکار می‌آیند؛ اینجا فقط موارد اضافه (مثلاً سامانه‌ای که از فایل‌های قدیمی مانده) را بنویسید.' }));
-  const editor = h('div', {}, toggle('تطبیق خودکار منطقه فعال باشد (خاموش = برنامه‌ها هیچ کاری نمی‌کنند)', R, 'enabled'), h('div', { style: 'height:10px' }), ...rows,
+  const editor = h('div', {}, toggle('تطبیق خودکار منطقه فعال باشد (خاموش = برنامه‌ها هیچ کاری نمی‌کنند)', R, 'enabled'), h('div', { style: 'height:10px' }), ...rows, h('h3', { style: 'margin-top:14px' }, 'شاخص کمکی: دفترچه تلفن'), h('p', { class: 'sub' }, 'فایل مخاطبین هر محل را وارد کنید؛ فقط شماره‌هایی که در یک منطقه هست (نه مشترک‌ها) به‌صورت اثرانگشت کوتاه در فایل عمومی می‌رود. برنامه فقط با ۳ شمارهٔ یکتا یا بیشتر حساب می‌کند و هرگز بر آدرس سامانه‌ها غلبه نمی‌کند.'), ...phoneRows,
     h('p', { class: 'sub', style: 'margin-top:10px' }, 'برنامه این فایل را بدون هیچ پیامی بررسی می‌کند: اگر گوشی کاربر configFeed ندارد و میزبان سامانه‌هایش (یا برچسب region فایلش) یک منطقه را روشن مشخص کند (آدرس کامل سامانه‌ها، بعد میزبان‌ها)، آدرس‌های همان منطقه را اضافه می‌کند.'));
   update();
   const out = h('div', { class: 'card' }, h('h3', {}, 'خروجی'), h('p', { class: 'sub' }, 'مسیر در ریپو: ', h('code', { class: 'path' }, `${repo}/${file}`), h('br'), link), issues, ta,
@@ -848,7 +873,7 @@ function render() {
   save();
 }
 drawGh(); render();
-window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, sigOf, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
+window.__admin = { S, SEC, ghUpload, buildNotice, buildAd, buildConfig, buildMeals, buildTiles, buildRegions, sigOf, phoneSigs, dailyCode, paidCode, sha256, hmacSlow, importInto, render };
 </script>
 </body>
 </html>
