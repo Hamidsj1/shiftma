@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -47,6 +48,7 @@ import androidx.core.content.ContextCompat
 import ir.shiftapp.R
 import ir.shiftapp.phonebook.Contact
 import ir.shiftapp.phonebook.PhoneActions
+import ir.shiftapp.phonebook.PhoneUsage
 import ir.shiftapp.phonebook.PhonebookVm
 import ir.shiftapp.phonebook.Social
 import kotlinx.coroutines.Dispatchers
@@ -92,6 +94,10 @@ fun PhonebookSection(vm: PhonebookVm, siteTiles: List<ir.shiftapp.core.SiteTile>
     var confirmReload by remember { mutableStateOf(false) }
     var shareChoice by remember { mutableStateOf(false) }        // انتخاب نوع فایل خروجی (.shiftma)
     val shareScope = rememberCoroutineScope()
+    val history by vm.history.collectAsState()
+    var searchFocused by remember { mutableStateOf(false) }
+    val focus = androidx.compose.ui.platform.LocalFocusManager.current
+    val suggestions = remember(history, query) { PhoneUsage.suggestions(history, query) }
 
     val csvPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) vm.importCsv(uri, importReplace) }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
@@ -114,7 +120,26 @@ fun PhonebookSection(vm: PhonebookVm, siteTiles: List<ir.shiftapp.core.SiteTile>
                     BarIconButton(R.drawable.ic_share, "ارسال فایل مخاطبین", { shareChoice = true })
                     BarIconButton(R.drawable.ic_settings, "مدیریت دفترچه", { showManage = true })
                 }
-                SearchField(query, onChange = { vm.setQuery(it) }, modifier = Modifier.padding(horizontal = 16.dp))
+            }
+        },
+        // نوار جست‌وجو پایین صفحه (در دسترس انگشت شست) و با رنگ زمینهٔ متمایز از لیست؛ سابقهٔ جست‌وجو بالای آن
+        bottomBar = {
+            Column(Modifier.fillMaxWidth()) {
+                if (searchFocused && suggestions.isNotEmpty()) {
+                    HistoryPanel(suggestions, query.isEmpty(),
+                        onPick = { vm.setQuery(it); vm.commitQuery(); focus.clearFocus() },
+                        onRemove = { vm.removeHistory(it) }, onClear = { vm.clearHistory() })
+                }
+                Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shadowElevation = 8.dp, tonalElevation = 0.dp) {
+                    Column {
+                        HorizontalDivider(thickness = 0.5.dp, color = Pal.hairline)
+                        SearchField(
+                            query, onChange = { vm.setQuery(it) }, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            onFocusChange = { searchFocused = it },
+                            onSearch = { vm.commitQuery(); focus.clearFocus() }
+                        )
+                    }
+                }
             }
         },
         floatingActionButton = {
@@ -143,7 +168,7 @@ fun PhonebookSection(vm: PhonebookVm, siteTiles: List<ir.shiftapp.core.SiteTile>
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(list, key = { it.id }) { c -> ContactCard(vm, c, prefix, onClick = { detail = c }) }
+                    items(list, key = { it.id }) { c -> ContactCard(vm, c, prefix, onClick = { if (query.isNotBlank()) vm.recordUse(c); detail = c }) }
                 }
             }
         }
@@ -272,7 +297,7 @@ private fun ContactAvatar(vm: PhonebookVm, c: Contact, size: Dp) {
 
 /** فیلد جست‌وجو: همان زبان بصری فیلدهای برنامه (کارت گرد با حاشیهٔ ملایم). */
 @Composable
-internal fun SearchField(query: String, onChange: (String) -> Unit, modifier: Modifier = Modifier) {
+internal fun SearchField(query: String, onChange: (String) -> Unit, modifier: Modifier = Modifier, onFocusChange: (Boolean) -> Unit = {}, onSearch: (() -> Unit)? = null) {
     val shape = MaterialTheme.shapes.large
     val textColor = MaterialTheme.colorScheme.onSurface
     Row(
@@ -284,7 +309,9 @@ internal fun SearchField(query: String, onChange: (String) -> Unit, modifier: Mo
             value = query, onValueChange = onChange, singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = textColor),
             cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).onFocusChanged { onFocusChange(it.isFocused) },
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearch?.invoke() }),
             decorationBox = { inner ->
                 Box(contentAlignment = Alignment.CenterStart) {
                     if (query.isEmpty()) Text("جست‌وجو: نام، شماره، امور یا واحد", style = MaterialTheme.typography.bodyMedium, color = Pal.muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -293,6 +320,32 @@ internal fun SearchField(query: String, onChange: (String) -> Unit, modifier: Mo
             }
         )
         if (query.isNotEmpty()) SmallIconButton(R.drawable.ic_close, "پاک کردن", { onChange("") })
+    }
+}
+
+/** سابقه/پیشنهاد جست‌وجو بالای نوار جست‌وجو؛ هر مورد جدا قابل حذف و «پاک کردن همه». */
+@Composable
+private fun HistoryPanel(items: List<String>, showClearAll: Boolean, onPick: (String) -> Unit, onRemove: (String) -> Unit, onClear: () -> Unit) {
+    Surface(
+        Modifier.fillMaxWidth().padding(horizontal = 12.dp), shape = MaterialTheme.shapes.large,
+        color = Pal.dialog, shadowElevation = 6.dp, tonalElevation = 0.dp
+    ) {
+        Column(Modifier.padding(vertical = 4.dp)) {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(if (showClearAll) "جست‌وجوهای اخیر" else "پیشنهاد از سابقه", style = MaterialTheme.typography.labelLarge, color = Pal.muted, modifier = Modifier.weight(1f))
+                if (showClearAll) androidx.compose.material3.TextButton(onClear) { Text("پاک کردن همه") }
+            }
+            items.take(6).forEach { q ->
+                Row(
+                    Modifier.fillMaxWidth().clickable(role = Role.Button) { onPick(q) }.padding(start = 16.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Ico(R.drawable.ic_search, size = 18.dp, tint = Pal.muted)
+                    Text(q, Modifier.weight(1f).padding(vertical = 12.dp), style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    SmallIconButton(R.drawable.ic_close, "حذف از سابقه", { onRemove(q) })
+                }
+            }
+        }
     }
 }
 
@@ -312,11 +365,11 @@ private fun Modifier.thinScrollbar(state: LazyListState, color: Color): Modifier
 }
 
 @Composable
-private fun NumberChip(icon: Int, number: String, tone: Pair<Color, Color>, prefix: String, modifier: Modifier) {
+private fun NumberChip(icon: Int, number: String, tone: Pair<Color, Color>, prefix: String, modifier: Modifier, onUse: () -> Unit = {}) {
     val ctx = LocalContext.current
     Row(
         modifier.height(42.dp).clip(CircleShape).background(tone.first)
-            .clickable(role = Role.Button) { PhoneActions.dial(ctx, number, prefix) }.padding(horizontal = 12.dp),
+            .clickable(role = Role.Button) { onUse(); PhoneActions.dial(ctx, number, prefix) }.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
     ) {
         Ico(icon, size = 18.dp, tint = tone.second)
@@ -348,7 +401,7 @@ private fun ContactCard(vm: PhonebookVm, c: Contact, prefix: String, onClick: ()
                         if (c.mobile.isNotBlank()) add(Triple(R.drawable.ic_phone_mobile, c.mobile, mobile))
                         if (c.landline.isNotBlank()) add(Triple(R.drawable.ic_call, c.landline, landline))
                     }
-                    chips.forEach { (icon, num, tone) -> NumberChip(icon, num, tone, prefix, Modifier.weight(1f)) }
+                    chips.forEach { (icon, num, tone) -> NumberChip(icon, num, tone, prefix, Modifier.weight(1f), onUse = { vm.recordUse(c, num) }) }
                     if (chips.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
@@ -357,7 +410,7 @@ private fun ContactCard(vm: PhonebookVm, c: Contact, prefix: String, onClick: ()
 }
 
 @Composable
-private fun NumberCard(title: String, number: String, prefix: String, tone: Pair<Color, Color>, icon: Int) {
+private fun NumberCard(title: String, number: String, prefix: String, tone: Pair<Color, Color>, icon: Int, onUse: () -> Unit = {}) {
     if (number.isBlank()) return
     val ctx = LocalContext.current
     Row(
@@ -370,7 +423,7 @@ private fun NumberCard(title: String, number: String, prefix: String, tone: Pair
         }
         SmallIconButton(R.drawable.ic_copy, "کپی", { PhoneActions.copy(ctx, number) })
         Box(
-            Modifier.size(46.dp).clip(CircleShape).background(tone.first).clickable(role = Role.Button) { PhoneActions.dial(ctx, number, prefix) },
+            Modifier.size(46.dp).clip(CircleShape).background(tone.first).clickable(role = Role.Button) { onUse(); PhoneActions.dial(ctx, number, prefix) },
             contentAlignment = Alignment.Center
         ) { Ico(icon, size = 22.dp, tint = tone.second, desc = "تماس") }
     }
@@ -405,8 +458,8 @@ private fun DetailDialog(vm: PhonebookVm, c: Contact, prefix: String, onNeedPref
                     if (c.dept.isNotBlank()) Text("امور: ${c.dept}", style = MaterialTheme.typography.bodyMedium, color = Pal.muted, textAlign = TextAlign.Center)
                     if (c.unit.isNotBlank()) Text("واحد: ${c.unit}", style = MaterialTheme.typography.bodyMedium, color = Pal.muted, textAlign = TextAlign.Center)
                 }
-                NumberCard("همراه", c.mobile, prefix, mobile, R.drawable.ic_call)
-                NumberCard("محل / داخلی", c.landline, prefix, landline, R.drawable.ic_call)
+                NumberCard("همراه", c.mobile, prefix, mobile, R.drawable.ic_call, onUse = { vm.recordUse(c, c.mobile) })
+                NumberCard("محل / داخلی", c.landline, prefix, landline, R.drawable.ic_call, onUse = { vm.recordUse(c, c.landline) })
                 val links = remember(c) { Social.links(c) }
                 if (c.mobile.isNotBlank() || links.isNotEmpty()) {
                     var more by remember { mutableStateOf(false) }
