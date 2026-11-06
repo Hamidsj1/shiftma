@@ -394,7 +394,17 @@ class MainVm(app: Application) : AndroidViewModel(app) {
     }
     fun clearSlot(index: Int) = setSlot(index, 0L)
 
-    fun select(id: Long) { selectedId.value = id; viewModelScope.launch { dao.put(Setting(SEL, id.toString())) } }
+    fun select(id: Long) {
+        val all = patterns.value
+        val prev = selected.value
+        val next = all.firstOrNull { it.id == id }
+        selectedId.value = id; viewModelScope.launch { dao.put(Setting(SEL, id.toString())) }
+        // پیش‌فرض تب چهارشیفت = همهٔ گروه‌های مجموعهٔ الگوی انتخاب‌شده، مگر کاربر خودش تک‌تک ستون‌ها را عوض کرده باشد
+        if (next == null || prev?.id == id) return
+        fun crew(p: PatternEntity) = PatternSets.crewSlots(all, p, FourShiftTable.SLOTS, { PatternSets.keyOf(it.name, it.setName) }, { PatternSets.letterOf(it.name) }, { it.id })
+        val want = crew(next) ?: return
+        if (want != slots.value && PatternSets.followsGroup(slots.value, prev?.let { crew(it) })) want.forEachIndexed { i, pid -> setSlot(i, pid) }
+    }
 
     fun shiftMonth(delta: Int) {
         val m = month.value; val t = (m.year * 12 + (m.month - 1)) + delta

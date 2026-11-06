@@ -248,7 +248,10 @@ fun SlotPickDialog(vm: MainVm, slot: Int?, onClose: () -> Unit) {
                 Text("اضافه کردن شیفت کاری جدید به برنامه", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
             }
         }
-        patterns.forEach { p ->
+        PatternSets.group(patterns) { PatternSets.keyOf(it.name, it.setName) }.forEach { grp ->
+          val setKey = PatternSets.keyOf(grp[0].name, grp[0].setName)
+          if (setKey.isNotEmpty()) Text(setKey, style = MaterialTheme.typography.labelLarge, color = Pal.muted, modifier = Modifier.padding(top = 6.dp, start = 4.dp))
+          grp.forEach { p ->
             val on = sel == p.id
             Row(
                 Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium)
@@ -258,10 +261,13 @@ fun SlotPickDialog(vm: MainVm, slot: Int?, onClose: () -> Unit) {
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(p.name, style = MaterialTheme.typography.titleSmall, color = if (on) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface)
-                    if (p.company.isNotBlank()) Text(p.company, style = MaterialTheme.typography.bodySmall, color = Pal.muted)
+                    // شرکت/بخش/تاریخ شروع: برای تشخیص دو الگوی هم‌نام (مثلاً دو «B» از دو مجموعهٔ مختلف)
+                    val sub = listOf(p.company, p.section, "شروع " + Fa.digits(DateText.format(p.base()))).filter { it.isNotBlank() }.joinToString(" · ")
+                    Text(sub, style = MaterialTheme.typography.bodySmall, color = Pal.muted)
                 }
                 if (on) Ico(R.drawable.ic_check_circle, size = 22.dp, tint = MaterialTheme.colorScheme.primary)
             }
+          }
         }
     }
     if (creating) PatternDialog(vm, null, assignSlot = slot, selectNew = slot == null, onSaved = onClose, onClose = { creating = false })
