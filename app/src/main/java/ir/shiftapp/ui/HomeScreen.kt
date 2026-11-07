@@ -518,6 +518,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
         }
     }
+    }
     AdPanel(prefs.adFeed, prefs.adPublic, compact = landscape)      // پنل ثابت پایین؛ در حالت افقی باریک می‌شود (حذف نمی‌شود)
     }
     }
