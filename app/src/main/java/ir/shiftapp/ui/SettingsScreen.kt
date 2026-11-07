@@ -188,18 +188,6 @@ fun SettingsScreen(vm: MainVm) {
             }
         }
 
-        if (NoticeLoader.enabled || prefs.noticeFeed.isNotEmpty()) SettingsGroup("اخبار و اطلاعیه‌ها", icon = R.drawable.ic_today) {
-            var noticeOn by remember { mutableStateOf(NoticeLoader.isOn(ctx)) }
-            GroupSwitch(
-                "دریافت اطلاعیه‌های برنامه", noticeOn,
-                (if (prefs.noticeFeed.isNotEmpty()) "اطلاعیه‌های عمومی برنامه و اعلان‌های مخصوص محل کار شما به‌صورت اعلان؛ " else "اطلاعیهٔ نسخهٔ جدید و خبرهای مهم به‌صورت اعلان؛ ") + "فقط یک فایل متنی کوچک از اینترنت گرفته می‌شود و اطلاعات شخصی ارسال نمی‌شود."
-            ) { on ->
-                noticeOn = on
-                NoticeLoader.setOn(ctx, on)
-                if (on && Build.VERSION.SDK_INT >= 33) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-
         SettingsGroup("اطمینان از آلارم و اذان", icon = R.drawable.ic_alarm) {
             ReliabilityPanel(vm, prefs)
         }
