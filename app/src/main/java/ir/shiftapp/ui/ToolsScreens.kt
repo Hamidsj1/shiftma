@@ -32,6 +32,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -342,7 +344,7 @@ internal fun StripShell(content: @Composable RowScope.() -> Unit) {
     }
     Box(
         Modifier.fillMaxWidth().clip(shape)
-            .background(Brush.horizontalGradient(listOf(lerp(base, blue, t), lerp(blue, base, t)))).padding(vertical = 7.dp, horizontal = 8.dp)
+            .background(Brush.horizontalGradient(listOf(lerp(base, blue, t), lerp(blue, base, t)))).padding(vertical = 4.dp, horizontal = 8.dp)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -354,7 +356,7 @@ internal fun StripShell(content: @Composable RowScope.() -> Unit) {
     ) {
         Row(
             Modifier.fillMaxWidth().horizontalScroll(scroll),
-            horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.Top,
             content = content
         )
     }
@@ -364,15 +366,15 @@ internal fun StripShell(content: @Composable RowScope.() -> Unit) {
 @Composable
 internal fun StripAction(label: String, icon: Int, outlined: Boolean, onClick: () -> Unit) {
     Column(
-        Modifier.width(76.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = label, onClick = onClick).padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
+        Modifier.width(64.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClickLabel = label, onClick = onClick).padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        val box = Modifier.size(52.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.14f))
+        val box = Modifier.size(40.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.14f))
         Box(
             if (outlined) box.border(1.5.dp, Color.White.copy(alpha = 0.6f), RoundedCornerShape(15.dp)) else box,
             contentAlignment = Alignment.Center
-        ) { Ico(icon, size = 24.dp, tint = Color.White) }
-        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.9f), maxLines = 2, minLines = 2, textAlign = TextAlign.Center)
+        ) { Ico(icon, size = 20.dp, tint = Color.White) }
+        Text(label, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.9f), maxLines = 1, textAlign = TextAlign.Center)
     }
 }
 
@@ -427,19 +429,19 @@ private fun EssentialSiteItem(title: String, url: String, key: String, onClick: 
         bytes?.let { b -> runCatching { android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)?.asImageBitmap() }.getOrNull() }
     }
     Column(
-        Modifier.width(76.dp).clip(RoundedCornerShape(14.dp))
+        Modifier.width(64.dp).clip(RoundedCornerShape(14.dp))
             .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onLongClick, onLongClickLabel = if (onLongClick != null) "ویرایش و جابه‌جایی" else null)
-            .padding(vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         Box(
-            Modifier.size(52.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.94f)),
+            Modifier.size(40.dp).clip(RoundedCornerShape(15.dp)).background(Color.White.copy(alpha = 0.94f)),
             contentAlignment = Alignment.Center
         ) {
-            if (bmp != null) Image(bmp, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)))
+            if (bmp != null) Image(bmp, contentDescription = null, contentScale = ContentScale.Fit, modifier = Modifier.size(28.dp).clip(RoundedCornerShape(8.dp)))
             else Text(title.firstOrNull()?.toString().orEmpty(), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4338CA))
         }
-        Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(title, style = MaterialTheme.typography.labelMedium, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
@@ -565,4 +567,30 @@ fun TvSection(vm: MainVm, onHome: () -> Unit) {
         HintText("تلوبیون اگر روی گوشی نصب باشد با خود برنامه باز می‌شود. هر سایت را می‌توانید ویرایش، جابه‌جا یا حذف کنید؛ روی نوار صفحهٔ اول هم با نگه‌داشتن انگشت روی سایت همین کار ممکن است.")
     }
     StripDialogs(vm, Strip.TV, sites, ui, vertical = true)
+}
+
+/** نوار ترکیبیِ کم‌ارتفاع: دو دکمهٔ کوچک برای انتخاب «سایت‌های ضروری» یا «تلویزیون» و زیرش همان نوار انتخاب‌شده. */
+@Composable
+fun CombinedStrip(
+    tvSelected: Boolean, onSelect: (Boolean) -> Unit,
+    ess: List<StripSite>, tv: List<StripSite>, essUi: StripUi, tvUi: StripUi,
+    onAllEss: () -> Unit, onAllTv: () -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf(false to "سایت‌های ضروری", true to "تلویزیون").forEach { (isTv, label) ->
+                val sel = tvSelected == isTv
+                Text(
+                    label, style = MaterialTheme.typography.labelLarge,
+                    color = if (sel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.clip(RoundedCornerShape(50))
+                        .background(if (sel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .clickable(role = Role.Tab, onClickLabel = label) { onSelect(isTv) }
+                        .semantics { selected = sel }
+                        .padding(horizontal = 14.dp, vertical = 5.dp)
+                )
+            }
+        }
+        if (tvSelected) TvStrip(tv, tvUi, onAllTv) else EssentialSitesStrip(ess, essUi, onAllEss)
+    }
 }

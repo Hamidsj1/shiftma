@@ -116,6 +116,7 @@ fun SettingsScreen(vm: MainVm) {
             val appCtx = LocalContext.current
             var callOn by remember { mutableStateOf(UiFlags.callButton(appCtx)) }
             GroupSwitch("دکمهٔ تماس روی صفحهٔ اول", callOn, "دکمهٔ گرد دفترچه تلفن؛ با خاموش کردن (از نوبت بعدی باز شدن صفحهٔ اول) پنهان می‌شود.") { callOn = it; UiFlags.setCallButton(appCtx, it) }
+            TextButton({ UiFlags.setCallPos(appCtx, null); android.widget.Toast.makeText(appCtx, "جای دکمه به حالت اول برگشت (با باز شدن دوبارهٔ صفحهٔ اول)", android.widget.Toast.LENGTH_SHORT).show() }) { Text("بازنشانی جای دکمهٔ تماس") }
         }
 
         SettingsGroup("ساعت شروع و پایان شیفت‌ها", icon = R.drawable.ic_schedule) {
