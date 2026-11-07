@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -476,50 +477,54 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     } else {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).then(paneMod)) { partA(); partB(); partC(); partD() }
     }
-    // دکمهٔ دم‌دستِ دفترچه تلفن: پیش‌فرض پایین-کنار صفحه؛ با لمس طولانی و کشیدن به هر جای دلخواه می‌رود و همان‌جا می‌ماند
+    // دکمهٔ دم‌دستِ دفترچه تلفن: همان جای ثابتِ پایین-چپ (تراز مطمئن)؛ لمس طولانی و کشیدن آن را جابه‌جا می‌کند و جا ذخیره می‌ماند
     if (callBtn && !editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
         val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
-        BoxWithConstraints(Modifier.fillMaxSize()) {
-            val density = androidx.compose.ui.platform.LocalDensity.current
-            val fab = with(density) { 64.dp.toPx() }
-            val maxX = (constraints.maxWidth - fab).coerceAtLeast(0f).toInt()
-            val maxY = (constraints.maxHeight - fab).coerceAtLeast(0f).toInt()
-            val defX = with(density) { if (rtl) maxX - 10.dp.roundToPx() else 10.dp.roundToPx() }.coerceIn(0, maxX)
-            val defY = (maxY - with(density) { 26.dp.roundToPx() }).coerceAtLeast(0)
-            var frac by remember { mutableStateOf(ir.shiftapp.core.FabPos.parse(UiFlags.callPos(ctx))) }
-            var dragPx by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
-            val cur0 = dragPx ?: frac?.let { androidx.compose.ui.geometry.Offset(ir.shiftapp.core.FabPos.toPx(it.first, maxX).toFloat(), ir.shiftapp.core.FabPos.toPx(it.second, maxY).toFloat()) }
-                ?: androidx.compose.ui.geometry.Offset(defX.toFloat(), defY.toFloat())
-            // همیشه داخل صفحه؛ و آخرین مقدار برای کشیدن‌های بعدی (بلوک اشاره‌گر قدیمی را نمی‌خواند)
-            val cur = androidx.compose.ui.geometry.Offset(cur0.x.coerceIn(0f, maxX.toFloat()), cur0.y.coerceIn(0f, maxY.toFloat()))
-            val curState = rememberUpdatedState(cur)
-            androidx.compose.material3.FloatingActionButton(
-                onClick = { onOpen("phonebook") },
-                modifier = Modifier.absoluteOffset { androidx.compose.ui.unit.IntOffset(cur.x.toInt(), cur.y.toInt()) }.size(64.dp)
-                    .pointerInput(maxX, maxY) {
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { dragPx = curState.value },
-                            onDrag = { change, d ->
-                                change.consume()
-                                val o = dragPx ?: curState.value
-                                dragPx = androidx.compose.ui.geometry.Offset((o.x + d.x).coerceIn(0f, maxX.toFloat()), (o.y + d.y).coerceIn(0f, maxY.toFloat()))
-                            },
-                            onDragEnd = {
-                                dragPx?.let {
-                                    val f = ir.shiftapp.core.FabPos.toFrac(it.x, maxX) to ir.shiftapp.core.FabPos.toFrac(it.y, maxY)
-                                    frac = f; UiFlags.setCallPos(ctx, ir.shiftapp.core.FabPos.encode(f.first, f.second))
-                                }
-                                dragPx = null
-                            },
-                            onDragCancel = { dragPx = null }
-                        )
-                    }
-                    .semantics { contentDescription = "تماس و دفترچه تلفن؛ با لمس طولانی جابه‌جا می‌شود" },
-                shape = CircleShape,
-                containerColor = CALL_WARM,
-                contentColor = Color.White
-            ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val fabPx = with(density) { 64.dp.toPx() }
+        val padX = with(density) { 10.dp.toPx() }
+        val padB = with(density) { 26.dp.toPx() }
+        var area by remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }          // اندازهٔ ناحیهٔ والد؛ تا معلوم نشده جای پیش‌فرض
+        val rangeX = (area.width - fabPx - 2 * padX).coerceAtLeast(0f).toInt()
+        val rangeY = (area.height - fabPx - padB - padX).coerceAtLeast(0f).toInt()
+        var frac by remember { mutableStateOf(ir.shiftapp.core.FabPos.parse(UiFlags.callPos(ctx))) }
+        var dragPx by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }   // جابه‌جایی فعلی نسبت به جای پیش‌فرض (px)؛ y بالا = مثبت
+        val saved = frac?.let { androidx.compose.ui.geometry.Offset(ir.shiftapp.core.FabPos.toPx(it.first, rangeX).toFloat(), ir.shiftapp.core.FabPos.toPx(it.second, rangeY).toFloat()) }
+        val cur = (dragPx ?: saved ?: androidx.compose.ui.geometry.Offset.Zero).let {
+            androidx.compose.ui.geometry.Offset(it.x.coerceIn(0f, rangeX.toFloat()), it.y.coerceIn(0f, rangeY.toFloat()))
         }
+        val curState = rememberUpdatedState(cur)
+        val rangeState = rememberUpdatedState(rangeX to rangeY)
+        androidx.compose.material3.FloatingActionButton(
+            onClick = { onOpen("phonebook") },
+            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(start = 10.dp, end = 10.dp, bottom = 26.dp).size(64.dp)
+                .onGloballyPositioned { c -> c.parentLayoutCoordinates?.size?.let { if (it != area) area = it } }
+                .absoluteOffset { androidx.compose.ui.unit.IntOffset(cur.x.toInt(), -cur.y.toInt()) }
+                .pointerInput(Unit) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { dragPx = curState.value },
+                        onDrag = { change, d ->
+                            change.consume()
+                            val o = dragPx ?: curState.value
+                            val (rx, ry) = rangeState.value
+                            dragPx = androidx.compose.ui.geometry.Offset((o.x + d.x).coerceIn(0f, rx.toFloat()), (o.y - d.y).coerceIn(0f, ry.toFloat()))
+                        },
+                        onDragEnd = {
+                            dragPx?.let {
+                                val (rx, ry) = rangeState.value
+                                val f = ir.shiftapp.core.FabPos.toFrac(it.x, rx) to ir.shiftapp.core.FabPos.toFrac(it.y, ry)
+                                frac = f; UiFlags.setCallPos(ctx, ir.shiftapp.core.FabPos.encode(f.first, f.second))
+                            }
+                            dragPx = null
+                        },
+                        onDragCancel = { dragPx = null }
+                    )
+                }
+                .semantics { contentDescription = "تماس و دفترچه تلفن؛ با لمس طولانی جابه‌جا می‌شود" },
+            shape = CircleShape,
+            containerColor = CALL_WARM,
+            contentColor = Color.White
+        ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
     }
     }
     AdPanel(prefs.adFeed, prefs.adPublic, compact = landscape)      // پنل ثابت پایین؛ در حالت افقی باریک می‌شود (حذف نمی‌شود)
