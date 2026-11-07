@@ -488,17 +488,20 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
             val defY = (maxY - with(density) { 26.dp.roundToPx() }).coerceAtLeast(0)
             var frac by remember { mutableStateOf(ir.shiftapp.core.FabPos.parse(UiFlags.callPos(ctx))) }
             var dragPx by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
-            val cur = dragPx ?: frac?.let { androidx.compose.ui.geometry.Offset(ir.shiftapp.core.FabPos.toPx(it.first, maxX).toFloat(), ir.shiftapp.core.FabPos.toPx(it.second, maxY).toFloat()) }
+            val cur0 = dragPx ?: frac?.let { androidx.compose.ui.geometry.Offset(ir.shiftapp.core.FabPos.toPx(it.first, maxX).toFloat(), ir.shiftapp.core.FabPos.toPx(it.second, maxY).toFloat()) }
                 ?: androidx.compose.ui.geometry.Offset(defX.toFloat(), defY.toFloat())
+            // همیشه داخل صفحه؛ و آخرین مقدار برای کشیدن‌های بعدی (بلوک اشاره‌گر قدیمی را نمی‌خواند)
+            val cur = androidx.compose.ui.geometry.Offset(cur0.x.coerceIn(0f, maxX.toFloat()), cur0.y.coerceIn(0f, maxY.toFloat()))
+            val curState = rememberUpdatedState(cur)
             androidx.compose.material3.FloatingActionButton(
                 onClick = { onOpen("phonebook") },
                 modifier = Modifier.absoluteOffset { androidx.compose.ui.unit.IntOffset(cur.x.toInt(), cur.y.toInt()) }.size(64.dp)
                     .pointerInput(maxX, maxY) {
                         detectDragGesturesAfterLongPress(
-                            onDragStart = { dragPx = cur },
+                            onDragStart = { dragPx = curState.value },
                             onDrag = { change, d ->
                                 change.consume()
-                                val o = dragPx ?: cur
+                                val o = dragPx ?: curState.value
                                 dragPx = androidx.compose.ui.geometry.Offset((o.x + d.x).coerceIn(0f, maxX.toFloat()), (o.y + d.y).coerceIn(0f, maxY.toFloat()))
                             },
                             onDragEnd = {
