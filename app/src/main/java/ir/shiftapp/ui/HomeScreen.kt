@@ -24,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
@@ -226,6 +228,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     // نوارهای «سایت‌های ضروری» و «تلویزیون»: فهرست قابل ویرایش (افزودن، ویرایش، جابه‌جایی، حذف)
     val essSites = remember(prefs.essListRaw, prefs.essSitesRaw) { StripSites.resolve(Strip.ESSENTIAL, prefs.essListRaw, prefs.essSitesRaw) }
     val tvSites = remember(prefs.tvListRaw) { StripSites.resolve(Strip.TV, prefs.tvListRaw) }
+    var tvTab by remember { mutableStateOf(UiFlags.stripTab(ctx) == "tv") }
     val essUi = rememberStripUi()
     val tvUi = rememberStripUi()
     val blocks = HomeLayout.order(HomeLayout.BLOCKS, layout["blocks"])      // گروه «سامانه‌ها» همیشه هست تا کاشی «افزودن سایت» دیده شود
@@ -405,7 +408,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     val partD: @Composable ColumnScope.() -> Unit = {
         LayoutBar(editing, { editing = true }, { saveLayout(emptyMap()) }, { editing = false })
         ReorderLayout(columns = 1, spacing = 4.dp, dr = blockDrag) {
-            shownBlocks.filter { editing || it != "links" }.forEach { id ->
+            shownBlocks.filter { if (editing) true else it != "links" && it != "tv" }.forEach { id ->
                 key(id) {
                     val bi = shownBlocks.indexOf(id)
                     val up = bi > 0
@@ -434,8 +437,13 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                                 }
                             }
                             "essential" -> {
-                                BlockHeader("سایت‌های ضروری", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
-                                EssentialSitesStrip(essSites, essUi, onAll = { onOpen("sites") })
+                                if (editing) {
+                                    BlockHeader("سایت‌های ضروری", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
+                                    EssentialSitesStrip(essSites, essUi, onAll = { onOpen("sites") })
+                                } else {
+                                    // بیرون از حالت چیدمان: یک نوار کم‌ارتفاع با دکمهٔ انتخاب بین ضروری و تلویزیون
+                                    CombinedStrip(tvTab, { tvTab = it; UiFlags.setStripTab(ctx, if (it) "tv" else "ess") }, essSites, tvSites, essUi, tvUi, { onOpen("sites") }, { onOpen("tv") })
+                                }
                             }
                             "tv" -> {
                                 BlockHeader("تلویزیون", editing, up, down, { moveBlock(id, -1) }, { moveBlock(id, 1) }, handle)
@@ -468,18 +476,47 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
     } else {
         Column(Modifier.fillMaxSize().verticalScroll(scroll).then(paneMod)) { partA(); partB(); partC(); partD() }
     }
-    // دکمهٔ دم‌دستِ دفترچه تلفن: پایین-چپ صفحه، فقط وقتی بخش در دسترس است (رمز ویژه یا فایل کاشی‌ها)
+    // دکمهٔ دم‌دستِ دفترچه تلفن: پیش‌فرض پایین-کنار صفحه؛ با لمس طولانی و کشیدن به هر جای دلخواه می‌رود و همان‌جا می‌ماند
     if (callBtn && !editing && (special || "phonebook" in enabledSections) && remote.visible("phonebook")) {
         val rtl = androidx.compose.ui.platform.LocalLayoutDirection.current == androidx.compose.ui.unit.LayoutDirection.Rtl
-        androidx.compose.material3.FloatingActionButton(
-            onClick = { onOpen("phonebook") },
-            modifier = Modifier.align(if (rtl) Alignment.BottomEnd else Alignment.BottomStart).padding(start = 10.dp, end = 10.dp, bottom = 26.dp).size(64.dp)
-                .semantics { contentDescription = "تماس و دفترچه تلفن" },
-            shape = CircleShape,
-            containerColor = CALL_WARM,
-            contentColor = Color.White
-        ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
-    }
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            val fab = with(density) { 64.dp.toPx() }
+            val maxX = (constraints.maxWidth - fab).coerceAtLeast(0f).toInt()
+            val maxY = (constraints.maxHeight - fab).coerceAtLeast(0f).toInt()
+            val defX = with(density) { if (rtl) maxX - 10.dp.roundToPx() else 10.dp.roundToPx() }.coerceIn(0, maxX)
+            val defY = (maxY - with(density) { 26.dp.roundToPx() }).coerceAtLeast(0)
+            var frac by remember { mutableStateOf(ir.shiftapp.core.FabPos.parse(UiFlags.callPos(ctx))) }
+            var dragPx by remember { mutableStateOf<androidx.compose.ui.geometry.Offset?>(null) }
+            val cur = dragPx ?: frac?.let { androidx.compose.ui.geometry.Offset(ir.shiftapp.core.FabPos.toPx(it.first, maxX).toFloat(), ir.shiftapp.core.FabPos.toPx(it.second, maxY).toFloat()) }
+                ?: androidx.compose.ui.geometry.Offset(defX.toFloat(), defY.toFloat())
+            androidx.compose.material3.FloatingActionButton(
+                onClick = { onOpen("phonebook") },
+                modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset(cur.x.toInt(), cur.y.toInt()) }.size(64.dp)
+                    .pointerInput(maxX, maxY) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { dragPx = cur },
+                            onDrag = { change, d ->
+                                change.consume()
+                                val o = dragPx ?: cur
+                                dragPx = androidx.compose.ui.geometry.Offset((o.x + d.x).coerceIn(0f, maxX.toFloat()), (o.y + d.y).coerceIn(0f, maxY.toFloat()))
+                            },
+                            onDragEnd = {
+                                dragPx?.let {
+                                    val f = ir.shiftapp.core.FabPos.toFrac(it.x, maxX) to ir.shiftapp.core.FabPos.toFrac(it.y, maxY)
+                                    frac = f; UiFlags.setCallPos(ctx, ir.shiftapp.core.FabPos.encode(f.first, f.second))
+                                }
+                                dragPx = null
+                            },
+                            onDragCancel = { dragPx = null }
+                        )
+                    }
+                    .semantics { contentDescription = "تماس و دفترچه تلفن؛ با لمس طولانی جابه‌جا می‌شود" },
+                shape = CircleShape,
+                containerColor = CALL_WARM,
+                contentColor = Color.White
+            ) { Icon(painterResource(R.drawable.ic_call), contentDescription = null, modifier = Modifier.size(32.dp)) }
+        }
     }
     AdPanel(prefs.adFeed, prefs.adPublic, compact = landscape)      // پنل ثابت پایین؛ در حالت افقی باریک می‌شود (حذف نمی‌شود)
     }
