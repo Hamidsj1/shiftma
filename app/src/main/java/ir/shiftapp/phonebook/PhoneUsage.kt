@@ -5,14 +5,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * آمار استفادهٔ دفترچه تلفن و سابقهٔ جست‌وجو؛ فقط روی همین گوشی (SharedPreferences جدا، نه دیتابیس مخاطبین).
+ * آمار تماس‌های دفترچه تلفن؛ فقط روی همین گوشی (SharedPreferences جدا، نه دیتابیس مخاطبین).
  * آمار به «شماره» وصل است، نه شناسهٔ مخاطب: با «جایگزینی همهٔ مخاطبین» شناسه‌ها عوض می‌شود ولی شماره‌ها می‌مانند.
  */
 object PhoneUsage {
     data class Stat(val count: Int, val last: Long)
 
     const val MAX_STATS = 400
-    const val MAX_HISTORY = 12
     private const val PREFS = "shiftma_phone_use"
 
     /** کلید شماره: فقط ارقام (فارسی/عربی هم)، برای شمارهٔ ≥۱۰ رقمی ۱۰ رقم آخر (تا 0912… و +98912… یکی باشند). */
@@ -44,20 +43,6 @@ object PhoneUsage {
         return m
     }
 
-    /** جست‌وجوی تازه به ابتدا می‌آید؛ تکراری (بدون توجه به فاصله/ارقام) یکی می‌شود؛ حداکثر [MAX_HISTORY] مورد. */
-    fun addHistory(h: List<String>, q: String): List<String> {
-        val t = q.trim()
-        if (t.length < 2) return h
-        val norm = fixDigits(t).lowercase()
-        return (listOf(t) + h.filter { fixDigits(it).lowercase() != norm }).take(MAX_HISTORY)
-    }
-
-    /** پیشنهادها هنگام تایپ: موارد سابقه که با متن فعلی شروع می‌شوند (خالی = همهٔ سابقه). */
-    fun suggestions(h: List<String>, typed: String): List<String> {
-        val t = fixDigits(typed.trim()).lowercase()
-        return if (t.isEmpty()) h else h.filter { val x = fixDigits(it).lowercase(); x.startsWith(t) && x != t }
-    }
-
     // ---- ذخیره ----
     private fun sp(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -69,13 +54,5 @@ object PhoneUsage {
     fun saveStats(ctx: Context, s: Map<String, Stat>) {
         val o = JSONObject(); s.forEach { (k, v) -> o.put(k, JSONArray().put(v.count).put(v.last)) }
         sp(ctx).edit().putString("stats", o.toString()).apply()
-    }
-
-    fun loadHistory(ctx: Context): List<String> = runCatching {
-        val a = JSONArray(sp(ctx).getString("history", "[]") ?: "[]"); (0 until a.length()).map { a.getString(it) }
-    }.getOrDefault(emptyList())
-
-    fun saveHistory(ctx: Context, h: List<String>) {
-        sp(ctx).edit().putString("history", JSONArray(h).toString()).apply()
     }
 }

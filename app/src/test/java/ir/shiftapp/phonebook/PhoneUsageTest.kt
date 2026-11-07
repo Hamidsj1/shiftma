@@ -41,23 +41,4 @@ class PhoneUsageTest {
         for (i in 0 until PhoneUsage.MAX_STATS + 20) s = PhoneUsage.bump(s, "55" + i.toString().padStart(6, '0'), i.toLong())
         assertEquals(PhoneUsage.MAX_STATS, s.size)
     }
-
-    @Test fun historyDedupesTrimsAndCaps() {
-        var h = emptyList<String>()
-        h = PhoneUsage.addHistory(h, "  علی ")
-        h = PhoneUsage.addHistory(h, "۱۲۳۴")
-        h = PhoneUsage.addHistory(h, "1234")          // همان ۱۲۳۴ با رقم دیگر: یکی می‌شود و به ابتدا می‌آید
-        assertEquals(listOf("1234", "علی"), h)
-        assertEquals(h, PhoneUsage.addHistory(h, "ب"))   // کوتاه‌تر از ۲ نویسه ثبت نمی‌شود
-        for (i in 0 until 30) h = PhoneUsage.addHistory(h, "جست $i")
-        assertEquals(PhoneUsage.MAX_HISTORY, h.size)
-        assertEquals("جست 29", h.first())
-    }
-
-    @Test fun suggestionsFilterByPrefix() {
-        val h = listOf("علی رضایی", "برق", "علی")
-        assertEquals(h, PhoneUsage.suggestions(h, ""))
-        assertEquals(listOf("علی رضایی"), PhoneUsage.suggestions(h, "علی"))   // خودِ متن تایپ‌شده پیشنهاد نمی‌شود
-        assertTrue(PhoneUsage.suggestions(h, "x").isEmpty())
-    }
 }

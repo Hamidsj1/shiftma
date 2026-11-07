@@ -28,7 +28,6 @@ class PhonebookVm(app: Application) : AndroidViewModel(app) {
     val prefix = MutableStateFlow(PhoneActions.loadPrefix(app))
 
     private var stats: Map<String, PhoneUsage.Stat> = PhoneUsage.loadStats(app)
-    val history = MutableStateFlow(PhoneUsage.loadHistory(app))
 
     private val thumbs = LruCache<String, Bitmap>(120)
     private var refreshJob: Job? = null
@@ -56,21 +55,12 @@ class PhonebookVm(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** تماس گرفتن با [number] (یا باز کردن مخاطب از نتیجهٔ جست‌وجو): شمارش و سابقهٔ جست‌وجو. */
+    /** تماس گرفتن با [number]: شمارندهٔ شماره یکی زیاد می‌شود و مخاطب همین حالا بالای لیست می‌آید. */
     fun recordUse(c: Contact, number: String = c.mobile.ifBlank { c.landline }) {
         stats = PhoneUsage.bump(stats, number, System.currentTimeMillis())
         PhoneUsage.saveStats(ctx, stats)
-        commitQuery()
-        refresh()      // شمارهٔ پراستفاده‌تر همین حالا بالا می‌رود (کاربر در جزئیات یا برنامهٔ تماس است)
+        refresh()
     }
-
-    /** متن فعلی جست‌وجو را (اگر خالی نیست) به سابقه می‌افزاید. */
-    fun commitQuery() {
-        val h = PhoneUsage.addHistory(history.value, query.value)
-        if (h != history.value) { history.value = h; PhoneUsage.saveHistory(ctx, h) }
-    }
-    fun removeHistory(q: String) { history.value = history.value - q; PhoneUsage.saveHistory(ctx, history.value) }
-    fun clearHistory() { history.value = emptyList(); PhoneUsage.saveHistory(ctx, emptyList()) }
 
     fun setPrefix(p: String) {
         val clean = fixDigits(p.trim()).replace('،', ',').replace(" ", "")
