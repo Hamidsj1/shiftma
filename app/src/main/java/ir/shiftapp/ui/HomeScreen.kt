@@ -492,7 +492,7 @@ fun HomeScreen(vm: MainVm, onOpen: (String) -> Unit, onLink: (String) -> Unit, p
                 ?: androidx.compose.ui.geometry.Offset(defX.toFloat(), defY.toFloat())
             androidx.compose.material3.FloatingActionButton(
                 onClick = { onOpen("phonebook") },
-                modifier = Modifier.offset { androidx.compose.ui.unit.IntOffset(cur.x.toInt(), cur.y.toInt()) }.size(64.dp)
+                modifier = Modifier.absoluteOffset { androidx.compose.ui.unit.IntOffset(cur.x.toInt(), cur.y.toInt()) }.size(64.dp)
                     .pointerInput(maxX, maxY) {
                         detectDragGesturesAfterLongPress(
                             onDragStart = { dragPx = cur },
