@@ -14,9 +14,40 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      - run: |
-          if [ -f .github/signing/debug.keystore ]; then mkdir -p ~/.android && cp .github/signing/debug.keystore ~/.android/debug.keystore; fi
+      - name: Prepare signing key
+        run: |
+          mkdir -p ~/.android
+          P=.github/signing/key.properties
+          if [ -f "$P" ] && [ -f .github/signing/key.keystore ]; then
+            SP=$(grep '^storePass=' "$P" | cut -d= -f2-)
+            AL=$(grep '^alias=' "$P" | cut -d= -f2-)
+            KP=$(grep '^keyPass=' "$P" | cut -d= -f2-)
+            rm -f ~/.android/debug.keystore
+            keytool -importkeystore -noprompt -srckeystore .github/signing/key.keystore -srcstorepass "$SP" -srcalias "$AL" -srckeypass "$KP" -destkeystore ~/.android/debug.keystore -deststoretype PKCS12 -deststorepass android -destalias androiddebugkey -destkeypass android
+          elif [ -f .github/signing/debug.keystore ]; then
+            cp .github/signing/debug.keystore ~/.android/debug.keystore
+          fi
       - run: gradle assembleDebug
+      - name: Sign APK with the fixed key
+        run: |
+          APK=$(ls app/build/outputs/apk/debug/*.apk | head -1)
+          KS=""
+          if [ -f .github/signing/key.properties ] && [ -f .github/signing/key.keystore ]; then
+            KS=.github/signing/key.keystore
+            SP=$(grep '^storePass=' .github/signing/key.properties | cut -d= -f2-)
+            AL=$(grep '^alias=' .github/signing/key.properties | cut -d= -f2-)
+            KP=$(grep '^keyPass=' .github/signing/key.properties | cut -d= -f2-)
+          elif [ -f .github/signing/debug.keystore ]; then
+            KS=.github/signing/debug.keystore; SP=android; AL=androiddebugkey; KP=android
+          fi
+          if [ -z "$KS" ]; then
+            echo "::warning::No signing key in .github/signing - this APK has a RANDOM signature, updates over an installed version will fail."
+          else
+            APKSIGNER=$(ls -d "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+            "$APKSIGNER" sign --ks "$KS" --ks-key-alias "$AL" --ks-pass "pass:$SP" --key-pass "pass:$KP" --out signed.apk "$APK"
+            mv signed.apk "$APK"
+            "$APKSIGNER" verify --print-certs "$APK" | head -4
+          fi
       - name: Name the APK (repo-version-date)
         run: |
           R="${GITHUB_REPOSITORY#*/}"
@@ -30,3 +61,4 @@ jobs:
         with:
           name: ${{ env.APK_NAME }}
           path: out/*.apk
+          retention-days: 7
