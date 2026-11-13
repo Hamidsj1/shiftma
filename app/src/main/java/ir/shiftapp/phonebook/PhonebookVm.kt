@@ -27,6 +27,8 @@ class PhonebookVm(app: Application) : AndroidViewModel(app) {
     val message = MutableStateFlow<String?>(null)
     val prefix = MutableStateFlow(PhoneActions.loadPrefix(app))
 
+    private var stats: Map<String, PhoneUsage.Stat> = PhoneUsage.loadStats(app)
+
     private val thumbs = LruCache<String, Bitmap>(120)
     private var refreshJob: Job? = null
 
@@ -45,11 +47,19 @@ class PhonebookVm(app: Application) : AndroidViewModel(app) {
             val q = query.value
             val res = withContext(Dispatchers.IO) {
                 val all = db.search("")
-                (if (normalizeFa(q).isEmpty()) all else all.filter { it.matches(q) }) to all.size
+                // شماره‌هایی که زیاد جست‌وجو یا تماس گرفته شده‌اند بالای لیست می‌آیند
+                PhoneUsage.rank(if (normalizeFa(q).isEmpty()) all else all.filter { it.matches(q) }, stats) to all.size
             }
             contacts.value = res.first
             total.value = res.second
         }
+    }
+
+    /** تماس گرفتن با [number]: شمارندهٔ شماره یکی زیاد می‌شود و مخاطب همین حالا بالای لیست می‌آید. */
+    fun recordUse(c: Contact, number: String = c.mobile.ifBlank { c.landline }) {
+        stats = PhoneUsage.bump(stats, number, System.currentTimeMillis())
+        PhoneUsage.saveStats(ctx, stats)
+        refresh()
     }
 
     fun setPrefix(p: String) {

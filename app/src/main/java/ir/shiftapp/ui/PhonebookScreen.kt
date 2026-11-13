@@ -114,7 +114,10 @@ fun PhonebookSection(vm: PhonebookVm, siteTiles: List<ir.shiftapp.core.SiteTile>
                     BarIconButton(R.drawable.ic_share, "ارسال فایل مخاطبین", { shareChoice = true })
                     BarIconButton(R.drawable.ic_settings, "مدیریت دفترچه", { showManage = true })
                 }
-                SearchField(query, onChange = { vm.setQuery(it) }, modifier = Modifier.padding(horizontal = 16.dp))
+                // پس‌زمینهٔ جدا برای ناحیهٔ جست‌وجو تا از صفحهٔ اصلی متمایز باشد
+                Surface(Modifier.fillMaxWidth().padding(horizontal = 12.dp), shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.surfaceContainerHigh, tonalElevation = 0.dp) {
+                    SearchField(query, onChange = { vm.setQuery(it) }, modifier = Modifier.padding(horizontal = 6.dp, vertical = 6.dp))
+                }
             }
         },
         floatingActionButton = {
@@ -312,11 +315,11 @@ private fun Modifier.thinScrollbar(state: LazyListState, color: Color): Modifier
 }
 
 @Composable
-private fun NumberChip(icon: Int, number: String, tone: Pair<Color, Color>, prefix: String, modifier: Modifier) {
+private fun NumberChip(icon: Int, number: String, tone: Pair<Color, Color>, prefix: String, modifier: Modifier, onUse: () -> Unit = {}) {
     val ctx = LocalContext.current
     Row(
         modifier.height(42.dp).clip(CircleShape).background(tone.first)
-            .clickable(role = Role.Button) { PhoneActions.dial(ctx, number, prefix) }.padding(horizontal = 12.dp),
+            .clickable(role = Role.Button) { onUse(); PhoneActions.dial(ctx, number, prefix) }.padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center
     ) {
         Ico(icon, size = 18.dp, tint = tone.second)
@@ -348,7 +351,7 @@ private fun ContactCard(vm: PhonebookVm, c: Contact, prefix: String, onClick: ()
                         if (c.mobile.isNotBlank()) add(Triple(R.drawable.ic_phone_mobile, c.mobile, mobile))
                         if (c.landline.isNotBlank()) add(Triple(R.drawable.ic_call, c.landline, landline))
                     }
-                    chips.forEach { (icon, num, tone) -> NumberChip(icon, num, tone, prefix, Modifier.weight(1f)) }
+                    chips.forEach { (icon, num, tone) -> NumberChip(icon, num, tone, prefix, Modifier.weight(1f), onUse = { vm.recordUse(c, num) }) }
                     if (chips.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
@@ -357,7 +360,7 @@ private fun ContactCard(vm: PhonebookVm, c: Contact, prefix: String, onClick: ()
 }
 
 @Composable
-private fun NumberCard(title: String, number: String, prefix: String, tone: Pair<Color, Color>, icon: Int) {
+private fun NumberCard(title: String, number: String, prefix: String, tone: Pair<Color, Color>, icon: Int, onUse: () -> Unit = {}) {
     if (number.isBlank()) return
     val ctx = LocalContext.current
     Row(
@@ -370,7 +373,7 @@ private fun NumberCard(title: String, number: String, prefix: String, tone: Pair
         }
         SmallIconButton(R.drawable.ic_copy, "کپی", { PhoneActions.copy(ctx, number) })
         Box(
-            Modifier.size(46.dp).clip(CircleShape).background(tone.first).clickable(role = Role.Button) { PhoneActions.dial(ctx, number, prefix) },
+            Modifier.size(46.dp).clip(CircleShape).background(tone.first).clickable(role = Role.Button) { onUse(); PhoneActions.dial(ctx, number, prefix) },
             contentAlignment = Alignment.Center
         ) { Ico(icon, size = 22.dp, tint = tone.second, desc = "تماس") }
     }
@@ -405,8 +408,8 @@ private fun DetailDialog(vm: PhonebookVm, c: Contact, prefix: String, onNeedPref
                     if (c.dept.isNotBlank()) Text("امور: ${c.dept}", style = MaterialTheme.typography.bodyMedium, color = Pal.muted, textAlign = TextAlign.Center)
                     if (c.unit.isNotBlank()) Text("واحد: ${c.unit}", style = MaterialTheme.typography.bodyMedium, color = Pal.muted, textAlign = TextAlign.Center)
                 }
-                NumberCard("همراه", c.mobile, prefix, mobile, R.drawable.ic_call)
-                NumberCard("محل / داخلی", c.landline, prefix, landline, R.drawable.ic_call)
+                NumberCard("همراه", c.mobile, prefix, mobile, R.drawable.ic_call, onUse = { vm.recordUse(c, c.mobile) })
+                NumberCard("محل / داخلی", c.landline, prefix, landline, R.drawable.ic_call, onUse = { vm.recordUse(c, c.landline) })
                 val links = remember(c) { Social.links(c) }
                 if (c.mobile.isNotBlank() || links.isNotEmpty()) {
                     var more by remember { mutableStateOf(false) }

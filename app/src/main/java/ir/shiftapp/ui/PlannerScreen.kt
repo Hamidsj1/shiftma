@@ -46,7 +46,7 @@ fun PlannerSection(vm: MainVm, onHome: () -> Unit) {
             TextButton({ epoch += 1 }) { Text("روز بعد") }
         }
         AppCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("نوع روز", style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Planner.DAY_TYPES.forEachIndexed { i, n -> AppChip(n, day.dayType == i, { setDay { it.copy(dayType = i) } }) }
@@ -66,22 +66,27 @@ fun PlannerSection(vm: MainVm, onHome: () -> Unit) {
 
         // ── ۱) اولویت‌ها ──
         SectionLabel("۱) سه اولویت امروز")
-        HintText("معیار انتخاب: ضرب‌الاجل دارد؟ یا بیشترین اثر را دارد؟ کاری که یکی از این دو را داشت، کاندید اولویت است.")
+        HintText("ضرب‌الاجل یا بیشترین اثر = کاندید اولویت")
         AppCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 day.priorities.forEachIndexed { i, p ->
                     key(epoch, i, holder.epoch) {
+                        // جزئیات (ضرب‌الاجل/اثر و زمان‌ها) تا وقتی پر نشده یا باز نشده جمع است تا صفحه کوتاه‌تر باشد
+                        var open by rememberSaveable { mutableStateOf(p.impact.isNotBlank() || p.predictMin > 0 || p.actualMin > 0) }
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 CheckDot(p.done) { setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(done = !x.done) else x }) } }
                                 AppField(p.text, { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(text = v.take(200)) else x }) } },
                                     "اولویت ${Fa.num(i + 1)}", Modifier.weight(1f))
+                                TextButton({ open = !open }) { Text(if (open) "کمتر" else "جزئیات", style = MaterialTheme.typography.labelLarge) }
                             }
-                            AppField(p.impact, { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(impact = v.take(120)) else x }) } },
-                                "ضرب‌الاجل / اثر")
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MinField("پیش‌بینی (دقیقه)", p.predictMin, Modifier.weight(1f)) { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(predictMin = v) else x }) } }
-                                MinField("واقعی (دقیقه)", p.actualMin, Modifier.weight(1f)) { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(actualMin = v) else x }) } }
+                            if (open) Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                AppField(p.impact, { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(impact = v.take(120)) else x }) } },
+                                    "ضرب‌الاجل / اثر")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    MinField("پیش‌بینی (دقیقه)", p.predictMin, Modifier.weight(1f)) { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(predictMin = v) else x }) } }
+                                    MinField("واقعی (دقیقه)", p.actualMin, Modifier.weight(1f)) { v -> setDay { d -> d.copy(priorities = d.priorities.mapIndexed { j, x -> if (j == i) x.copy(actualMin = v) else x }) } }
+                                }
                             }
                         }
                     }
@@ -93,7 +98,7 @@ fun PlannerSection(vm: MainVm, onHome: () -> Unit) {
         // ── ۲) برنامهٔ ساعتی ──
         SectionLabel("۲) برنامهٔ ساعتی")
         AppCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Planner.sortedRows(day.rows).forEach { r ->
                     key(epoch, r.id, holder.epoch) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -124,7 +129,7 @@ fun PlannerSection(vm: MainVm, onHome: () -> Unit) {
         // ── ۳) مرور شبانه ──
         SectionLabel("۳) مرور شبانه (۵ دقیقه)")
         AppCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (day.review.all { it.text.isBlank() } && day.priorities.any { !it.isEmpty }) {
                     AppButton("برداشتن کارها از اولویت‌ها", {
                         setDay { d -> d.copy(review = List(3) { i -> d.priorities.getOrNull(i)?.takeIf { !it.isEmpty }?.let { PlanReview(it.text, if (it.done) 1 else 0) } ?: d.review[i] }) }
@@ -151,7 +156,7 @@ fun PlannerSection(vm: MainVm, onHome: () -> Unit) {
         SectionLabel("ارزیابی پایان هفته")
         val ev = Planner.weekEval(st, epoch)
         AppCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("روزهایی که هر سه اولویت انجام شد: ${Fa.num(ev.allDoneDays)} از ۷", style = MaterialTheme.typography.bodyMedium)
                 Text(
                     "میانگین فاصلهٔ زمان پیش‌بینی با واقعی: " + (ev.avgGapMin?.let { "${Fa.num(it)} دقیقه" } ?: "هنوز دادهٔ کافی نیست"),

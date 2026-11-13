@@ -116,6 +116,7 @@ fun SettingsScreen(vm: MainVm) {
             val appCtx = LocalContext.current
             var callOn by remember { mutableStateOf(UiFlags.callButton(appCtx)) }
             GroupSwitch("دکمهٔ تماس روی صفحهٔ اول", callOn, "دکمهٔ گرد دفترچه تلفن؛ با خاموش کردن (از نوبت بعدی باز شدن صفحهٔ اول) پنهان می‌شود.") { callOn = it; UiFlags.setCallButton(appCtx, it) }
+            TextButton({ UiFlags.setCallPos(appCtx, null); android.widget.Toast.makeText(appCtx, "جای دکمه به حالت اول برگشت (با باز شدن دوبارهٔ صفحهٔ اول)", android.widget.Toast.LENGTH_SHORT).show() }) { Text("بازنشانی جای دکمهٔ تماس") }
         }
 
         SettingsGroup("ساعت شروع و پایان شیفت‌ها", icon = R.drawable.ic_schedule) {
@@ -185,18 +186,6 @@ fun SettingsScreen(vm: MainVm) {
                     }
                 }
                 AppButton("ارسال اعلان آزمایشی", { ReminderScheduler.show(ctx, "یادآور شیفت", "این یک اعلان آزمایشی است", prefs.reminderAlarm) }, Modifier.fillMaxWidth(), icon = R.drawable.ic_notifications, style = BtnStyle.Tonal)
-            }
-        }
-
-        if (NoticeLoader.enabled || prefs.noticeFeed.isNotEmpty()) SettingsGroup("اخبار و اطلاعیه‌ها", icon = R.drawable.ic_today) {
-            var noticeOn by remember { mutableStateOf(NoticeLoader.isOn(ctx)) }
-            GroupSwitch(
-                "دریافت اطلاعیه‌های برنامه", noticeOn,
-                (if (prefs.noticeFeed.isNotEmpty()) "اطلاعیه‌های عمومی برنامه و اعلان‌های مخصوص محل کار شما به‌صورت اعلان؛ " else "اطلاعیهٔ نسخهٔ جدید و خبرهای مهم به‌صورت اعلان؛ ") + "فقط یک فایل متنی کوچک از اینترنت گرفته می‌شود و اطلاعات شخصی ارسال نمی‌شود."
-            ) { on ->
-                noticeOn = on
-                NoticeLoader.setOn(ctx, on)
-                if (on && Build.VERSION.SDK_INT >= 33) notifPerm.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
 

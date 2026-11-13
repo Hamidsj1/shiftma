@@ -32,7 +32,6 @@ object NoticeLoader {
     private const val WORK = "notice_panel"
     private const val CHANNEL = "notice_panel"
     private const val FLAGS = "shiftma_flags"
-    private const val KEY_ON = "notice_on"
     private const val KEY_SEEN = "notice_seen"
     private const val KEY_LOCAL = "notice_local_url"
     private const val KEY_LOCAL_PUBLIC = "notice_local_public"
@@ -64,17 +63,10 @@ object NoticeLoader {
         apply(ctx); checkNow(ctx)
     }
 
-    fun isOn(ctx: Context): Boolean = ctx.getSharedPreferences(FLAGS, Context.MODE_PRIVATE).getBoolean(KEY_ON, true)
-
-    fun setOn(ctx: Context, on: Boolean) {
-        ctx.getSharedPreferences(FLAGS, Context.MODE_PRIVATE).edit().putBoolean(KEY_ON, on).apply()
-        apply(ctx)
-    }
-
-    /** زمان‌بندی را مطابق تنظیم کاربر برقرار یا لغو می‌کند (با هر بار باز شدن برنامه صدا زده می‌شود). */
+    /** زمان‌بندی دوره‌ای را (همیشه فعال؛ بدون کلید خاموش/روشن) برقرار یا اگر خوراکی نیست لغو می‌کند (با هر بار باز شدن برنامه صدا زده می‌شود). */
     fun apply(ctx: Context) {
         val wm = WorkManager.getInstance(ctx.applicationContext)
-        if (active(ctx) && isOn(ctx)) {
+        if (active(ctx)) {
             val req = PeriodicWorkRequestBuilder<NoticeWorker>(EVERY_HOURS, TimeUnit.HOURS)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
@@ -84,7 +76,7 @@ object NoticeLoader {
 
     /** یک بار همین حالا چک کن (مثلاً هنگام باز شدن برنامه). */
     fun checkNow(ctx: Context) {
-        if (!active(ctx) || !isOn(ctx)) return
+        if (!active(ctx)) return
         WorkManager.getInstance(ctx.applicationContext).enqueue(
             OneTimeWorkRequestBuilder<NoticeWorker>()
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build()
@@ -94,7 +86,7 @@ object NoticeLoader {
     /** @return false اگر دریافت دست‌کم یکی از خوراک‌ها شکست خورد (برای تلاش دوباره). */
     internal fun run(ctx: Context): Boolean {
         val sources = feeds(ctx)
-        if (sources.isEmpty() || !isOn(ctx)) return true
+        if (sources.isEmpty()) return true
         val sp = ctx.getSharedPreferences(FLAGS, Context.MODE_PRIVATE)
         var seen = sp.getString(KEY_SEEN, "").orEmpty().split('\n').filter { it.isNotEmpty() }
         // بدون مجوز اعلان، اعلان را «دیده‌شده» نکن تا بعد از دادن مجوز برسد.
