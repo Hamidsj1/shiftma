@@ -4,6 +4,7 @@ import android.content.Context
 import ir.shiftapp.core.Feeds
 import ir.shiftapp.core.PrefKeys
 import ir.shiftapp.core.RegionAssign
+import ir.shiftapp.core.RegionRule
 import ir.shiftapp.core.TilesPackFile
 import ir.shiftapp.core.feeds
 import ir.shiftapp.data.AppDb
@@ -39,6 +40,9 @@ object RegionLoader {
 
     /** برچسب منطقهٔ آخرین فایلی که وارد شده (کلید `region`)؛ خالی = ندارد. */
     fun regionTag(ctx: Context): String = RegionAssign.cleanTag(sp(ctx).getString(KEY_TAG, "").orEmpty())
+
+    /** قاعده‌های منطقهٔ ذخیره‌شده از آخرین دانلود موفق (بدون شبکه)؛ خالی اگر هنوز دانلود نشده. */
+    fun cachedRules(ctx: Context): List<RegionRule> = RegionAssign.parse(sp(ctx).getString(KEY_JSON, "").orEmpty()) ?: emptyList()
 
     /** برچسب نامعتبر یا خالی نادیده گرفته می‌شود (برچسب قبلی می‌ماند). */
     fun setRegionTag(ctx: Context, raw: String) {

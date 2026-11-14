@@ -48,6 +48,8 @@ import ir.shiftapp.R
 import ir.shiftapp.phonebook.Contact
 import ir.shiftapp.phonebook.PhoneActions
 import ir.shiftapp.phonebook.PhonebookVm
+import ir.shiftapp.phonebook.PrefixSuggest
+import ir.shiftapp.system.RegionLoader
 import ir.shiftapp.phonebook.Social
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,6 +88,25 @@ fun PhonebookSection(vm: PhonebookVm, siteTiles: List<ir.shiftapp.core.SiteTile>
     var importReplace by remember { mutableStateOf(false) }
     var confirmDeleteAll by remember { mutableStateOf(false) }
     var showPrefix by remember { mutableStateOf(false) }
+    LaunchedEffect(total, prefix) {
+        if (prefix.isNotBlank()) return@LaunchedEffect
+        val all = vm.allContacts()
+        if (all.none { PhoneActions.hasExtension(it) }) return@LaunchedEffect       // داخلی ۴ رقمی ندارد: چیزی برای پرسیدن نیست
+        // منطقه از سه راه: برچسب فایل، تطبیق شماره‌های دفترچه با فایل منطقه‌ها (regions.json)، یا خود شماره‌های کامل دفترچه
+        val tag = RegionLoader.regionTag(ctx)
+        val ruleId = runCatching {
+            ir.shiftapp.core.RegionAssign.pick(RegionLoader.cachedRules(ctx), emptySet(), emptySet(), tag,
+                ir.shiftapp.core.RegionAssign.phoneSigs(all.flatMap { listOf(it.mobile, it.landline) }))?.id
+        }.getOrNull()
+        val known = PrefixSuggest.forRegion(ruleId ?: tag) ?: PrefixSuggest.byNumbers(all)
+        if (known != null) {
+            // منطقهٔ شناخته‌شده (سونگون): یک بار خودکار اعمال می‌شود؛ هر زمان از «پیش‌شمارهٔ داخلی» قابل تغییر است
+            if (!PhoneActions.regionPrefixApplied(ctx)) { PhoneActions.markRegionPrefixApplied(ctx); vm.setPrefix(known) }
+        } else if (PhoneActions.loadSuggestDismissed(ctx) != "asked") {
+            // منطقهٔ دیگر یا نامشخص: یک بار از کاربر می‌پرسیم
+            PhoneActions.saveSuggestDismissed(ctx, "asked"); showPrefix = true
+        }
+    }
     var needPrefixFor by remember { mutableStateOf<Contact?>(null) }   // ذخیره در گوشی با پیش‌شمارهٔ خالی
     var deleting by remember { mutableStateOf<Contact?>(null) }
     var confirmExport by remember { mutableStateOf(false) }

@@ -13,6 +13,8 @@ import android.widget.Toast
 object PhoneActions {
     private const val PREFS = "phonebook_settings"
     private const val KEY_PREFIX = "ext_prefix"
+    private const val KEY_REGION_DONE = "ext_prefix_region_applied"
+    private const val KEY_SUGGEST_NO = "ext_prefix_suggest_dismissed"
 
     /** پیش‌شماره‌ای که قبل از شماره‌های ۴ رقمی (داخلی) اضافه می‌شود؛ پیش‌فرض خالی است. */
     fun loadPrefix(ctx: Context): String =
@@ -20,6 +22,22 @@ object PhoneActions {
 
     fun savePrefix(ctx: Context, prefix: String) {
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_PREFIX, prefix).apply()
+    }
+
+    /** پیش‌شمارهٔ پیشنهادی که کاربر «بعداً» زده (همان مقدار دوباره پرسیده نمی‌شود). */
+    fun loadSuggestDismissed(ctx: Context): String =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_SUGGEST_NO, "") ?: ""
+
+    fun saveSuggestDismissed(ctx: Context, local: String) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_SUGGEST_NO, local).apply()
+    }
+
+    /** پیش‌شمارهٔ منطقه فقط یک بار خودکار اعمال می‌شود تا اگر کاربر بعداً پاکش کرد، دوباره برنگردد. */
+    fun regionPrefixApplied(ctx: Context): Boolean =
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_REGION_DONE, false)
+
+    fun markRegionPrefixApplied(ctx: Context) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_REGION_DONE, true).apply()
     }
 
     /** فقط شمارهٔ دقیقاً ۴ رقمی (داخلی) پیش‌شماره می‌گیرد؛ بقیه بدون تغییر می‌مانند. */
